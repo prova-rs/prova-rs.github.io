@@ -1,0 +1,21 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'minor_release'
+        type: choice
+        options:
+          - minor_release
+          - patch_release
+          - major_release
+
+jobs:
+  release:
+    uses: archetect-actions/repository-release/.github/workflows/release.yaml@v1
+    with:
+      release_type: ${{ github.event.inputs.release_type }}
+    secrets: inherit
