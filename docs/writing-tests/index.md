@@ -16,6 +16,8 @@ This section teaches you the full authoring surface of Prova: declaring tests, b
 5. **[Dependencies & Scheduling](./dependencies-and-scheduling.md)** — the `depends_on` DAG, resource declarations, and capability gating.
 6. **[Suites & Shared State](./suites-and-shared-state.md)** — one Lua state across many files, so expensive infrastructure is provisioned once.
 7. **[Testing Real Systems](./testing-real-systems.md)** — the capstone: render a service, build it, provision Postgres, boot it, and drive its gRPC API while cross-checking the database.
+8. **[Multi-Service Systems](./multi-service-systems.md)** — the capstone, scaled up: a Rust gRPC producer and a Python REST consumer joined by Pulsar, each with its own database, driven end to end by one test with assertions at every tier boundary.
+9. **[Building from Primitives](./building-from-primitives.md)** — the roll-up-your-sleeves track: rebuild a container recipe by hand from `docker.run`, `prova.retry`, and `ctx:manage`, so you can wrap any dependency Prova has no recipe for.
 
 ## Prerequisites
 

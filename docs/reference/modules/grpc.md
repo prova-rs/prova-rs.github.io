@@ -42,7 +42,7 @@ end)
 
 ## `GrpcClient`
 
-Method names are `"package.Service/Method"` (a leading `/` is accepted). Request tables map onto the method's input message by the proto JSON mapping; response tables carry the full message shape — zero and empty fields are present, with JSON-style (camelCase) field names.
+Method names are `"package.Service/Method"` (a leading `/` is accepted). Request tables map onto the method's input message by the proto JSON mapping; response tables carry the full message shape — zero and empty fields are present, field names are the proto (snake_case) names you used in the request, and 64-bit integers arrive as Lua numbers. What you send is the shape you read back.
 
 ### `client:call(method, request)`
 
