@@ -5,7 +5,7 @@ sidebar_label: "Kafka & Pulsar"
 
 # Kafka & Pulsar
 
-Twinned thin messaging clients for driving a broker dependency from a test: **produce** a message the app under test should consume, or **consume** messages the app produced and assert on them. Both consumers read from the **earliest offset**, so a produce-then-consume within one test is reliable regardless of ordering. Both modules ship an ephemeral-container recipe, the messaging counterpart to [`db.postgres`](db.md#recipes-dbpostgres--dbmysql).
+Twinned thin messaging clients for driving a broker dependency from a test: **produce** a message the app under test should consume, or **consume** messages the app produced and assert on them. Both consumers read from the **earliest offset**, so a produce-then-consume within one test is reliable regardless of ordering. Both modules ship an ephemeral-container recipe, the messaging counterpart to [`postgres.container`](databases.md#recipes-postgrescontainer--mysqlcontainer).
 
 :::note Plaintext-only in v1
 Neither client does TLS/SASL/token auth — they are aimed at localhost brokers and CI containers.
@@ -13,10 +13,10 @@ Neither client does TLS/SASL/token auth — they are aimed at localhost brokers 
 
 ## kafka
 
-### `kafka.connect(brokers)`
+### `kafka.client(brokers)`
 
 ```lua
-kafka.connect(brokers) --> KafkaClient
+kafka.client(brokers) --> KafkaClient
 ```
 
 | Parameter | Type | Description |
@@ -90,14 +90,14 @@ Unlike the other recipes, Kafka uses a **fixed** host port (default `9092`), bec
 | `opts.port` | `integer?` | Fixed host port (default `9092`) |
 | `opts.timeout` | `string?` | Readiness deadline (default `"90s"`) |
 
-**Returns:** a `KafkaResource`: `brokers` (`string`, e.g. `"127.0.0.1:9092"`), `client` (`KafkaClient`, managed), and `container` (the managed [container handle](docker.md#container)).
+**Returns:** a `KafkaResource` — the standard resource shape: `client` (`KafkaClient`, managed), `url` (`string`, the bootstrap brokers, e.g. `"127.0.0.1:9092"`), and `container` (the managed [container handle](docker.md#container)).
 
 ## pulsar
 
-### `pulsar.connect(url)`
+### `pulsar.client(url)`
 
 ```lua
-pulsar.connect(url) --> PulsarClient
+pulsar.client(url) --> PulsarClient
 ```
 
 | Parameter | Type | Description |
@@ -169,4 +169,4 @@ Pulsar standalone is a heavy image and slow to start (tens of seconds on a cold 
 | `opts.tag` | `string?` | Image tag (default `"3.3.1"`) |
 | `opts.timeout` | `string?` | Readiness deadline (default `"120s"`) |
 
-**Returns:** a `PulsarResource`: `url` (`string`, e.g. `"pulsar://127.0.0.1:<host_port>"`), `client` (`PulsarClient`, managed), and `container` (the managed [container handle](docker.md#container)).
+**Returns:** a `PulsarResource` — the standard resource shape: `client` (`PulsarClient`, managed), `url` (`string`, e.g. `"pulsar://127.0.0.1:<host_port>"`), and `container` (the managed [container handle](docker.md#container)).

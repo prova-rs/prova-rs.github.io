@@ -4,12 +4,12 @@ sidebar_position: 8
 
 # redis
 
-A thin cache client — enough to assert on a cache dependency: check a key the app set, seed a value, count keys. The generic `:command(...)` is the escape hatch for anything not covered. No TLS in v1 (local/CI containers). `redis.container` is the ephemeral-container recipe, the counterpart to [`db.postgres`](db.md#recipes-dbpostgres--dbmysql).
+A thin cache client — enough to assert on a cache dependency: check a key the app set, seed a value, count keys. The generic `:command(...)` is the escape hatch for anything not covered. No TLS in v1 (local/CI containers). `redis.container` is the ephemeral-container recipe, the counterpart to [`postgres.container`](databases.md#recipes-postgrescontainer--mysqlcontainer).
 
-## `redis.connect(url)`
+## `redis.client(url)`
 
 ```lua
-redis.connect(url) --> RedisConnection
+redis.client(url) --> RedisConnection
 ```
 
 | Parameter | Type | Description |
@@ -36,7 +36,7 @@ All command methods are async and raise on a Redis error.
 
 ```lua
 local cache = prova.fixture("redis", Scope.File, function(ctx)
-  return redis.container(ctx).conn
+  return redis.container(ctx).client
 end)
 
 prova.group("redis", { requires = { "docker" } }, function(g)
@@ -72,10 +72,10 @@ Provisions an ephemeral Redis in a container, waits for it to accept connections
 | `opts.tag` | `string?` | Image tag (default `"7-alpine"`, image `redis`) |
 | `opts.timeout` | `string?` | Readiness deadline (default `"60s"`) |
 
-**Returns:** a `RedisResource`:
+**Returns:** a `RedisResource` — the standard resource shape:
 
 | Member | Type | Description |
 |---|---|---|
+| `client` | `RedisConnection` | An open, managed connection — exactly what `redis.client(url)` returns |
 | `url` | `string` | `redis://127.0.0.1:<host_port>` |
-| `conn` | `RedisConnection` | An open, managed connection |
 | `container` | `Container` | The managed [container handle](docker.md#container) |

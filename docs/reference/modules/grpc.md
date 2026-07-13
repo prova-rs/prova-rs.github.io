@@ -6,19 +6,19 @@ sidebar_position: 4
 
 A **native, dynamic gRPC client**. There is no `grpcurl` on PATH, no `.proto` files in the repo, and no codegen: the client discovers the server's schema at runtime via **gRPC Server Reflection**, builds request messages from plain Lua tables against the fetched descriptors, and decodes replies back to Lua tables. Prova stays a single self-contained binary.
 
-The server must have reflection enabled (both the current `v1` protocol and the older `v1alpha` many servers still use are supported — prova negotiates automatically). If reflection is off, `grpc.connect` fails with a clear message.
+The server must have reflection enabled (both the current `v1` protocol and the older `v1alpha` many servers still use are supported — prova negotiates automatically). If reflection is off, `grpc.client` fails with a clear message.
 
 :::note Plaintext-only in v1
 Like [`http`](http.md), the client speaks plaintext (no TLS) — aimed at localhost servers and CI containers.
 :::
 
-## `grpc.connect(addr, opts)`
+## `grpc.client(addr, opts)`
 
 ```lua
-grpc.connect(addr, opts?) --> GrpcClient
+grpc.client(addr, opts?) --> GrpcClient
 ```
 
-Connects to the server and performs reflection **once**, discovering every service it advertises. Async — call it inside a fixture factory or test body.
+Builds a client for the server at `addr`, performing reflection **once** to discover every service it advertises. Async — call it inside a fixture factory or test body.
 
 | Parameter | Type | Description |
 |---|---|---|
@@ -36,7 +36,7 @@ local server = prova.fixture("grpcbin", Scope.File, function(ctx)
   })
   local addr = "127.0.0.1:" .. c:host_port(9000)
   grpc.wait_for(addr, { timeout = "30s" })
-  return grpc.connect(addr)
+  return grpc.client(addr)
 end)
 ```
 

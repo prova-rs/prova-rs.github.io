@@ -12,5 +12,5 @@ Normative reference documentation for Prova. Every page in this section document
 | [CLI](./cli.md) | The `prova` command: every flag, discovery rules, and exit codes. |
 | [prova.toml](./prova-toml.md) | The full suite-manifest schema: `[run]`, `[profiles.*]`, `[suites.*]`, and how CLI flags interact with it. |
 | [Lua API](./lua-api/index.md) | The injected globals and the complete `prova` DSL: fixtures, tests, flows, groups, contexts, and matchers. |
-| [Modules](./modules/index.md) | The batteries: `fs`, `shell`, `http`, `grpc`, `graphql`, `docker`, `db`, `redis`, messaging, `s3`, `yaml`, and `archetect`. |
+| [Modules](./modules/index.md) | The batteries: `fs`, `shell`, `http`, `grpc`, `graphql`, `docker`, `postgres`/`mysql`/`sqlite`, `redis`, messaging, `s3`, `yaml`, and `archetect`. |
 | [Roadmap](./roadmap.md) | The canonical list of planned features and what to use today instead. |

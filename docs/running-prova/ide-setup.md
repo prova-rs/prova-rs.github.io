@@ -8,7 +8,7 @@ Prova tests are plain Lua, which means the mature Lua tooling ecosystem works on
 
 ## What you get
 
-- **Autocomplete** for `prova.*`, `expect(...)` matchers, the context methods (`ctx:use`, `ctx:defer`, `ctx:manage`, `ctx:tempdir`), and every built-in module (`http`, `shell`, `fs`, `docker`, `db`, ...).
+- **Autocomplete** for `prova.*`, `expect(...)` matchers, the context methods (`ctx:use`, `ctx:defer`, `ctx:manage`, `ctx:tempdir`), and every built-in module (`http`, `shell`, `fs`, `docker`, `postgres`, ...).
 - **Hover documentation** — each function's docs, parameters, and return types inline in the editor.
 - **Diagnostics** — typo'd function names, wrong argument shapes, and unknown globals flagged as you type.
 - **Typed fixture handles** — `prova.fixture` returns a typed handle, and `ctx:use(handle)` flows the fixture's value type through to the call site, so the object your test receives is fully typed and completable. (Passing a bare string name still works, but yields an untyped `any` — one more reason to prefer handles.)
@@ -16,7 +16,7 @@ Prova tests are plain Lua, which means the mature Lua tooling ecosystem works on
 The stubs are `---@meta` files — pure annotations, no runtime behavior. They live in the Prova repository under `library/`:
 
 - `library/prova.lua` — the test/fixture DSL: `prova`, `Scope`, contexts, `expect`, `suite`.
-- `library/modules.lua` — the built-in modules: `fs`, `shell`, `http`, `docker`, `db`, `archetect`, and friends.
+- `library/modules.lua` — the built-in modules: `fs`, `shell`, `http`, `docker`, `postgres`, `archetect`, and friends.
 
 ## Manual setup
 

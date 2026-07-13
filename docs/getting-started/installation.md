@@ -53,7 +53,7 @@ Run it for real with `prova prova-smoke` — it should report one passing test a
 
 Prova itself has no runtime dependencies, but some modules drive external tools:
 
-- **Docker** — the container-backed modules and recipes (`docker.run`, `db.postgres`, `redis.container`, `kafka.container`, and friends) shell out to the `docker` CLI. Install [Docker](https://docs.docker.com/get-docker/) if your tests provision ephemeral containers.
+- **Docker** — the container-backed modules and recipes (`docker.run`, `postgres.container`, `redis.container`, `kafka.container`, and friends) talk to the Docker daemon directly. Install [Docker](https://docs.docker.com/get-docker/) and have the daemon running if your tests provision ephemeral containers.
 - **Anything on your `PATH`** — tests that shell out to `cargo`, `git`, `kubectl`, etc. naturally need those tools present.
 
 You do not need any of these installed just to run Prova. Tests declare what they need with `requires = { "docker" }` (or any tool name), and when a capability is missing the test is **skipped with a reason — never failed** — so the same suite degrades gracefully across machines. See [Testing Real Systems](../writing-tests/testing-real-systems.md).

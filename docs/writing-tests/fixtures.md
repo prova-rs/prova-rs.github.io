@@ -127,7 +127,7 @@ Most resources you provision expose `stop()` (containers, processes) or `close()
 
 ```lua
 local pg = ctx:manage(docker.run{ image = "postgres:16-alpine", ports = { 5432 } })
-local conn = ctx:manage(db.connect(url))
+local conn = ctx:manage(postgres.client(url))
 ```
 
 It is pure sugar over `defer`; a resource with neither method is an error, and `defer` remains for anything custom.

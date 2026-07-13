@@ -263,7 +263,7 @@ raises with `message` (or a default) plus the last error seen. The readiness
 primitive:
 
 ```lua
-local conn = prova.retry(function() return db.connect(url) end,
+local conn = prova.retry(function() return postgres.client(url) end,
                          { timeout = "60s", every = "250ms", message = "postgres never came up" })
 ```
 

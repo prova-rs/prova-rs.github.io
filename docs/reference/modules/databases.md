@@ -1,28 +1,37 @@
 ---
 sidebar_position: 7
+sidebar_label: "Postgres, MySQL & SQLite"
 ---
 
-# db
+# Postgres, MySQL & SQLite
 
-One general SQL API over **Postgres, MySQL, and SQLite**. The backend is chosen by the connection URL's scheme, so the query surface is identical across all three — the only per-backend difference in a test is the URL and the placeholder syntax (`$1` for Postgres, `?` for MySQL/SQLite). No TLS in v1 (local/CI containers).
+Three namespaces — `postgres`, `mysql`, `sqlite` — fronting **one general SQL API**. Each `X.client(url)` returns the same generic `Connection` type, so the query surface is identical across all three — the only per-backend difference in a test is the URL and the placeholder syntax (`$1` for Postgres, `?` for MySQL/SQLite). The namespace exists for discoverability and URL-scheme validation, not for a per-engine API. No TLS in v1 (local/CI containers).
 
-The `db.postgres` and `db.mysql` **recipes** fold the whole provision-an-ephemeral-database dance into one call.
+The `postgres.container` and `mysql.container` **recipes** fold the whole provision-an-ephemeral-database dance into one call. SQLite has no container recipe — there is nothing to provision.
 
-## `db.connect(url)`
+## `postgres.client` / `mysql.client` / `sqlite.client`
 
 ```lua
-db.connect(url) --> Connection
+postgres.client(url) --> Connection
+mysql.client(url)    --> Connection
+sqlite.client(url)   --> Connection
 ```
 
-| Parameter | Type | Description |
-|---|---|---|
-| `url` | `string` | `postgres://user:pass@host:port/db`, `mysql://user:pass@host:port/db`, or `sqlite://<path>?mode=rwc` |
+| Namespace | URL | 
+|---|---|
+| `postgres` | `postgres://user:pass@host:port/db` (or `postgresql://`) |
+| `mysql` | `mysql://user:pass@host:port/db` |
+| `sqlite` | `sqlite://<path>?mode=rwc`, or `sqlite::memory:` for an in-memory database |
 
 **Returns:** a `Connection` (a small pool). Async — call inside a fixture factory or test body. Raises if the database is unreachable.
 
+Each namespace **validates its URL scheme** before connecting: `postgres.client("mysql://...")` raises immediately with `postgres.client: expected a postgres:// URL, got ...` — pass the URL to the namespace that matches it.
+
 ```lua
-local conn = db.connect("sqlite://" .. ctx:tempdir() .. "/app.db?mode=rwc")
+local conn = sqlite.client("sqlite://" .. ctx:tempdir() .. "/app.db?mode=rwc")
 ctx:manage(conn)   -- closed during teardown
+
+local mem = sqlite.client("sqlite::memory:")   -- in-memory, vanishes with the handle
 ```
 
 ## `Connection`
@@ -83,14 +92,14 @@ conn:close()
 
 Closes the connection pool. Async. Handing the connection to `ctx:manage(conn)` calls this during teardown.
 
-## Recipes: `db.postgres` / `db.mysql`
+## Recipes: `postgres.container` / `mysql.container`
 
 ```lua
-db.postgres(ctx, opts?) --> DbResource
-db.mysql(ctx, opts?)    --> DbResource
+postgres.container(ctx, opts?) --> SqlResource
+mysql.container(ctx, opts?)    --> SqlResource
 ```
 
-Provision an ephemeral database in a container, wait until it **actually accepts connections** (the port opening is a false positive for a first-boot database — the recipe retries the real connection), open a managed connection, and tie everything to the scope. One call replaces the `docker.run` + retry + `db.connect` + `ctx:manage` dance.
+Provision an ephemeral database in a container, wait until it **actually accepts connections** (the port opening is a false positive for a first-boot database — the recipe retries the real connection), open a managed client, and tie everything to the scope. One call replaces the `docker.run` + retry + `postgres.client` + `ctx:manage` dance.
 
 Both require the [`docker`](docker.md) module at call time — gate the tests with `requires = { "docker" }` so they skip where the daemon is absent.
 
@@ -104,17 +113,17 @@ Both require the [`docker`](docker.md) module at call time — gate the tests wi
 | `root_password` | `string?` | MySQL only; default `"root"` |
 | `timeout` | `string?` | Readiness deadline — default `"60s"` (Postgres) / `"90s"` (MySQL) |
 
-**Returns:** a `DbResource`:
+**Returns:** a `SqlResource` — the standard resource shape:
 
 | Member | Type | Description |
 |---|---|---|
-| `url` | `string` | The connection URL |
-| `conn` | `Connection` | An open, managed connection |
+| `client` | `Connection` | An open, managed client — exactly what `postgres.client(url)` / `mysql.client(url)` returns |
+| `url` | `string` | The connection URL that reaches the instance |
 | `container` | `Container` | The managed [container handle](docker.md#container) |
 
 ```lua
 local pg = prova.fixture("pg", Scope.File, function(ctx)
-  return db.postgres(ctx, { database = "orders" }).conn
+  return postgres.container(ctx, { database = "orders" }).client
 end)
 
 prova.group("postgres", { requires = { "docker" } }, function(g)

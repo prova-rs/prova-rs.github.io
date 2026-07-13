@@ -53,12 +53,12 @@ local service = prova.fixture("service", Scope.File, function(ctx)
 
   -- Postgres restarts once at first-boot init; wait for a real connection to hold
   -- before the service (which connects once and exits on failure) tries.
-  ctx:manage(prova.retry(function() return db.connect(db_url) end, { timeout = "30s" }))
+  ctx:manage(prova.retry(function() return postgres.client(db_url) end, { timeout = "30s" }))
 ```
 
 - **`ctx:use(project)`** — a fixture-to-fixture dependency. The service fixture doesn't know or care how the project came to exist; it just asks for it.
 - **`ctx:manage(docker.run{...})`** ties the container's lifecycle to the fixture's scope: when the file's tests finish, the container is stopped — pass or fail, no leaked containers. [`docker.run`](../reference/modules/docker.md) publishes port 5432 to an ephemeral host port (`pg:host_port(5432)` recovers it), so two suites can each run their own Postgres without colliding.
-- **Two readiness gates, deliberately.** The `wait = { port = 5432 }` option gets us a listening socket — but Postgres famously restarts once during first-boot initialization, so a socket is not a database. `prova.retry` polls until [`db.connect`](../reference/modules/db.md) *holds*, because the service we are about to boot connects exactly once and exits on failure. Gating on real readiness — not sleeps — is what makes this test fast when things are healthy and honest when they are not. The connection itself is `ctx:manage`d too, so it closes at teardown.
+- **Two readiness gates, deliberately.** The `wait = { port = 5432 }` option gets us a listening socket — but Postgres famously restarts once during first-boot initialization, so a socket is not a database. `prova.retry` polls until [`postgres.client`](../reference/modules/databases.md) *holds*, because the service we are about to boot connects exactly once and exits on failure. Gating on real readiness — not sleeps — is what makes this test fast when things are healthy and honest when they are not. The connection itself is `ctx:manage`d too, so it closes at teardown.
 
 ## Step 3 — Build and boot the service
 
@@ -94,7 +94,7 @@ end)
 prova.group("inventory gRPC service (Postgres)", { requires = { "docker", "cargo" } }, function(g)
   g:test("boots against real Postgres and serves its gRPC API", function(t)
     local svc = t:use(service)
-    local client = grpc.connect(svc.addr)
+    local client = grpc.client(svc.addr)
     local res = client:call_status("inventory_service.InventoryService/CreateInventory",
                                    { display_name = "widget" })
     t:expect(res.code):equals("Unimplemented")  -- becomes "Ok" as real CRUD lands in the archetype
@@ -102,7 +102,7 @@ prova.group("inventory gRPC service (Postgres)", { requires = { "docker", "cargo
 
   g:test("ran its migrations against that same Postgres", function(t)
     local svc = t:use(service)
-    local conn = t:manage(db.connect(svc.db_url))
+    local conn = t:manage(postgres.client(svc.db_url))
     -- prova queries the very database the service is wired to — cross-service state assertion.
     t:expect(conn:query_value("SELECT count(*) FROM _sqlx_migrations WHERE success")):gte(1)
   end)
@@ -110,7 +110,7 @@ end)
 ```
 
 - **`requires = { "docker", "cargo" }` on the group** gates every test at once: on a machine without a Docker daemon or a Rust toolchain, both tests skip with a reason — they never fail spuriously. See [Dependencies & Scheduling](./dependencies-and-scheduling.md).
-- **The first test probes from the outside**, exactly like a client would: [`grpc.connect`](../reference/modules/grpc.md) builds a reflection-based client and calls a real method. The archetype under test is currently a scaffold whose methods return `Unimplemented` — and asserting that is the point: running the service exposed that "renders + compiles" was hiding a hollow service. As real CRUD lands, this assertion graduates to real persisted state.
+- **The first test probes from the outside**, exactly like a client would: [`grpc.client`](../reference/modules/grpc.md) builds a reflection-based client and calls a real method. The archetype under test is currently a scaffold whose methods return `Unimplemented` — and asserting that is the point: running the service exposed that "renders + compiles" was hiding a hollow service. As real CRUD lands, this assertion graduates to real persisted state.
 - **The second test verifies effects where they land.** It opens its own connection to the *same* database the service uses (the fixture returned `db_url` precisely for this) and asserts the migrations table shows a successful run. Probing the API and inspecting the store are two halves of one acceptance claim.
 
 Note what the tests do *not* contain: no setup, no cleanup, no sleeps, no port numbers. Each test is two or three lines of intent; the fixture owns the machinery.
@@ -137,6 +137,6 @@ Swap the pieces and the shape holds for any system:
 3. **Gate on real readiness** — `wait` options, `prova.retry`, [`http.wait_for`](../reference/modules/http.md) or `grpc.wait_for`; never `sleep`.
 4. **Boot on dynamic ports** — `net.free_port()` plus `shell.spawn` under `ctx:manage`.
 5. **Probe from the outside** — [`http`](../reference/modules/http.md), [`grpc`](../reference/modules/grpc.md), [`graphql`](../reference/modules/graphql.md), or the CLI itself via `shell.run`.
-6. **Cross-check state where it lands** — [`db`](../reference/modules/db.md), [`redis`](../reference/modules/redis.md), [`s3`](../reference/modules/s3.md).
+6. **Cross-check state where it lands** — [`postgres`/`mysql`/`sqlite`](../reference/modules/databases.md), [`redis`](../reference/modules/redis.md), [`s3`](../reference/modules/s3.md).
 
 When several files need the same expensive stack, promote the fixtures into a [suite](./suites-and-shared-state.md) and provision once for all of them.

@@ -60,7 +60,7 @@ and in parallel — sharing the `workspace` fixture, which is built once and
 torn down automatically.
 
 Beyond `shell` and `fs`, Prova ships first-party modules for `http`, `grpc`,
-`graphql`, `docker`, `db` (Postgres/MySQL), `redis`, `kafka`, `pulsar`, and
+`graphql`, `docker`, `postgres`/`mysql`/`sqlite`, `redis`, `kafka`, `pulsar`, and
 `s3` — enough batteries to boot a real system and prove it works. And as a
 sibling of [Archetect](https://archetect.github.io), Prova renders archetypes
 in-process, so you can test that your generated projects don't just render —

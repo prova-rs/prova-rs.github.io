@@ -7,7 +7,7 @@ sidebar_position: 6
 Testcontainers-style ephemeral dependencies: spin up a real container as a scoped fixture, map a random host port, wait for readiness, drive it over its network interface, remove it on teardown. Backed by the typed **bollard** Docker daemon client (structured errors, streamed logs, exec) — not CLI shelling.
 
 :::note Requires the Docker daemon
-Tests using this module should declare `requires = { "docker" }` (on the test, group, or suite) so they **skip gracefully** where the daemon is absent — see [Dependencies & Scheduling](../../writing-tests/dependencies-and-scheduling.md). The [`db`](db.md), [`redis`](redis.md), [Kafka & Pulsar](messaging.md), and [`s3`](s3.md) container recipes all build on `docker.run` and carry the same requirement.
+Tests using this module should declare `requires = { "docker" }` (on the test, group, or suite) so they **skip gracefully** where the daemon is absent — see [Dependencies & Scheduling](../../writing-tests/dependencies-and-scheduling.md). The [Postgres & MySQL](databases.md), [`redis`](redis.md), [Kafka & Pulsar](messaging.md), and [`s3`](s3.md) container recipes all build on `docker.run` and carry the same requirement.
 :::
 
 ## `docker.run(opts)`

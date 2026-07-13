@@ -27,10 +27,12 @@ documented in this section is implemented.
 | [`shell`](../modules/shell.md) | Run commands (`shell.run`) and spawn managed processes (`shell.spawn`). |
 | [`net`](../modules/index.md) | Network helpers (e.g. free-port allocation for locally spawned apps). |
 | [`http`](../modules/http.md) | HTTP client: `get`/`post`/…, `:json()`, and the `wait_for` readiness probe. |
-| [`grpc`](../modules/grpc.md) | gRPC via server reflection: `connect`, `call`, `call_status`, `wait_for`. |
+| [`grpc`](../modules/grpc.md) | gRPC via server reflection: `client`, `call`, `call_status`, `wait_for`. |
 | [`graphql`](../modules/graphql.md) | GraphQL client, same shape as `http`/`grpc`. |
 | [`docker`](../modules/docker.md) | Ephemeral containers: pull/run/port-map/logs/exec/stop. |
-| [`db`](../modules/db.md) | One SQL API over Postgres/MySQL/SQLite, selected by URL scheme. |
+| [`postgres`](../modules/databases.md) | Postgres client + `postgres.container` recipe; one generic SQL `Connection`. |
+| [`mysql`](../modules/databases.md) | MySQL client + `mysql.container` recipe; same `Connection` type. |
+| [`sqlite`](../modules/databases.md) | SQLite client (file or `sqlite::memory:`); same `Connection` type. |
 | [`redis`](../modules/redis.md) | Redis client. |
 | [`pulsar`](../modules/messaging.md) | Apache Pulsar producer/consumer. |
 | [`kafka`](../modules/messaging.md) | Apache Kafka producer/consumer. |
