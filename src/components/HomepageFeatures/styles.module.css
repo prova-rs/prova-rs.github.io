@@ -1,0 +1,22 @@
+.features {
+  padding: 2rem 0;
+  width: 100%;
+}
+
+.featureIcon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.feature {
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+@media (max-width: 768px) {
+  .feature {
+    margin-bottom: 1.5rem;
+  }
+}

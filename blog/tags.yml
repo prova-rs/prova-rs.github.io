@@ -1,0 +1,9 @@
+announcements:
+  label: Announcements
+  permalink: /announcements
+  description: Prova release announcements and project news
+
+prova:
+  label: Prova
+  permalink: /prova
+  description: Posts about the Prova acceptance-test runner
