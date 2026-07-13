@@ -1,19 +1,22 @@
-# Prova Black Box Testing
+# Site prova-rs.github.io
 
-Lua-based Black Box Testing
-
-Built with [Docusaurus](https://docusaurus.io/).
+Documentation site for [Prova](https://github.com/prova-rs/prova), built with
+[Docusaurus](https://docusaurus.io/).
 
 ## Install
 
 ```bash
-npm install
+pnpm install
 ```
+
+The included `pnpm-workspace.yaml` pre-approves the install scripts Docusaurus
+needs — pnpm 10+ blocks dependency build scripts by default. Commit
+`pnpm-lock.yaml`; do not add a `package-lock.json`.
 
 ## Local Development
 
 ```bash
-npm start
+pnpm start
 ```
 
 Starts a local dev server at http://localhost:3000 with hot reload.
@@ -21,7 +24,7 @@ Starts a local dev server at http://localhost:3000 with hot reload.
 ## Build
 
 ```bash
-npm run build
+pnpm build
 ```
 
 Generates static content into the `build/` directory.
@@ -29,21 +32,8 @@ Generates static content into the `build/` directory.
 ## Typecheck
 
 ```bash
-npm run typecheck
-```
-
-## Using pnpm?
-
-Docusaurus is package-manager-agnostic. Substitute `pnpm` for `npm`:
-
-```bash
-pnpm install
-pnpm start
-pnpm build
 pnpm typecheck
 ```
-
-(If you use pnpm, commit `pnpm-lock.yaml` and delete `package-lock.json`.)
 
 ## Deploy
 

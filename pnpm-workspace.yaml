@@ -1,0 +1,9 @@
+# pnpm blocks dependency install scripts unless approved here.
+# Docusaurus needs these two (@swc/core via @docusaurus/faster).
+# `allowBuilds` is the pnpm 11+ key; `onlyBuiltDependencies` covers pnpm 10.
+allowBuilds:
+  '@swc/core': true
+  core-js: true
+onlyBuiltDependencies:
+  - '@swc/core'
+  - core-js
