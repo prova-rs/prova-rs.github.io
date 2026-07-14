@@ -66,10 +66,11 @@ end)
 ## `archetect.verify(spec)`
 
 ```lua
-archetect.verify(spec) --> Fixture
+archetect.verify(spec)             --> Fixture   -- one-shot: renders for you
+archetect.verify(fixture, checks)  --> Fixture   -- compositional: checks a render fixture you declared
 ```
 
-The declarative archetype check — prova's answer to a `manifest.yaml`-style harness, matched field-for-field but as real Lua you can extend. One call renders the archetype **once** (headless, into a scope-managed temp dir) and registers the standard tests under a `prova.describe` block named after the archetype:
+The declarative archetype check — prova's answer to a `manifest.yaml`-style harness, matched field-for-field but as real Lua you can extend. The one-shot form renders the archetype **once** (headless, into a scope-managed temp dir); the compositional form takes a render [fixture](../../writing-tests/fixtures.md) you declared yourself (your name, scope, destination, computed answers) and registers the same checks against it — which makes render → verify → black-box one pipeline sharing one rendering. Either way, the standard tests land under a `prova.describe` block named after the archetype:
 
 - **layout** — every `expected_files` entry exists; every `absent_files` entry does not (registered only if either list is non-empty)
 - **fully rendered** — no leftover template markers anywhere in the output (unless `fully_rendered = false`)
@@ -78,11 +79,12 @@ The declarative archetype check — prova's answer to a `manifest.yaml`-style ha
 
 | Field | Type | Description |
 |---|---|---|
-| `source` | `string` | Required. Local archetype path or git URL |
+| `source` | `string` | Required in the one-shot form (forbidden in the compositional form — the fixture owns the render). Local archetype path or git URL |
 | `name` | `string?` | Label for the generated tests (default `"archetype"`) |
-| `answers` | `table<string,any>?` | Prompt answers as data |
-| `switches` | `string[]?` | Switches to enable |
-| `defaults` | `boolean?` | Headless defaults for unanswered prompts (default `true`) |
+| `answers` | `table<string,any>?` | One-shot only. Prompt answers as data |
+| `switches` | `string[]?` | One-shot only. Switches to enable |
+| `defaults` | `boolean?` | One-shot only. Headless defaults for unanswered prompts (default `true`) |
+| `scope` | `Scope?` | One-shot only. Scope of the render fixture it creates (default `Scope.File`) |
 | `project_dir` | `string?` | Assert relative to this subdirectory of the render output |
 | `expected_files` | `string[]?` | Files that must exist (relative to `project_dir`) |
 | `absent_files` | `string[]?` | Files that must NOT exist |
@@ -111,4 +113,26 @@ prova.test("binary name matches the project name", function(t)
   local manifest = t:use(rendered):file("Cargo.toml"):read()
   t:expect(manifest):contains('name = "widget"')
 end)
+```
+
+The compositional form inverts the ownership — declare the render, then point verify (and your black-box fixtures) at it:
+
+```lua
+local project = prova.fixture("project", Scope.File, function(ctx)
+  return archetect.render{
+    source = "archetypes/rust-cli",
+    answers = { project_name = "widget", description = "a demo cli" },
+    destination = ctx:tempdir(),
+    defaults = true,
+  }
+end)
+
+archetect.verify(project, {
+  name = "rust-cli",
+  expected_files = { "Cargo.toml", "src/main.rs" },
+  requires = { "cargo" },
+  build_steps = { "cargo build" },
+})
+
+-- The same fixture then feeds boot/probe fixtures — one rendering, one pipeline.
 ```
