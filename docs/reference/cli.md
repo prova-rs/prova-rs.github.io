@@ -291,6 +291,14 @@ See [prova.toml](./prova-toml.md) for the full manifest schema and merge semanti
 - Every other discovered test file is a singleton suite of its own.
 - If discovery finds no test files at all, `prova` reports the error and exits `2`.
 
+## `prova mcp`
+
+```shell
+prova mcp [--profile NAME] [--manifest PATH] [-P name=source]
+```
+
+Serves Prova as an MCP server over stdio, resolved against the prova home exactly like a CLI run. Tools mirror the CLI: `run` (the selection fields — `keywords`, `tags`, `nodes`, `last_failed`, plus `profile`), `list` (same selection), and `eval` (one-shot code). Every tool returns one text content item containing JSON; a failing `run` sets `isError` and carries `failures: [{ path, message }]`. The server's `instructions` field is the embedded [agent skill](#prova-skill) — MCP clients know Prova on connect. Warm topology tools (`up`/`down`/`status`, `run { topology }`) are the next phase.
+
 ## Exit codes
 
 | Code | Meaning |

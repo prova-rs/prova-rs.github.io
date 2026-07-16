@@ -12,6 +12,8 @@ yet implemented by the engine — calling them either has no effect or errors.
 
 ## Shipped since 0.2.3
 
+- **`prova mcp` (cold)** (0.2.5) — stdio MCP server with `run`/`list`/`eval` at CLI parity and the agent skill as its instructions; the wire contract is guarded by a prova-written proof in the selftest suite. Warm topology tools remain planned below.
+
 - **Snapshot assertions** — `matches_snapshot{ level = "layout"|"content" }`,
   `-u`/`--update-snapshots`, the reviewable `.snap`/`.snap.new` flow, and
   `--unreferenced ignore|warn|delete` reconciliation. See
