@@ -4,16 +4,16 @@ sidebar_position: 9
 
 # Building from Primitives
 
-Every `X.container` recipe — `postgres.container`, `redis.container`, `kafka.container`, and the rest — is sugar over four primitives you already have: [`docker.run`](../reference/modules/docker.md) (with its `wait` gates), [`prova.retry`](../reference/lua-api/prova.md#provaretry), `X.client`, and [`ctx:manage`](../reference/lua-api/context.md#ctxmanage). This page rebuilds `postgres.container` by hand so you can construct the same integration for anything: a technology Prova has no recipe for, a custom image, a dependency with unusual readiness semantics.
+Everything a [plugin](/docs/plugins/) recipe like `postgres.container` does is a few primitives you already have: [`docker.run`](../reference/modules/docker.md) (with its `wait` gates), `container:run` (drive the CLI already inside the image), [`prova.retry`](../reference/lua-api/prova.md#provaretry), and [`ctx:manage`](../reference/lua-api/context.md#ctxmanage). This page rebuilds the postgres recipe by hand so you can construct the same integration for anything: a technology with no plugin, a custom image, a dependency with unusual readiness semantics.
 
-The vehicle is the primitives companion to the [Testing Real Systems](./testing-real-systems.md) capstone — the same gRPC-service-plus-Postgres integration, with the database built from scratch. It ships in the Prova repository as `examples/service_grpc_postgres_primitives_test.lua`; only the provisioning block differs from the idiomatic version, so that block is what we walk through here.
+The vehicle is the primitives companion to the [Testing Real Systems](./testing-real-systems.md) capstone — the same gRPC-service-plus-Postgres integration, with the database built from scratch instead of via `require("postgres")`. It ships in the Prova repository as `examples/service_grpc_postgres_primitives_test.lua`; no plugin means no `prova.toml`, so it runs directly. Only the provisioning differs from the idiomatic version, so that is what we walk through here.
 
 ## 1. Start the container, tied to the scope
 
 ```lua
-  -- 1. Start the container. `ports = { 5432 }` publishes to a RANDOM host port (parallel runs
-  --    never collide); `wait = { port = ... }` gates on a listening socket. `ctx:manage` ties the
-  --    container's removal to this fixture's teardown — pass or fail, nothing leaks.
+  -- 1. Start the container. `ports = { 5432 }` publishes to a RANDOM host port (parallel runs never
+  --    collide); `wait = { port = ... }` gates on a listening socket. `ctx:manage` ties removal to
+  --    this fixture's teardown — pass or fail, nothing leaks.
   local pg = ctx:manage(docker.run{
     image = "postgres:16-alpine",
     env = { POSTGRES_USER = "dev", POSTGRES_PASSWORD = "dev", POSTGRES_DB = "inventory_service" },
@@ -35,29 +35,52 @@ Three choices carry all the weight:
   local db_url = "postgres://dev:dev@127.0.0.1:" .. pg:host_port(5432) .. "/inventory_service"
 ```
 
-`pg:host_port(5432)` asks the [container handle](../reference/modules/docker.md#container) which host port Docker actually assigned. The URL you assemble from it plays the role of the recipe's `url` field: it is the one string the app under test needs — injected through its own configuration surface (an environment variable, a flag, a config file).
+`pg:host_port(5432)` asks the [container handle](../reference/modules/docker.md#container) which host port Docker actually assigned. The URL you assemble from it plays the role of the plugin resource's `url` field: it is the one string the app under test needs — injected through its own configuration surface (an environment variable, a flag, a config file).
 
-## 3. Gate on real readiness, not a socket
+## 3. A client from the CLI in the image: `container:run`
+
+The plugin's `client` is not a native database driver — it execs `psql` *inside the container*, where the CLI already ships. A hand-rolled version is a four-line helper:
+
+```lua
+-- A tiny docker-exec psql helper — what the postgres plugin wraps. Runs a query inside the container
+-- (no shell, no quoting) and returns the trimmed scalar.
+local function psql(container, sql)
+  return (container:run({
+    "env", "PGPASSWORD=dev", "psql", "-U", "dev", "-d", "inventory_service", "-tAc", sql,
+  }):gsub("%s+$", ""))
+end
+```
+
+`container:run(argv)` executes the argv inside the running container and returns its output. Passing an **argv table, not a command string**, means no shell and no quoting bugs — the SQL arrives at `psql` exactly as written. This is the black-box trick that makes the whole approach language-free: every serious data store ships its own CLI in its own image, so you never need a native driver in the test runner.
+
+## 4. Gate on real readiness, not a socket
 
 ```lua
   -- 3. Gate on REAL readiness, not a socket. Postgres restarts once during first-boot init, so a
-  --    listening port is not yet a database. Retry until a client connection HOLDS — the service we
-  --    are about to boot connects exactly once and exits on failure. The connection is managed too,
-  --    so it closes at teardown (in LIFO order, before the container it points at).
-  local db = ctx:manage(prova.retry(function() return postgres.client(db_url) end, { timeout = "30s" }))
+  --    listening port is not yet a database. Retry a real query (via `container:run`) until it HOLDS —
+  --    the service we boot next connects exactly once and exits on failure.
+  prova.retry(function() psql(pg, "SELECT 1"); return true end,
+    { timeout = "30s", message = "postgres did not accept connections in time" })
 ```
 
-This line is the heart of every recipe, and the reason a `wait = { port = ... }` gate alone would be a bug:
+This gate is the heart of every recipe, and the reason a `wait = { port = ... }` gate alone would be a bug:
 
-- **A socket is not a database.** Postgres restarts once during first-boot initialization — the port opens, closes, and opens again. A test that treated the first open socket as "ready" would race that restart and fail intermittently. `prova.retry` polls until [`postgres.client`](../reference/modules/databases.md) returns a connection that *holds*.
+- **A socket is not a database.** Postgres restarts once during first-boot initialization — the port opens, closes, and opens again. A test that treated the first open socket as "ready" would race that restart and fail intermittently. `prova.retry` runs a real query until it *holds*.
 - **The app under test gets one attempt.** The service this fixture is about to boot connects to its database exactly once at startup and exits on failure. The retry loop belongs in the harness, where flakiness can be absorbed and reported — not in the system under test, where it would be masked.
-- **Teardown is LIFO.** Managed resources are released in reverse creation order, so the client closes *before* the container it points at is stopped. You get correct ordering for free by managing things in the order you create them.
 
-From here the primitives file is identical to the idiomatic one: build with `shell.run`, boot on a `net.free_port()` under `ctx:manage`, gate with `grpc.wait_for`, and return `{ addr = addr, db = db }` so tests can probe the API and cross-check the database.
+From here the primitives file is identical to the idiomatic one: build with `shell.run`, boot on a `net.free_port()` under `ctx:manage`, gate with `grpc.wait_for`, and return `{ addr = addr, container = pg }` so tests can probe the API — and cross-check the database with the same `psql` helper:
+
+```lua
+  g:test("ran its migrations against that same Postgres", function(t)
+    local svc = t:use(service)
+    -- Cross-check the very database the service is wired to, by execing psql in its container.
+    t:expect(psql(svc.container, "SELECT count(*) FROM _sqlx_migrations WHERE success")):gte(1)
+  end)
+```
 
 ## The recipe, generalized
 
-Wrap those three steps in a local function and you have a recipe of your own. Match the grammar of the [first-party modules](../reference/modules/index.md#the-grammar) — return `{ client, url, container }` — and your home-grown recipe is indistinguishable from a shipped one:
+Wrap those steps in a local function and you have a recipe of your own. Match the shape the plugins return — `{ container, url, host, port }`, plus a client helper — and your home-grown provisioner is indistinguishable from an installed plugin:
 
 ```lua
 local function widgetdb_container(ctx, opts)
@@ -68,35 +91,40 @@ local function widgetdb_container(ctx, opts)
     ports = { 7777 },                                -- random host port
     wait = { port = 7777, timeout = "60s" },         -- cheap gate: something is listening
   })
-  local url = "widgetdb://127.0.0.1:" .. container:host_port(7777) .. "/mydb"
-  local client = ctx:manage(prova.retry(function()   -- real gate: a connection that HOLDS
-    return widgetdb_connect(url)
-  end, { timeout = "60s" }))
-  return { client = client, url = url, container = container }
+  local port = container:host_port(7777)
+  local url = "widgetdb://127.0.0.1:" .. port .. "/mydb"
+  prova.retry(function()                             -- real gate: a client operation that HOLDS
+    container:run({ "widgetdb-cli", "ping" }); return true
+  end, { timeout = "60s", message = "widgetdb did not become ready in time" })
+  return { container = container, url = url, host = "127.0.0.1", port = port }
 end
 ```
 
 The checklist, in order:
 
 1. **`ctx:manage(docker.run{...})`** — image, env, `ports` for a random host port, a `wait` gate, all tied to the scope.
-2. **`container:host_port(N)`** → assemble the `url` the app under test will be handed.
-3. **`ctx:manage(prova.retry(function() return X.client(url) end, {...}))`** — readiness defined as *a real client operation succeeding*, and the client itself managed so it closes before its container stops.
-4. **Return `{ client = client, url = url, container = container }`** — plus any extras callers need (as `s3.container` returns `access_key`/`secret_key`).
+2. **`container:host_port(N)`** → assemble the `url` (and `host`/`port`) the app under test will be handed.
+3. **`prova.retry(function() ... end, {...})`** around a real client operation — via `container:run` on the CLI in the image — so readiness means *the dependency actually works*, not *a port is open*.
+4. **Return the standard resource shape** — `{ container, url, host, port }`, plus any helpers or extras callers need.
+
+When the wrapper stabilizes, promote it: a Prova plugin is exactly this function in a package, and [Authoring Plugins](/docs/plugins/authoring-plugins) shows how to publish it so the next project gets it as a one-line `[plugins]` entry.
 
 ### Real-world wrinkles
 
-Two patterns from the shipped recipes worth stealing:
+The kitchen-sink primitives file (`examples/kitchen_sink_primitives_test.lua`) provisions three dependencies by hand precisely because each needs a *different* readiness shape:
 
-- **Log-gated readiness (Pulsar-style).** Some containers announce readiness in their logs long before — or regardless of — any port semantics. `docker.run` supports `wait = { log = "..." }`: the shipped `pulsar.container` gates on `wait = { log = "messaging service is ready" }` because Pulsar standalone opens ports well before its broker can serve. Use a log gate when the image tells you it is ready in words.
-- **Fixed-port constraints (Kafka-style).** Kafka advertises a listener address that clients must be able to reach, so the broker has to know its host port *before* it starts — a randomly assigned port arrives too late. The shipped `kafka.container` therefore binds a **fixed** host port (`ports = { { container = 9092, host = port } }`, default 9092), at the cost that only one instance runs per host at a time. If your dependency embeds its own address in a handshake, you have the same constraint; make the port an option so callers can at least choose which fixed port.
-- **Readiness that does double duty (MinIO-style).** The shipped `s3.container` connects with `create = true`, so the retry loop both proves readiness and creates the test bucket. If your client's first operation can perform required setup, fold it into the gate.
+- **A longer horizon (MySQL).** Same shape as Postgres — socket gate, then retry a real query via the image's `mysql` CLI — but first-boot initialization takes tens of seconds and it also restarts, so only the retry horizon changes (`timeout = "90s"`). Readiness *shape* and readiness *budget* are independent knobs.
+- **Log-gated readiness (Pulsar).** Some containers announce readiness in their logs long before — or regardless of — any port semantics. `docker.run` supports `wait = { log = "..." }`: Pulsar standalone gates on `wait = { log = "messaging service is ready" }` because it opens its ports well before its broker can serve. Use a log gate when the image tells you it is ready in words — the log line *is* the readiness signal, no client probe needed.
+- **Fixed-port constraints (Kafka-style).** Kafka advertises a listener address that clients must be able to reach, so the broker has to know its host port *before* it starts — a randomly assigned port arrives too late. In that case bind a **fixed** host port (`ports = { { container = 9092, host = port } }`), at the cost that only one instance runs per host at a time. If your dependency embeds its own address in a handshake, you have the same constraint; make the port an option so callers can at least choose which fixed port.
 
 ## Run it
+
+No plugin, so no manifest — point Prova at the file from the repo root:
 
 ```shell
 prova examples/service_grpc_postgres_primitives_test.lua
 ```
 
-The primitives group is tagged `"primitives"`, so once tag filtering lands you will be able to select or exclude the hand-rolled variants as a group.
+The primitives groups are tagged `"primitives"`, so once tag filtering lands you will be able to select or exclude the hand-rolled variants as a group.
 
-When a recipe exists for your dependency, prefer it — the one-liner in [Testing Real Systems](./testing-real-systems.md) is the idiomatic shape, and everything on this page is exactly what it expands to.
+When a plugin exists for your dependency, prefer it — the one-liner in [Testing Real Systems](./testing-real-systems.md) is the idiomatic shape, and everything on this page is exactly what it expands to.

@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Manifest & Profiles
 
-A `prova.toml` at your repo root turns "how do I run the tests here?" into `prova` — no arguments, no wrapper script, no README archaeology. The manifest names *what* to run and *how*, profiles adapt the same suite to different environments, and CI becomes a one-liner. Explicit path arguments always bypass the manifest; command-line flags always override its values.
+A `prova.toml` turns "how do I run the tests here?" into `prova` — no arguments, no wrapper script, no README archaeology. The manifest names *what* to run and *how*, profiles adapt the same suite to different environments, and CI becomes a one-liner. It lives at the repo root, or in a `prova/` or `.prova/` subdirectory — `prova init` [scaffolds it](./command-line.md#starting-a-project-prova-init), and discovery walks up from wherever you run, like git finding `.git`. Explicit path arguments always bypass the manifest; command-line flags always override its values.
 
 ## `[run]` — the default profile
 
@@ -68,6 +68,18 @@ paths = ["services/rest"]
 ```
 
 Each `[suites.<name>]` collects the test files under its `paths` into a single named suite: the files share one Lua state (so `Scope.Suite` fixtures are built once for all of them), and the optional `setup` file runs first. Declared suites run *in addition to* the profile's `paths`, and `--jobs` parallelizes across all suites together. Anything environment- or capability-related belongs in the setup file (`suite.config`) or `[run.env]`, not the suite declaration.
+
+## `[plugins]` — infrastructure the suite depends on
+
+The manifest is also where a suite declares its [plugins](/docs/plugins/) — the external packages behind `require("postgres")` and friends:
+
+```toml
+[plugins]
+postgres = "prova-rs/prova-postgres@v0.2.0"   # org/repo@ref shorthand
+greet    = "./plugins/greet.lua"              # a local path works too
+```
+
+Prova fetches each plugin by its pinned ref, caches it, and makes `require("<name>")` resolve in every test file — identically on a laptop and in CI, which is the point of declaring them next to the tests. Sources, version pinning, caching, and the `[luals]` policy that controls the auto-synced editor annotations are all covered in [Using Plugins](/docs/plugins/using-plugins).
 
 ## Worked example: local containers vs. CI services
 

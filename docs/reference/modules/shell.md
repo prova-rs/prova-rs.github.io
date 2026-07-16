@@ -17,9 +17,9 @@ Runs a command to completion and captures its output.
 | Option | Type | Description |
 |---|---|---|
 | `cwd` | `string?` | Working directory |
-| `env` | `table<string,string>?` | Extra environment variables |
+| `env` | `table<string, string\|number\|boolean>?` | Extra environment variables. Scalar values **coerce to strings** — ports stay numbers, flags stay booleans, no `tostring()` ceremony (`8080` → `"8080"`, `true` → `"true"`; integral floats render without a trailing `.0`). Any other value type raises `env.<KEY>: expected string/number/boolean, got <type>`. |
 | `timeout` | `string?` | Deadline, e.g. `"120s"` — **raises** if exceeded |
-| `check` | `boolean?` | If `true`, a non-zero exit **raises** (with the command's stderr) instead of returning |
+| `check` | `boolean?` | If `true`, a non-zero exit **raises**, carrying the tail of **both** streams (see below) |
 
 **Returns:** a `ShellResult`. Raises if the command cannot be spawned, times out, or exits non-zero with `check = true`.
 
@@ -31,6 +31,19 @@ t:expect(r.stdout):contains("fn main")
 
 -- Fail fast during setup: non-zero exit raises.
 shell.run("cargo build --release", { cwd = dir, check = true, timeout = "300s" })
+```
+
+**The `check = true` error carries both streams.** Build tools put failure
+detail on either stream (msbuild and pnpm favor stdout), so the raised error
+includes the tail (last 4 KB, marked `[... truncated ...]` when cut) of stderr
+*and* stdout — no hand-rolled assert prints more:
+
+```text
+shell.run: command exited 101 (check=true): cargo build --release
+--- stderr ---
+error[E0425]: cannot find value `prot` in this scope ...
+--- stdout ---
+   Compiling app v0.1.0 ...
 ```
 
 ### `ShellResult`
@@ -49,12 +62,12 @@ shell.run("cargo build --release", { cwd = dir, check = true, timeout = "300s" }
 shell.spawn(command, opts?) --> Process
 ```
 
-Starts a long-running command in the background (a booted app, a mock server) and returns a handle. stdout/stderr are **discarded** in v1.
+Starts a long-running command in the background (a booted app, a mock server) and returns a handle. Combined stdout+stderr is **captured** into a bounded buffer — the last **64 KB**, oldest bytes dropped first — and readable at any time via `proc:output()`.
 
 | Option | Type | Description |
 |---|---|---|
 | `cwd` | `string?` | Working directory |
-| `env` | `table<string,string>?` | Extra environment variables |
+| `env` | `table<string, string\|number\|boolean>?` | Extra environment variables — same scalar coercion as `shell.run` |
 
 **Returns:** a `Process`. Raises if the command cannot be spawned.
 
@@ -63,7 +76,9 @@ The blessed pattern is to hand the process to the context so it is stopped durin
 ```lua
 local service = prova.fixture("service", Scope.File, function(ctx)
   local port = net.free_port()
-  local proc = ctx:manage(shell.spawn("./target/release/app --port " .. port))
+  local proc = ctx:manage(shell.spawn("./target/release/app", {
+    env = { PORT = port, LOGGING_STRUCTURED = true },   -- scalars coerce
+  }))
   local base = "http://127.0.0.1:" .. port
   http.wait_for(base .. "/health", { status = 200, timeout = "10s" })
   return { base = base, proc = proc }
@@ -78,11 +93,54 @@ end)
 | `proc:stop()` | | Kill the process (SIGKILL) and reap it. Idempotent — stopping twice, or after exit, is a no-op. Async. |
 | `proc:wait()` | `→ integer?` | Wait for the process to exit; returns its exit code, or `nil` if it was signalled or already reaped. Async. |
 | `proc:running()` | `→ boolean` | Whether the process is still running (reaps it if it has already exited) |
+| `proc:output()` | `→ string` | The process's combined stdout+stderr so far. Bounded: the last 64 KB, oldest dropped. |
 
 ```lua
 t:expect(svc.proc:running()):is_true()
 t:expect(svc.proc.pid):gt(0)
 ```
+
+### Never debug a boot blind
+
+When a spawned app fails to come up, `proc:output()` returns whatever it said —
+print it in the failure instead of guessing:
+
+```lua
+local proc = ctx:manage(shell.spawn("./target/release/app", { env = { PORT = port } }))
+local ok = pcall(http.wait_for, base .. "/health", { status = 200, timeout = "10s" })
+if not ok then
+  error("app never became ready. Its output so far:\n" .. proc:output())
+end
+```
+
+### Asserting on log output
+
+`proc:output()` is also the hook for asserting on what the app logs. With
+structured (JSON-lines) logging enabled, parse each line with
+[`prova.parse`](../lua-api/prova.md#provaparse):
+
+```lua
+prova.test("emits structured log lines", function(t)
+  local svc = t:use(service)
+  http.get(svc.base .. "/health")
+  -- Logs are written asynchronously; wait until the line shows up.
+  prova.retry(function() return svc.proc:output():find("/health", 1, true) end)
+
+  for _, line in ipairs(prova.parse.lines(svc.proc:output())) do
+    if line:sub(1, 1) == "{" then
+      local entry = prova.parse.json(line)      -- raises on malformed JSON
+      t:expect(entry.level, "log level"):is_truthy()
+      t:expect(entry.timestamp, "timestamp"):is_truthy()
+    end
+  end
+end)
+```
+
+:::note
+The buffer keeps only the most recent 64 KB. Assert on recent activity, or on
+markers you know are near the end — a chatty app's boot banner may already have
+been dropped by the time the test looks.
+:::
 
 ## net
 

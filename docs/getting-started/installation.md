@@ -4,21 +4,51 @@ sidebar_position: 2
 
 # Installation
 
-Prova is a single Rust binary named `prova`. Today it installs from source with Cargo; a Rust toolchain is the only build requirement.
+Prova is a single static binary named `prova` — no runtime, no interpreter, nothing else to install. Pick whichever channel fits:
 
-## Install with Cargo
+## Homebrew (macOS and Linux)
 
-If you don't already have Rust, install it via [rustup](https://rustup.rs/). Then:
+```shell
+brew install prova-rs/tap/prova
+```
+
+To pin a major line or an exact version:
+
+```shell
+brew install prova-rs/tap/prova@0        # latest stable 0.x
+brew install prova-rs/tap/prova@0.2.2    # exactly 0.2.2
+```
+
+The tap's formulas are generated automatically from each release — see [prova-rs/homebrew-tap](https://github.com/prova-rs/homebrew-tap).
+
+## Release binaries
+
+Every release publishes prebuilt archives on the [GitHub releases page](https://github.com/prova-rs/prova/releases), named `prova-<version>-<platform>-<arch>.tar.gz` (with SHA256 checksums alongside):
+
+- `prova-v0.2.2-linux-x86_64.tar.gz`
+- `prova-v0.2.2-linux-arm64.tar.gz`
+- `prova-v0.2.2-macos-arm64.tar.gz`
+- `prova-v0.2.2-windows-x86_64.zip` (plus a `-installer.exe`)
+
+Download, extract, and put the binary on your `PATH`:
+
+```shell
+curl -LO https://github.com/prova-rs/prova/releases/download/v0.2.2/prova-v0.2.2-linux-x86_64.tar.gz
+tar -xzf prova-v0.2.2-linux-x86_64.tar.gz
+sudo mv prova-v0.2.2-linux-x86_64/prova /usr/local/bin/
+```
+
+In GitHub Actions, skip all of this — the [`prova-rs/run-action`](../running-prova/ci-and-output.md#the-github-action) action installs a release binary for you.
+
+## Cargo (build from source)
+
+If you have a [Rust toolchain](https://rustup.rs/), you can always build from source:
 
 ```shell
 cargo install --git https://github.com/prova-rs/prova prova-cli
 ```
 
 This builds the `prova-cli` crate and puts a `prova` binary on your `PATH` (in `~/.cargo/bin` by default).
-
-:::note Planned
-Prebuilt static binaries, GitHub releases, and a Homebrew tap are planned — no toolchain required. Until then, `cargo install` from git is the supported path. See the [Roadmap](../reference/roadmap.md).
-:::
 
 ## Verify the installation
 
@@ -53,13 +83,13 @@ Run it for real with `prova prova-smoke` — it should report one passing test a
 
 Prova itself has no runtime dependencies, but some modules drive external tools:
 
-- **Docker** — the container-backed modules and recipes (`docker.run`, `postgres.container`, `redis.container`, `kafka.container`, and friends) talk to the Docker daemon directly. Install [Docker](https://docs.docker.com/get-docker/) and have the daemon running if your tests provision ephemeral containers.
+- **Docker** — the container-backed primitives and [plugins](/docs/plugins/) (`docker.run`, `postgres.container`, and friends) talk to the Docker daemon directly. Install [Docker](https://docs.docker.com/get-docker/) and have the daemon running if your tests provision ephemeral containers.
 - **Anything on your `PATH`** — tests that shell out to `cargo`, `git`, `kubectl`, etc. naturally need those tools present.
 
 You do not need any of these installed just to run Prova. Tests declare what they need with `requires = { "docker" }` (or any tool name), and when a capability is missing the test is **skipped with a reason — never failed** — so the same suite degrades gracefully across machines. See [Testing Real Systems](../writing-tests/testing-real-systems.md).
 
 :::tip
-Set up editor support early — completion and type-checking on the `prova` API makes test authoring dramatically faster. See [IDE Setup](../running-prova/ide-setup.md).
+Once installed, `prova init` scaffolds a project — a `prova.toml` manifest plus editor completion for the whole API — in one command. The [Quick Start](./quick-start.md) walks through it.
 :::
 
 ## Next

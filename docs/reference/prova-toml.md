@@ -7,8 +7,10 @@ sidebar_label: "prova.toml"
 
 The suite manifest. Place a `prova.toml` at your repository root and `prova` with
 no arguments runs the configured suite — CI is just `prova`. The manifest has
-three table kinds: `[run]` (the default profile), `[profiles.<name>]` (overlays
-selected with `--profile`), and `[suites.<name>]` (explicitly-declared suites).
+five table kinds: `[run]` (the default profile), `[profiles.<name>]` (overlays
+selected with `--profile`), `[suites.<name>]` (explicitly-declared suites),
+`[plugins]` (+ `[sources]`) for external plugins, and `[luals]` for IDE
+integration.
 
 All tables and keys are optional, but a resolved run must yield at least one path
 or one suite, or `prova` exits `2`.
@@ -50,6 +52,35 @@ Declared suites run **in addition to** the resolved `paths`, and are not affecte
 by profile overlays. Capability gating and environment belong in the setup file
 (`suite.config{ requires = ... }`) and `[run.env]`, not in the suite declaration.
 
+## `[plugins]` — external plugins
+
+Maps each name `require()` will resolve in test files to a **plugin source** — a
+local path or a git repo. The plugin set is a property of the project: it is not
+profile-specific and applies to every run.
+
+```toml
+[plugins]
+greet    = "./plugins/greet.lua"                           # local path shorthand
+postgres = "prova-rs/prova-postgres@v1.0.0"                # org/repo@ref → GitHub (@ref required)
+redis    = "github:acme/prova-redis@v1"                    # host-prefix shorthand
+rabbitmq = { git = "https://github.com/acme/prova-rabbitmq", tag = "v1.0.0" }
+nats     = { git = "https://github.com/acme/prova-nats", rev = "abc123", module = "src/nats.lua" }
+```
+
+The detailed table form takes exactly one of `path` / `git`, an optional pin
+(`tag` / `branch` / `rev`), and an optional in-repo `module` path. Git sources
+are fetched into a local cache keyed by URL + ref and reused across runs; pin
+tags for reproducibility. `--plugin`/`-P name=source` adds an ad-hoc plugin on
+top of (and overriding) the manifest's set.
+
+A companion `[sources]` table registers aliases for shorthands
+(`acme = "github:acme"` makes `"acme:prova-redis@v1"` a valid source), and
+`[luals]` controls whether prova manages the project's `.luarc.json` pointer for
+editor completion (`manage = "auto" | "always" | "never"`, default `"auto"`).
+
+Every source form, resolution rule, and the caching/pinning semantics are
+documented in [Using Plugins](../plugins/using-plugins.md).
+
 ## Complete annotated example
 
 ```toml
@@ -82,6 +113,10 @@ TARGET_BASE_URL = "https://orders.dev.example.com"
 [suites.grpc]
 paths = ["services/grpc"]
 setup = "services/grpc/suite.lua"
+
+# External plugins: `require("postgres")` in any test file resolves to this source.
+[plugins]
+postgres = "prova-rs/prova-postgres@main"
 ```
 
 ## Resolution order

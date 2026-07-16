@@ -4,11 +4,34 @@ sidebar_position: 5
 
 # Your First Test Suite
 
-The [Quick Start](./quick-start.md) ran two self-contained tests. Real acceptance tests share expensive setup — a rendered project, a built binary, a booted service. This page grows the quick start into that shape: one **file-scoped fixture** provisions a workspace, several tests assert against it, and the run parallelizes safely.
+The [Quick Start](./quick-start.md) ran two self-contained tests from a bare file. Real acceptance tests live in a project and share expensive setup — a rendered project, a built binary, a booted service. This page grows the quick start into that shape: scaffold a project with `prova init`, provision a workspace with one **file-scoped fixture**, assert against it from several tests, and parallelize the run safely.
 
-## 1. Add a shared fixture
+## 1. Scaffold the project
 
-Create `workspace_test.lua`:
+From your repository root:
+
+```shell
+prova init
+```
+
+```text
+prova: wrote ./prova/prova.toml
+prova: wrote ./prova/annotations/ (core IDE annotations)
+prova: wrote .luarc.json — open this project in your editor for completion
+prova: plugin annotations are added automatically as you declare them and run `prova`
+
+next: add a test at ./prova/example_test.lua and run `prova`
+```
+
+One command does three things:
+
+- **`prova/prova.toml`** — the [manifest](../running-prova/manifest-and-profiles.md). Its default `paths = ["."]` discovers any `*_test.lua` under `prova/`, so a plain `prova` from anywhere in the project runs the suite. (Prefer `./.prova/` or a root-level `./prova.toml`? Use `prova init --hidden` or `--flat`.)
+- **`prova/annotations/` + `.luarc.json`** — [IDE integration](../running-prova/ide-setup.md): open the project in an editor with lua-language-server and the whole `prova` API completes and type-checks immediately.
+- It **never clobbers** — `init` refuses to run if a manifest already exists.
+
+## 2. Add a shared fixture
+
+Create `prova/workspace_test.lua`:
 
 ```lua
 -- workspace_test.lua
@@ -54,10 +77,12 @@ What changed from the quick start:
 - **`prova.fixture` returns a handle**, and tests request the value with `t:use(workspace)`. The handle (rather than a string) is deliberate: your editor knows the fixture's value type, so completion and type-checking flow through to the call site.
 - **`t:expect_all(body)`** collects every failed assertion inside `body` before failing the test — a layout check reports *all* the missing files, not just the first.
 
-## 2. Run it in parallel
+## 3. Run it in parallel
+
+The manifest makes the whole suite one word; `--jobs` raises the concurrency:
 
 ```shell
-prova workspace_test.lua --jobs 4
+prova --jobs 4
 ```
 
 ```text
@@ -70,7 +95,9 @@ prova workspace_test.lua --jobs 4
 
 `--jobs N` lets up to N units run concurrently — across files (each ungrouped file is its own isolated suite on its own worker) and, within a file, by overlapping I/O-bound tests cooperatively.
 
-## 3. Why this is safe
+(You can always bypass the manifest and point at one file directly — `prova prova/workspace_test.lua` — the two modes are covered in [The Command Line](../running-prova/command-line.md).)
+
+## 4. Why this is safe
 
 Two properties make `--jobs` a pure throughput knob:
 
@@ -87,5 +114,5 @@ Lazy construction matters: a fixture no test `use`s is never built. You can keep
 
 - Give fixtures dependencies, teardown, and broader scopes in [Fixtures](../writing-tests/fixtures.md).
 - Share one fixture across *multiple files* with a `suite.lua` — see [Suites and Shared State](../writing-tests/suites-and-shared-state.md).
-- Point Prova at real systems — containers, databases, HTTP services — in [Testing Real Systems](../writing-tests/testing-real-systems.md).
-- Wire the suite into CI with a manifest in [Manifest and Profiles](../running-prova/manifest-and-profiles.md).
+- Point Prova at real systems — containers, databases, HTTP services — in [Testing Real Systems](../writing-tests/testing-real-systems.md), and declare the infrastructure they need as [plugins](/docs/plugins/) in the manifest `init` just wrote.
+- Wire the suite into CI with the manifest in [Manifest and Profiles](../running-prova/manifest-and-profiles.md).

@@ -37,8 +37,8 @@ function HomepageHeader() {
 export default function Home(): ReactNode {
   return (
     <Layout
-      title="Prova - Black-Box Acceptance Testing"
-      description="Programmable black-box acceptance testing — a real scripting language and pytest-grade fixtures in one static binary.">
+      title="Prova - Proof-Driven Development"
+      description="Proof-driven development for the agentic era — executable, black-box proof that your system works. A real scripting language and pytest-grade fixtures in one static binary.">
       <HomepageHeader />
       <main>
         <HomepageFeatures />

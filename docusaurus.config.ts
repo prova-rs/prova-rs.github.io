@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: `Prova`,
-  tagline: `Programmable black-box acceptance testing — a real language, real fixtures, one static binary.`,
+  tagline: `Proof-driven development for the agentic era — executable, black-box proof that your system works.`,
   favicon: 'img/favicon.ico',
 
   future: {

@@ -11,6 +11,17 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
+    title: 'Proof-Driven Development',
+    icon: '🎯',
+    description: (
+      <>
+        Humans define an executable, black-box proof of what the system must
+        do; implementers — increasingly agents — drive it green; CI holds the
+        bar after every context is gone. Render, build, boot, probe.
+      </>
+    ),
+  },
+  {
     title: 'A Real Language for Tests',
     icon: '⚙️',
     description: (
@@ -43,12 +54,14 @@ const FeatureList: FeatureItem[] = [
     ),
   },
   {
-    title: 'Batteries for Black-Box Testing',
-    icon: '🔋',
+    title: 'Plugins, Zero Native Code',
+    icon: '🔌',
     description: (
       <>
-        shell, HTTP, gRPC, GraphQL, Docker, Postgres/MySQL, Redis, Kafka,
-        Pulsar, S3 — first-party modules to boot a system and poke it.
+        Official plugins for Postgres, MySQL, Redis, Kafka, Pulsar, RabbitMQ,
+        and S3 — pure Lua over docker-exec, authored through{' '}
+        <code>prova.containerized</code>. Declare in <code>[plugins]</code>,{' '}
+        <code>require</code>, done.
       </>
     ),
   },
@@ -60,17 +73,6 @@ const FeatureList: FeatureItem[] = [
         Independence is the default; ordering is explicit (<code>flow</code>),
         dependencies form a DAG, and shared resources are declared.{' '}
         <code>--jobs</code> changes speed, never meaning.
-      </>
-    ),
-  },
-  {
-    title: 'Test Your Generators',
-    icon: '🏗️',
-    description: (
-      <>
-        Sibling to <a href="https://archetect.github.io">Archetect</a>: render
-        an archetype in-process, build it, boot it, and prove the generated
-        service actually works — not just that it compiles.
       </>
     ),
   },

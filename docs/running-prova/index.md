@@ -9,10 +9,10 @@ Everything about *executing* your test suites — from ad-hoc runs against a sin
 
 ## In this section
 
-- **[The Command Line](./command-line.md)** — paths vs. manifest-driven runs, every flag, discovery rules, `--list`, and exit codes.
-- **[Manifest & Profiles](./manifest-and-profiles.md)** — `prova.toml`: declare what to run once, then switch environments with `--profile`.
-- **[CI & Output](./ci-and-output.md)** — console vs. JSONL output, consuming the event stream, and the GitHub Action.
-- **[IDE Setup](./ide-setup.md)** — autocomplete, hover docs, and type-checking for your test files via lua-language-server.
+- **[The Command Line](./command-line.md)** — paths vs. manifest-driven runs, `prova init`, every flag (including `--plugin`), discovery rules, `--list`, and exit codes.
+- **[Manifest & Profiles](./manifest-and-profiles.md)** — `prova.toml`: declare what to run (and which plugins) once, then switch environments with `--profile`.
+- **[CI & Output](./ci-and-output.md)** — console vs. JSONL output, consuming the event stream, and the GitHub Action (with plugin caching).
+- **[IDE Setup](./ide-setup.md)** — autocomplete, hover docs, and type-checking for your test files via lua-language-server, wired up automatically by `prova init`.
 
 ## The shape of a run
 

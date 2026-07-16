@@ -121,16 +121,18 @@ local server = prova.fixture("server", Scope.File, function(ctx)
 end)
 ```
 
+(A spawned process captures its combined stdout/stderr — `proc:output()` returns it, so a failed boot is never blind and tests can assert on what the app logged.)
+
 ### `ctx:manage(resource)` — lifecycle in one line
 
 Most resources you provision expose `stop()` (containers, processes) or `close()` (connections). `manage` registers the right one for you and returns the resource, so provisioning and cleanup compose into a single expression:
 
 ```lua
 local pg = ctx:manage(docker.run{ image = "postgres:16-alpine", ports = { 5432 } })
-local conn = ctx:manage(postgres.client(url))
+local app = ctx:manage(shell.spawn("./target/debug/app"))
 ```
 
-It is pure sugar over `defer`; a resource with neither method is an error, and `defer` remains for anything custom.
+It is pure sugar over `defer`; a resource with neither method is an error, and `defer` remains for anything custom. ([Plugin](/docs/plugins/) recipes like `postgres.container(ctx, ...)` take the context precisely so they can `manage` their own container and client for you — one more reason the one-liner is the idiomatic shape.)
 
 ### `ctx:tempdir()` — scoped scratch space
 

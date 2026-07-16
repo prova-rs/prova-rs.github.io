@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Core Concepts
 
-Prova has a small vocabulary: test files, tests, fixtures, groups, flows, suites, and a manifest. This page gives you each in one short section, with links to the deep dives.
+Prova has a small vocabulary: test files, tests, fixtures, groups, flows, suites, plugins, and a manifest. This page gives you each in one short section, with links to the deep dives.
 
 ## Test files
 
@@ -70,9 +70,13 @@ You read the container and you know the semantics. The presence of a `flow` is a
 
 A **suite** is a named group of test files that share **one Lua state** — the unit of shared setup and of parallelism. Drop a `suite.lua` in a directory and its `*_test.lua` files become one suite; the `suite.lua` runs first and is where `Scope.Suite` fixtures live (one database container for every file, built once, torn down once). Test files consume suite fixtures by name: `t:use("pg")`. Any file not in a declared suite is its own singleton suite, so ungrouped files behave exactly as you'd expect. Deep dive: [Suites and Shared State](../writing-tests/suites-and-shared-state.md).
 
+## Plugins
+
+The core runtime ships the **primitives** — `shell`, `fs`, `net`, `docker`, `http`, `grpc`, and friends. Real infrastructure recipes (`postgres.container(ctx)`, `mysql.container(ctx)`, `pulsar.container(ctx)`, …) are **plugins**: Lua packages declared in the manifest's `[plugins]` table, fetched and pinned by ref, and attached in a test file with `require("postgres")`. A plugin resource comes back in a standard shape — `url`, `host`/`port`, a `client` for cross-checking, the `container` handle — so wiring a service to its database is a few plain assignments, and everything the plugin does can also be built by hand from the primitives when no plugin exists. Deep dive: [Plugins](/docs/plugins/).
+
 ## The manifest: `prova.toml`
 
-A `prova.toml` at your repo root declares *what* to run and *how*, so plain `prova` with no arguments runs the configured suite — locally and in CI:
+A `prova.toml` (typically written by `prova init`) declares *what* to run and *how*, so plain `prova` with no arguments runs the configured suite — locally and in CI:
 
 ```toml
 [run]
@@ -83,6 +87,9 @@ jobs   = 4
 jobs   = 8
 [profiles.ci.env]
 CI = "true"
+
+[plugins]
+postgres = "prova-rs/prova-postgres@v0.2.0"
 ```
 
 `prova --profile ci` overlays a profile on `[run]`; CLI flags override the manifest; explicit path arguments bypass it entirely. Deep dive: [Manifest and Profiles](../running-prova/manifest-and-profiles.md).

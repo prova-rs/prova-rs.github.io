@@ -67,6 +67,6 @@ Selecting tests by name (`-k`) and by tag expression is planned. Today, select w
 
 ## Next steps
 
-- Grow this file with shared fixtures and parallel execution in [Your First Test Suite](./your-first-test-suite.md).
+- Grow this into a real project — `prova init`, shared fixtures, parallel execution — in [Your First Test Suite](./your-first-test-suite.md).
 - See every flag and exit code in the [CLI reference](../reference/cli.md).
 - Explore the full assertion vocabulary in [Assertions](../writing-tests/assertions.md).

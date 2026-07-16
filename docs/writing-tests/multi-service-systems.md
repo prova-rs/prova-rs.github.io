@@ -4,7 +4,7 @@ sidebar_position: 8
 
 # Multi-Service Systems
 
-[Testing Real Systems](./testing-real-systems.md) proved one service against one database. Real systems are rarely that polite: they are several services, in several languages, talking through a message broker, each with its own store. This page scales the pattern up without changing it. The vehicle ships in the Prova repository as `examples/kitchen_sink_test.lua` — the "kitchen sink": two services in two languages, three infrastructure dependencies, one end-to-end assertion chain.
+[Testing Real Systems](./testing-real-systems.md) proved one service against one database. Real systems are rarely that polite: they are several services, in several languages, talking through a message broker, each with its own store. This page scales the pattern up without changing it. The vehicle ships in the Prova repository as `examples/kitchen-sink/` — the "kitchen sink": two services in two languages, three infrastructure dependencies, one end-to-end assertion chain.
 
 ```mermaid
 flowchart LR
@@ -21,6 +21,30 @@ A single test drives the whole topology: create an item over gRPC → assert the
 
 The polyglot mix is deliberate. The producer is Rust (tonic + sqlx), the consumer is Python (stdlib `http.server` + PyMySQL) — and not a single line of the test knows or cares. Prova tests systems from the *outside*: it speaks gRPC, HTTP, SQL, and Pulsar to whatever is listening. The implementation languages are irrelevant, which is exactly the point of black-box acceptance testing.
 
+## Three dependencies, three plugins
+
+All three infrastructure recipes are external [plugins](/docs/plugins/), declared in the example directory's `prova.toml`:
+
+```toml
+[run]
+paths = ["."]
+
+[plugins]
+postgres = "prova-rs/prova-postgres@main"
+mysql    = "prova-rs/prova-mysql@main"
+pulsar   = "prova-rs/prova-pulsar@main"
+```
+
+The test file attaches them with ordinary `require`s and names the topic the two services meet on:
+
+```lua
+local postgres = require("postgres")
+local mysql    = require("mysql")
+local pulsar   = require("pulsar")
+
+local TOPIC = "inventory-events"
+```
+
 ## Three dependencies, three lines
 
 ```lua
@@ -35,7 +59,7 @@ local infra = prova.fixture("infra", Scope.File, function(ctx)
 end)
 ```
 
-One [fixture](./fixtures.md), three [container recipes](../reference/modules/index.md#the-grammar), and the entire provisioning story for the topology. Under the hood these three lines hide three *different* readiness semantics: [`postgres.container`](../reference/modules/databases.md) and [`mysql.container`](../reference/modules/databases.md) retry a client until a connection *holds* (both databases restart during first-boot initialization, so an open socket is not yet a database), while [`pulsar.container`](../reference/modules/messaging.md) gates on the broker's own `"messaging service is ready"` log line, because Pulsar standalone opens its ports long before it can serve. None of that leaks into this file — each recipe knows its technology's quirks so the fixture doesn't have to. Every container and every client is tied to the fixture's scope; teardown is automatic, pass or fail.
+One [fixture](./fixtures.md), three plugin recipes, and the entire provisioning story for the topology. Under the hood these three lines hide three *different* readiness semantics: `postgres.container` and `mysql.container` retry a real query until the connection *holds* (both databases restart during first-boot initialization, so an open socket is not yet a database), while `pulsar.container` gates on the broker's own `"messaging service is ready"` log line, because Pulsar standalone opens its ports long before it can serve. None of that leaks into this file — each plugin knows its technology's quirks so the fixture doesn't have to. Every container and every client is tied to the fixture's scope; teardown is automatic, pass or fail.
 
 ## Two services, one pattern each
 
@@ -45,10 +69,9 @@ Each service fixture follows the same boot-then-probe shape from [Testing Real S
 -- The Rust half: gRPC in front, Postgres behind, Pulsar out the back.
 local producer = prova.fixture("producer", Scope.File, function(ctx)
   local env = ctx:use(infra)
-  local dir = "examples/fixtures/inventory-producer"
+  local dir = "../fixtures/inventory-producer"
 
-  local build = shell.run("cargo build", { cwd = dir, timeout = "600s" })
-  assert(build:ok(), "inventory-producer failed to build:\n" .. build.stderr)
+  shell.run("cargo build", { cwd = dir, timeout = "600s", check = true })
 
   local port = net.free_port()
   ctx:manage(shell.spawn(dir .. "/target/debug/inventory-producer", {
@@ -56,7 +79,7 @@ local producer = prova.fixture("producer", Scope.File, function(ctx)
       DATABASE_URL = env.pg.url,
       PULSAR_URL   = env.pulsar.url,
       PULSAR_TOPIC = TOPIC,
-      PORT         = tostring(port),
+      PORT         = port,
     },
   }))
 
@@ -74,13 +97,11 @@ And the Python half — Pulsar in, MySQL behind, REST in front:
 -- The Python half: Pulsar in, MySQL behind, REST in front.
 local consumer = prova.fixture("consumer", Scope.File, function(ctx)
   local env = ctx:use(infra)
-  local dir = "examples/fixtures/audit-consumer"
+  local dir = "../fixtures/audit-consumer"
 
   local venv = ctx:tempdir()
-  local setup = shell.run(
-    "python3 -m venv " .. venv .. " && " .. venv .. "/bin/pip install -q -r requirements.txt",
-    { cwd = dir, timeout = "300s" })
-  assert(setup:ok(), "audit-consumer venv setup failed:\n" .. setup.stderr)
+  shell.run("python3 -m venv " .. venv .. " && " .. venv .. "/bin/pip install -q -r requirements.txt",
+    { cwd = dir, timeout = "300s", check = true })
 
   local port = net.free_port()
   ctx:manage(shell.spawn(venv .. "/bin/python main.py", {
@@ -89,7 +110,7 @@ local consumer = prova.fixture("consumer", Scope.File, function(ctx)
       DATABASE_URL = env.mysql.url,
       PULSAR_URL   = env.pulsar.url,
       PULSAR_TOPIC = TOPIC,
-      PORT         = tostring(port),
+      PORT         = port,
     },
   }))
 
@@ -149,7 +170,7 @@ Notice the fixture DAG that has quietly assembled itself: both services depend o
 Four steps, and an assertion at *every* tier boundary — not just at the end:
 
 1. **Create through the public API.** [`grpc.client`](../reference/modules/grpc.md) builds a reflection-based client and calls `inventory.v1.Inventory/CreateItem` — the only door a real client has.
-2. **Verify the first landing.** The recipe's managed `env.pg.client` points at the very Postgres the producer is wired to, so one `query_value` confirms the row exists before the event has gone anywhere.
+2. **Verify the first landing.** The plugin's managed `env.pg.client` points at the very Postgres the producer is wired to, so one `query_value` confirms the row exists before the event has gone anywhere.
 3. **Poll across the asynchronous hop.** Everything so far was synchronous; Pulsar consumption is not. [`prova.retry`](../reference/lua-api/prova.md#provaretry) polls the consumer's REST API until the audit appears — gate on state, never `sleep`. If the event never arrives, the failure carries a message that says exactly which hop broke.
 4. **Cross-check the final resting place.** The consumer's MySQL gets the same treatment as the producer's Postgres. The event has now been observed at every place it should exist.
 
@@ -180,21 +201,23 @@ Both tests share one Postgres, so neither may assert `count(*) == 1` on the whol
 
 ## The same topology, from primitives
 
-Everything above leans on the container recipes. The repository also ships `examples/kitchen_sink_primitives_test.lua` — the *same* topology with all three dependencies built by hand from `docker.run`, `prova.retry`, and `ctx:manage`, deliberately showcasing three different readiness shapes (Postgres's connection-that-holds, MySQL's longer first-boot horizon, Pulsar's log gate). From the `infra` fixture down, that file is byte-for-byte identical to this one, which is the punchline:
+Everything above leans on the plugins. The repository also ships `examples/kitchen_sink_primitives_test.lua` — the *same* topology with all three dependencies built by hand from `docker.run` (+ `wait` gates), `container:run` (driving the `psql`/`mysql` CLIs already in the images), `prova.retry`, and `ctx:manage`, deliberately showcasing three different readiness shapes (Postgres's query-that-holds, MySQL's longer first-boot horizon, Pulsar's log gate). From the service fixtures down, that file is essentially identical to this one, which is the punchline:
 
 ```lua
--- From here down the file is IDENTICAL to kitchen_sink_test.lua — the services neither know nor
--- care how their dependencies came to exist. That interchangeability is the point: a hand-rolled
--- provisioner that returns the standard { client, url, container } shape is indistinguishable
--- from a first-party recipe.
+-- From here down the file is IDENTICAL to kitchen-sink/kitchen_sink_test.lua — the services neither
+-- know nor care how their dependencies came to exist. That interchangeability is the point: a
+-- hand-rolled provisioner that returns the standard { container, url } shape is indistinguishable
+-- from a first-party plugin.
 ```
 
-When one of *your* dependencies has no recipe, that is the escape hatch — and [Building from Primitives](./building-from-primitives.md) is the walkthrough.
+When one of *your* dependencies has no plugin, that is the escape hatch — and [Building from Primitives](./building-from-primitives.md) is the walkthrough.
 
 ## Run it
 
+The example directory carries its own manifest (with the three `[plugins]`), so run it from there:
+
 ```shell
-prova examples/kitchen_sink_test.lua
+cd examples/kitchen-sink && prova
 ```
 
 ```text

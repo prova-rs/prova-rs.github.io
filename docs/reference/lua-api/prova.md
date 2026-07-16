@@ -21,7 +21,7 @@ by every unit inside it.
 | Key | Type | Description |
 |---|---|---|
 | `tags` | `string[]` | Free-form selection tags. Accepted and recorded; tag-based filtering is not yet implemented (see the [Roadmap](../roadmap.md)). |
-| `requires` | `string[]` | Capabilities this unit needs. An unavailable capability **skips** the unit (with a reason), never fails it. `"docker"` probes the daemon (`docker info`), `"github"` checks `GITHUB_TOKEN`, `"network"` is assumed present; any other name checks for a tool of that name on `PATH` (so `requires = { "cargo" }` just works). |
+| `requires` | `string[]` | Capabilities this unit needs. An unavailable capability **skips** the unit (with a reason), never fails it. `"docker"` probes the daemon (`docker info`), `"github"` checks `GITHUB_TOKEN`, `"network"` is assumed present; a native-capability name (`"http"`, `"sqlite"`, `"grpc"`, `"graphql"`, `"yaml"`) is available iff that feature was compiled into the build; any other name checks for a tool of that name on `PATH` (so `requires = { "cargo" }` just works). Gating is **name-only** — versioned requirements like `"dotnet>=9"` are not yet supported (see the [Roadmap](../roadmap.md)). |
 | `depends_on` | unit handles | Handles returned by `prova.test`/`flow`/`group`. This unit runs only after every dependency **passed**; if any failed or was skipped, this unit is skipped (transitively), not failed. A cycle is a collection-time error. |
 | `resources` | resource refs | Resources this unit holds while running — [`prova.port`](#provaport)/[`prova.resource`](#provaresource)/[`prova.shared`](#provashared) refs, or bare string tokens (exclusive by default). The scheduler never co-schedules two units whose holds conflict. Inert at `--jobs 1`. |
 | `serial` | `boolean` | Process-wide exclusive: never runs concurrently with anything. Default `false`. |
@@ -263,8 +263,8 @@ raises with `message` (or a default) plus the last error seen. The readiness
 primitive:
 
 ```lua
-local conn = prova.retry(function() return postgres.client(url) end,
-                         { timeout = "60s", every = "250ms", message = "postgres never came up" })
+local conn = prova.retry(function() return sqlite.client(url) end,
+                         { timeout = "60s", every = "250ms", message = "db never came up" })
 ```
 
 | Key | Type | Default | Description |
@@ -272,6 +272,85 @@ local conn = prova.retry(function() return postgres.client(url) end,
 | `timeout` | `string` | `"30s"` | Overall deadline. |
 | `every` | `string` | `"500ms"` | Interval between attempts. |
 | `message` | `string` | — | Error message on timeout. |
+
+## `prova.parse`
+
+The exec-CLI output-parsing toolkit: turn the text a CLI prints (typically via
+[`Container:run`](../modules/docker.md#containerruncommand-opts) or
+[`shell.run`](../modules/shell.md)) into Lua values, so plugins and tests never
+hand-roll parsing. All four raise nothing except `json` (which raises on
+malformed JSON).
+
+| Function | Returns | Description |
+|---|---|---|
+| `prova.parse.lines(s)` | `string[]` | Non-empty, **trimmed** lines. |
+| `prova.parse.rows(s, sep?)` | `string[][]` | Each non-empty line split on `sep` (default tab) into a list of columns. |
+| `prova.parse.table(s, sep?)` | `table<string,string>[]` | The first non-empty line is a **header row**; each remaining row becomes a map keyed by header name (the shape TSV-emitting admin CLIs produce). Missing columns are `""`. |
+| `prova.parse.json(s)` | `any` | Parse JSON into a Lua value. JSON `null` → `nil` (a top-level `null` returns `nil`). Raises on invalid JSON. |
+
+```lua
+local out = c:run({ "rabbitmqadmin", "list", "queues", "name", "messages" })
+for _, q in ipairs(prova.parse.table(out)) do
+  t:expect(tonumber(q.messages), q.name .. " backlog"):equals(0)
+end
+
+-- One-object-per-line `--json` streams: compose lines + json.
+for _, line in ipairs(prova.parse.lines(out)) do
+  local obj = prova.parse.json(line)
+end
+```
+
+## `prova.containerized`
+
+```lua
+prova.containerized(spec)   -- → { client?, container }
+```
+
+Build a grammar-conformant resource namespace from a compact spec — the
+scaffolding every containerized recipe/plugin is authored through, so
+first-party and third-party resources come out the same shape. The generated
+`container(ctx, opts?)` provisions via [`docker.run`](../modules/docker.md),
+waits for readiness, ties teardown to the scope with `ctx:manage`, and returns
+the standard resource shape:
+
+```lua
+{ url = ..., container = ..., host = "127.0.0.1", port = <mapped host port>, client = ...? }
+```
+
+`host`/`port` are the primary published port's mapping, so env wiring is
+`DB_HOST = res.host, DB_PORT = res.port`. A managed `client` is attached (built
+inside `prova.retry`, closed on teardown) **only** when the spec provides a
+`client` factory — provisioning works black-box without one.
+
+| Spec field | Type | Description |
+|---|---|---|
+| `name` | `string?` | Namespace name, used in error messages (default `"resource"`). |
+| `image` | `string` | Required. Base image repo (e.g. `"redis"`). A caller's `opts.image` fully overrides. |
+| `tag` | `string?` | Default tag; `opts.tag` overrides. |
+| `port` | `integer?` | The **primary** published port — used for readiness and the `url`/`host`/`port` trio. |
+| `ports` | list? | Ports to publish (integer → random host port; `{ container, host }` → fixed). Defaults to `{ port }`; without `port`, the first entry's container port becomes primary. One of `port`/`ports` is required. |
+| `command` | `string?` | Optional container command. |
+| `env` | table or `fun(opts) → table` | Container environment; a function may read the call-time `opts`. `opts.env` replaces it entirely. |
+| `wait` | `{ port?, log? }?` | Readiness probe (default: TCP on the primary port). |
+| `timeout` | `string?` | Readiness deadline (default `"60s"`); `opts.timeout` overrides. |
+| `url` | `fun(host_port, opts) → string` | Required. Connection URL from the mapped host port. |
+| `client` | `fun(url, opts, container) → any?` | Optional client factory — a native client uses `url`; a **docker-exec** client uses the `container` argument to drive a CLI via `container:run`. Omit for black-box provisioning. |
+| `extra` | `fun(url, opts, container) → table?` | Additional resource fields beyond the standard ones (e.g. S3 credentials), merged into the result (`client`/`url`/`container` are protected). |
+
+```lua
+local redis = prova.containerized{
+  name = "redis", image = "redis", tag = "7-alpine", port = 6379,
+  url = function(p) return "redis://127.0.0.1:" .. p end,
+  client = function(url, opts, c)
+    return { get = function(_, k) return c:run({ "redis-cli", "GET", k }) end }
+  end,
+}
+return redis   -- a plugin: consumers write require("redis").container(ctx)
+```
+
+This is the plugin author's entry point — the full authoring guide (facets,
+namespacing grammar, `prova plugin lint`, publishing) lives in
+[Authoring plugins](../../plugins/authoring-plugins.md).
 
 ## `suite.config`
 

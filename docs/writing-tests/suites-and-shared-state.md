@@ -16,11 +16,20 @@ Drop a `suite.lua` into a directory and that directory becomes one suite owning 
 -- examples/suite/suite.lua — runs once for the whole suite, before any test file
 suite.config{ name = "orders", requires = { "docker" } }
 
--- ONE Postgres for the whole suite — provisioned once, torn down once,
--- shared by every file below.
+-- ONE Postgres for the whole suite — provisioned once, torn down once, shared by every file below.
 prova.fixture("db", Scope.Suite, function(ctx)
-  return postgres.container(ctx, { database = "orders" }).client
+  return require("postgres").container(ctx, { database = "orders" }).client
 end)
+```
+
+The `postgres` here is a [plugin](/docs/plugins/), declared in the directory's own `prova.toml` and attached with `require`:
+
+```toml
+[run]
+paths = ["."]
+
+[plugins]
+postgres = "prova-rs/prova-postgres@main"
 ```
 
 `suite.config` takes two fields:
@@ -37,10 +46,10 @@ Fixture handles are per-state Lua values, so a handle defined in `suite.lua` can
 ```lua
 -- examples/suite/a_create_test.lua
 prova.test("creates the schema and inserts a row", function(t)
-  local c = t:use("db")            -- the suite's shared connection (built once, reused)
+  local c = t:use("db")            -- the suite's shared client (built once, reused)
   c:execute("CREATE TABLE IF NOT EXISTS orders (id BIGINT PRIMARY KEY, sku TEXT, qty INT)")
   c:execute("INSERT INTO orders (id, sku, qty) VALUES ($1, $2, $3)", { 1, "widget", 3 })
-  t:expect(c:query_value("SELECT count(*) FROM orders")):equals(1)
+  t:expect(c:query_value("SELECT count(*) FROM orders")):equals(1)  -- query_value coerces numerics
 end)
 ```
 
@@ -49,6 +58,7 @@ end)
 prova.test("reads the row inserted by the other file in the suite", function(t)
   local c = t:use("db")
   t:expect(c:query_value("SELECT sku FROM orders WHERE id = $1", { 1 })):equals("widget")
+  t:expect(c:query_value("SELECT qty FROM orders WHERE id = $1", { 1 })):equals(3)
 end)
 ```
 
@@ -75,10 +85,10 @@ File scopes tear down after the suite's tests finish, before the suite scope —
 - Suite teardown runs once, after the suite's last test: containers stopped, connections closed — no leaks, no double-provisioning.
 - Isolation falls out of the model: two suites never share a state, so they cannot share (or corrupt) each other's fixtures.
 
-Run a suite by pointing Prova at its directory:
+Run a suite by pointing Prova at its directory (or, when the suite ships its own manifest like this example does, from inside it):
 
 ```shell
-prova examples/suite
+cd examples/suite && prova
 ```
 
 ## Manifest suites: `[suites.*]`

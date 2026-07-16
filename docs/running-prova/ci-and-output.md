@@ -76,7 +76,7 @@ Inputs:
 
 | Input | Default | Description |
 |---|---|---|
-| `version` | `v0.1.0` | The Prova release to install |
+| `version` | `v0.2.2` | The [Prova release](https://github.com/prova-rs/prova/releases) to install |
 | `paths` | — | Files/dirs to run. Setting this bypasses the manifest. |
 | `manifest` | `prova.toml` | Path to the suite manifest |
 | `profile` | — | Manifest profile to run (`prova --profile <profile>`) |
@@ -84,12 +84,24 @@ Inputs:
 | `format` | `console` | `console` or `json` |
 | `working-directory` | `.` | Directory to run `prova` from |
 | `args` | — | Extra arguments appended to the invocation |
+| `plugins` | — | Ad-hoc plugins, one `name = source` per line, layered over the manifest |
+| `cache-plugins` | `true` | Cache fetched git plugins across runs (`false` to disable) |
 
 The action also puts `prova` on `PATH`, so later steps in the same job can invoke it directly. Runners: Linux (x86_64/arm64) and macOS (arm64).
 
-:::note Planned
-The action installs from published GitHub release archives; see the [roadmap](../reference/roadmap.md) for binary release status. You can always `cargo install` or build from source instead — see [Installation](../getting-started/installation.md).
-:::
+### Plugins in CI
+
+Nothing extra is needed for a suite that declares [plugins](/docs/plugins/using-plugins) in `prova.toml` — Prova fetches and pins them in CI exactly as it does locally. The action just makes that fast: by default it caches the plugin clone directory (`~/.cache/prova/plugins`), keyed on the manifest, so pinned plugins clone once and reuse across runs; a changed pin invalidates the key and only the changed plugins re-fetch. Disable with `cache-plugins: false`.
+
+The `plugins:` input is an escape hatch (it expands to [`--plugin` flags](./command-line.md#--plugin--p)), not a second place to declare dependencies — reach for it only when the plugin is a fact about *this CI job* rather than the project, like a nightly-only load-test capability:
+
+```yaml
+- uses: prova-rs/run-action@v1
+  with:
+    profile: nightly
+    plugins: |
+      loadtest = acme/prova-loadtest@v2   # CI-only; not in prova.toml on purpose
+```
 
 ### Example: suite against a CI-provided Postgres
 
@@ -131,7 +143,7 @@ Not every runner has everything. A test (or a whole suite, via `suite.config`) c
 Built-in detectors: `"docker"` probes that the daemon actually responds (not just that the client is installed), `"github"` checks for a `GITHUB_TOKEN`, and any other name is treated as "a binary of that name on `PATH`" — so `requires = { "kubectl" }` just works. Skips show up in both output formats (`"outcome":"skipped"` in JSONL), so a runner silently skipping half your suite is visible in the totals, not hidden.
 
 ```lua
-prova.test("migrates a fresh database", { requires = { "docker" } }, function(ctx)
+prova.test("migrates a fresh database", { requires = { "docker" } }, function(t)
   -- skipped, with a reason, wherever the docker daemon is unreachable
 end)
 ```
