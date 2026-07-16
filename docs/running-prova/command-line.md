@@ -4,22 +4,38 @@ sidebar_position: 1
 
 # The Command Line
 
-The `prova` binary is one run command plus two small subcommands (`init` to scaffold a project, `plugin lint` for plugin authors). Give the run command paths and it runs them; give it nothing and it runs the suite declared in `prova.toml`. Every flag composes with either mode, and command-line flags always win over manifest values.
+The `prova` binary is one run command plus a small family of subcommands: `init` to scaffold a project, `eval` for one-shot snippets, `skill` for agents, the topology verbs (`up`, `watch`, `start`, `down`, `ps`), and `plugin lint` for plugin authors. Give the run command paths and it runs them; give it nothing and it runs the suite declared in `prova.toml`. Every flag composes with either mode, and command-line flags always win over manifest values.
 
 ```text
 usage:
   prova <file-or-dir>...    run the given files/dirs
   prova                     run the suite declared in prova.toml (found by walking up)
   prova init                scaffold prova.toml + LuaLS IDE support in this project
+  prova eval '<code>'       run a one-shot Lua snippet in the full prova environment and print
+                            the returned value (`-` reads the snippet from stdin)
+  prova skill               print the agent skill (how to drive Prova); --install writes it
+                            to .claude/skills/prova/SKILL.md at the project root
+  prova up <topology>       stand up a topology and hold it until Ctrl-C (--fixed for canonical ports)
+  prova watch <topology>    stand up a topology and re-apply on definition change (dev loop)
+  prova start <topology>    stand up a topology detached (returns; use `down` to stop)
+  prova down <topology>     tear down a detached topology
+  prova ps                  list running topologies
   prova plugin lint <f>...  check plugin files against the namespacing grammar
 
 options:
   -p, --profile NAME        run a profile from the manifest
       --manifest PATH       use a specific manifest (default ./prova.toml)
-      --format console|json output format (--json is shorthand)
+      --format console|json|tap  output format (--json is shorthand)
+      --junit PATH          also write a JUnit XML report to PATH (for CI; composes with --format)
   -j, --jobs N              run up to N units concurrently
   -P, --plugin name=source  add an ad-hoc plugin (repeatable; layers over the manifest)
-      --list                discover tests without running them
+  -k PATTERN                select nodes whose path contains PATTERN (repeatable; !PAT excludes)
+      --tags a,b            select nodes tagged with any listed tag (repeatable; !tag excludes)
+      --node PATH           select an exact node path (repeatable) — re-run what a report named
+      --last-failed         select only the nodes that failed in the previous run
+  -u, --update-snapshots    (re)write snapshots instead of comparing (matches_snapshot)
+      --unreferenced M      snapshots no test used: ignore (default) | warn | delete (full runs only)
+      --list                discover tests without running them (respects selection)
   -V, --version             print version
   -h, --help                print this help
 ```
@@ -69,9 +85,34 @@ prova --manifest infra/prova.toml -p smoke  # a manifest somewhere else
 
 If there's no readable manifest and no paths, Prova prints usage and exits with code `2`. See [Manifest & Profiles](./manifest-and-profiles.md) for how the manifest is structured and merged.
 
-:::note Planned
-A `prova test` subcommand form, name/tag filtering (`-k`, `--tags`), and `--shuffle` are on the [roadmap](../reference/roadmap.md) — today the way to run a subset is to pass narrower paths or define a manifest profile with different `paths`.
-:::
+## Probing with `prova eval`
+
+`prova eval '<code>'` runs a one-shot Lua snippet in the **full prova environment** — every built-in module, the manifest's plugins via `require()`, and a real transient `ctx` — and prints the returned value. It kills the "write a throwaway test file just to poke at something" ceremony: probe an API's shape, dress-rehearse a fixture, check what a container's URL looks like.
+
+```shell
+prova eval 'return 1 + 1'
+prova eval 'return fs.glob("**/*.toml")'
+prova eval 'local db = require("postgres").container(ctx); return db.url'
+prova eval - < snippet.lua                       # read the snippet from stdin
+prova eval 'return http.get("http://localhost:8080/health"):json()' --format json
+```
+
+The `ctx` is real: `ctx:manage`, `ctx:defer`, and `ctx:tempdir` all work, and **everything the snippet provisions is torn down when it returns** — success or error — so probing a live container is safe and self-cleaning. Scalars print plainly, tables print as pretty JSON, and `--format json` forces JSON for everything (a snippet is a bare expression or statements with an explicit `return`; `-` reads it from stdin). `--profile`, `--manifest`, and `-P/--plugin` compose exactly as on a run; without a manifest the snippet still runs with just the built-ins.
+
+## Holding environments: the topology verbs
+
+A [topology](../writing-tests/topologies.md) declared with `prova.topology(name, fn)` is addressable from the command line — the same definition your tests `use`:
+
+```shell
+prova up orders              # stand it up, print endpoints, hold until Ctrl-C
+prova up orders --fixed      # same, but on canonical ports (postgres 5432, …)
+prova watch orders           # re-provision on every edit to the definition (dev loop)
+prova start orders           # stand it up detached and return
+prova ps                     # list running topologies (name, pid, uptime, endpoints)
+prova down orders            # tear down a detached topology
+```
+
+`up` and `watch` hold your terminal and tear down on Ctrl-C; `start` spawns a detached holder (its output goes to `<home>/running/<name>.log`) that `down` stops with the identical in-process teardown. By default ports are random so several topologies coexist; `--fixed` pins canonical container ports for external tools. All the verbs accept `--profile` and `--manifest`. The full walkthrough is in [Topologies](../writing-tests/topologies.md); the flag-by-flag reference in the [CLI reference](../reference/cli.md#topology-verbs-up-watch-start-down-ps).
 
 ## Flags
 
@@ -92,16 +133,18 @@ Use a specific manifest file instead of `./prova.toml`:
 prova --manifest configs/acceptance.toml --profile dev
 ```
 
-### `--format` (and `--json`)
+### `--format` (and `--json`), `--junit`
 
-Choose the output format: `console` (human-readable, the default) or `json` (a JSONL event stream for machines). `--json` is shorthand for `--format json`, and `--format=json` works too.
+Choose the output format: `console` (human-readable, the default), `json` (a JSONL event stream for machines), or `tap` (Test Anything Protocol). `--json` is shorthand for `--format json`, and `--format=json` works too. `--junit PATH` additionally writes a JUnit XML report to a file, composing with whatever `--format` prints — console for the human, `results.xml` for the CI dashboard, one run.
 
 ```shell
 prova tests --format json
 prova tests --json                # same thing
+prova tests --format tap
+prova tests --junit results.xml   # console to stdout + JUnit XML to the file
 ```
 
-Both formats are covered in detail in [CI & Output](./ci-and-output.md).
+All the formats are covered in detail in [CI & Output](./ci-and-output.md).
 
 ### `--jobs`, `-j`
 
@@ -124,6 +167,16 @@ prova -P postgres=../prova-postgres          # a local checkout, for plugin deve
 ```
 
 Plugins a project depends on belong in the manifest's `[plugins]` table, where they are versioned with the tests — the flag is for one-off extras and for developing a plugin against a real suite. See [Using Plugins](/docs/plugins/using-plugins).
+
+### `--update-snapshots`, `-u` and `--unreferenced`
+
+Snapshot management for [`matches_snapshot`](../writing-tests/assertions.md#snapshots) assertions. `-u` (re)writes every `.snap` a run touches instead of comparing — the "accept the new output" verb; review the diff like code. `--unreferenced warn|delete` reconciles `.snap` files **no test referenced**: `warn` lists them and fails the run (so CI catches rot), `delete` removes them. Reconciliation only makes sense on a full run, so it is skipped (with a note) whenever a selection flag is active.
+
+```shell
+prova -u                          # accept current output as the new snapshots
+prova --unreferenced warn         # CI: fail if orphaned .snap files exist
+prova --unreferenced delete       # clean them up locally
+```
 
 ### `--list`
 

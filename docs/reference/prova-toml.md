@@ -21,19 +21,24 @@ or one suite, or `prova` exits `2`.
 |---|---|---|---|
 | `paths` | array of strings | `[]` | Files/directories to discover (`*_test.lua` / `*.test.lua`). |
 | `jobs` | integer | `1` | Maximum units run concurrently. Throughput only — never changes test semantics. |
-| `format` | string | `"console"` | Output format: `"console"` or `"json"`. Any other value is an error (exit `2`). |
+| `format` | string | `"console"` | Output format: `"console"`, `"json"`, or `"tap"`. Any other value is an error (exit `2`). |
 | `env` | table of string → string | `{}` | Environment variables set for the whole run, applied to the process before any test executes. Written as a `[run.env]` sub-table. |
 
 ## `[profiles.<name>]` — overlays
 
-Each profile accepts exactly the same keys as `[run]` (`paths`, `jobs`, `format`,
-`env`). Selecting one with `prova --profile <name>` overlays it on `[run]`:
+Each profile accepts the same keys as `[run]` (`paths`, `jobs`, `format`,
+`env`), plus its own `plugins` table. Selecting one with
+`prova --profile <name>` overlays it on `[run]`:
 
 - `paths` — the profile's `paths` **replace** the base paths, but only if the
   profile's list is non-empty; an absent or empty `paths` inherits the base.
 - `jobs`, `format` — taken from the profile when present, otherwise from `[run]`.
 - `env` — **merged** key-by-key: base entries first, then the profile's entries;
   on a key collision the profile wins.
+- `plugins` — `[profiles.<name>.plugins]` entries are **overlaid** on the
+  project-wide `[plugins]` set: the base plugins all remain available, the
+  profile adds its own, and a same-named entry from the profile wins. See
+  [below](#profile-scoped-plugins).
 - Naming a profile that does not exist is an error (exit `2`).
 
 ## `[suites.<name>]` — explicit suites
@@ -55,8 +60,9 @@ by profile overlays. Capability gating and environment belong in the setup file
 ## `[plugins]` — external plugins
 
 Maps each name `require()` will resolve in test files to a **plugin source** — a
-local path or a git repo. The plugin set is a property of the project: it is not
-profile-specific and applies to every run.
+local path or a git repo. The project-wide `[plugins]` set applies to every run;
+a profile can layer additional (or overriding) entries on top with
+`[profiles.<name>.plugins]` (see below).
 
 ```toml
 [plugins]
@@ -80,6 +86,29 @@ editor completion (`manage = "auto" | "always" | "never"`, default `"auto"`).
 
 Every source form, resolution rule, and the caching/pinning semantics are
 documented in [Using Plugins](../plugins/using-plugins.md).
+
+## Profile-scoped plugins
+
+A `[profiles.<name>.plugins]` table declares plugins of the profile's own,
+overlaid on the project-wide `[plugins]` set when the profile is selected. This is the principled home for CI-only or
+nightly-only capabilities: the plugin is still declared in `prova.toml` — pinned
+in-repo, versioned with the tests — instead of injected as an out-of-band
+`--plugin` flag in a workflow file.
+
+```toml
+[plugins]
+redis = "prova-rs/prova-redis@v1"
+
+[profiles.ci]
+[profiles.ci.plugins]
+kafka = "acme/prova-kafka@v2"           # only resolved under --profile ci
+redis = "./plugins/redis-ci.lua"        # overrides the project-wide entry under ci
+```
+
+The overlay is per-entry: base plugins remain available under the profile, the
+profile's entries are added, and a same-named profile entry **wins** over the
+base. Values take every source form `[plugins]` accepts. `--plugin`/`-P` still
+layers over the fully resolved (base + profile) set.
 
 ## Complete annotated example
 

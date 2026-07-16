@@ -20,7 +20,7 @@ by every unit inside it.
 
 | Key | Type | Description |
 |---|---|---|
-| `tags` | `string[]` | Free-form selection tags. Accepted and recorded; tag-based filtering is not yet implemented (see the [Roadmap](../roadmap.md)). |
+| `tags` | `string[]` | Free-form selection tags — what `prova --tags` selects (or, with `!tag`, excludes) from the command line. Tags on a **group** are inherited by every unit inside it. See [Selection semantics](../cli.md#selection-semantics). |
 | `requires` | `string[]` | Capabilities this unit needs. An unavailable capability **skips** the unit (with a reason), never fails it. `"docker"` probes the daemon (`docker info`), `"github"` checks `GITHUB_TOKEN`, `"network"` is assumed present; a native-capability name (`"http"`, `"sqlite"`, `"grpc"`, `"graphql"`, `"yaml"`) is available iff that feature was compiled into the build; any other name checks for a tool of that name on `PATH` (so `requires = { "cargo" }` just works). Gating is **name-only** — versioned requirements like `"dotnet>=9"` are not yet supported (see the [Roadmap](../roadmap.md)). |
 | `depends_on` | unit handles | Handles returned by `prova.test`/`flow`/`group`. This unit runs only after every dependency **passed**; if any failed or was skipped, this unit is skipped (transitively), not failed. A cycle is a collection-time error. |
 | `resources` | resource refs | Resources this unit holds while running — [`prova.port`](#provaport)/[`prova.resource`](#provaresource)/[`prova.shared`](#provashared) refs, or bare string tokens (exclusive by default). The scheduler never co-schedules two units whose holds conflict. Inert at `--jobs 1`. |
@@ -53,10 +53,40 @@ prova.test("renders into a clean workspace", function(t)
 end)
 ```
 
-:::note Planned
-Fixture options (`{ autouse = true }`, `{ params = {...} }` with `ctx:param()`)
-are not yet implemented. See the [Roadmap](../roadmap.md).
+:::note
+Autouse fixtures (`{ autouse = true }`) are not yet implemented (see the
+[Roadmap](../roadmap.md)). Parametrized fixtures (`{ params = {...} }` with
+`ctx:param()`) were considered and **deliberately dropped** — parametrization
+stays explicit Lua: `prova.test_each` for data-driven tests, a `for` loop
+generating fixtures + groups per variant for matrices. See
+[Decided against](../roadmap.md#decided-against).
 :::
+
+## `prova.topology`
+
+```lua
+prova.topology(name, factory)          -- Scope.File (the default)
+prova.topology(name, scope, factory)   -- explicit Scope value
+```
+
+Declare a **topology**: a named, verb-agnostic bundle of wired resources. It is
+a fixture (default `Scope.File` — provisioned once, shared across a file's
+tests) that is *also* addressable by name from the command line: `prova up
+<name>` and `prova start <name>` stand up the identical object outside any
+test, printing each resource's `url`. In test mode use it exactly like any
+fixture — `t:use(handle)`. One definition powers both your tests and your dev
+environment, so they cannot drift.
+
+```lua
+local env = prova.topology("orders", function(ctx)
+  local db = require("postgres").container(ctx)
+  db.client:execute("create table orders (id int, sku text)")
+  return { db = db }
+end)
+```
+
+See [Topologies](../../writing-tests/topologies.md) for the guide and the
+[CLI reference](../cli.md#topology-verbs-up-watch-start-down-ps) for the verbs.
 
 ## Scope constants
 

@@ -1,5 +1,5 @@
 ---
-sidebar_position: 9
+sidebar_position: 10
 ---
 
 # Building from Primitives
@@ -125,6 +125,6 @@ No plugin, so no manifest — point Prova at the file from the repo root:
 prova examples/service_grpc_postgres_primitives_test.lua
 ```
 
-The primitives groups are tagged `"primitives"`, so once tag filtering lands you will be able to select or exclude the hand-rolled variants as a group.
+The primitives groups are tagged `"primitives"`, so `prova --tags primitives` selects the hand-rolled variants as a group — and `prova --tags '!primitives'` excludes them.
 
 When a plugin exists for your dependency, prefer it — the one-liner in [Testing Real Systems](./testing-real-systems.md) is the idiomatic shape, and everything on this page is exactly what it expands to.

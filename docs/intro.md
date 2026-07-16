@@ -57,6 +57,7 @@ Two arguments, one tool.
 - **Execution strategy you can read** — independent tests and groups parallelize; ordered `flow`s share state and cascade-skip on failure. The container declares the strategy, so `--jobs` is pure throughput and never changes what tests mean.
 - **Dependency-aware scheduling** — `depends_on` edges skip (never fail) dependents when an upstream fails; declared resources let the scheduler parallelize safely around shared ports, databases, and files.
 - **Graceful degradation** — `requires = { "docker" }` skips a test with a reason where a capability is missing, instead of turning CI red.
+- **Topologies you can test *or* inhabit** — declare a named environment once with `prova.topology`; tests `use` it, and `prova up`/`watch`/`start` stand the identical environment up live to develop against, so tests and dev environment cannot drift.
 - **Lean core, plugin ecosystem** — built-in modules for `fs`, `shell` (+`net`), `http`, `grpc`, `graphql`, `yaml`, `docker`, and `sqlite`, plus the bundled `archetect` plugin for in-process archetype rendering. Databases, caches, brokers, and object stores — `postgres`, `mysql`, `redis`, `kafka`, `pulsar`, `rabbitmq`, `s3` — are official [plugins](./plugins/index.md): pure Lua over docker-exec, declared in `prova.toml` `[plugins]` and attached with `require("postgres")`.
 - **One static binary** — written in Rust; nothing to install on the target beyond `prova` itself.
 

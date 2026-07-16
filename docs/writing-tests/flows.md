@@ -68,8 +68,8 @@ end)
 
 Inside a flow, `Scope.Test` means **per-step**: a test-scoped fixture is rebuilt (and torn down) for each step, while the flow-scoped one persists. `Scope.Flow` is only valid inside a flow — using it from an ordinary test is an error.
 
-:::note Planned
-A builder-level `f:use(fixture)`, binding a fixture for the flow's lifetime at declaration time, is on the [roadmap](../reference/roadmap.md). Today, `t:use` a `Scope.Flow` fixture from within a step — the caching gives you the same one-instance-per-flow semantics.
+:::note
+A builder-level `f:use(fixture)`, binding a fixture for the flow's lifetime at declaration time, was considered and **deliberately dropped** (see [Decided against](../reference/roadmap.md#decided-against)) — `t:use` a `Scope.Flow` fixture from within a step; the caching gives you the same one-instance-per-flow semantics.
 :::
 
 ## Failure: cascade-skip

@@ -25,17 +25,17 @@ The tap's formulas are generated automatically from each release — see [prova-
 
 Every release publishes prebuilt archives on the [GitHub releases page](https://github.com/prova-rs/prova/releases), named `prova-<version>-<platform>-<arch>.tar.gz` (with SHA256 checksums alongside):
 
-- `prova-v0.2.2-linux-x86_64.tar.gz`
-- `prova-v0.2.2-linux-arm64.tar.gz`
-- `prova-v0.2.2-macos-arm64.tar.gz`
-- `prova-v0.2.2-windows-x86_64.zip` (plus a `-installer.exe`)
+- `prova-v0.2.4-linux-x86_64.tar.gz`
+- `prova-v0.2.4-linux-arm64.tar.gz`
+- `prova-v0.2.4-macos-arm64.tar.gz`
+- `prova-v0.2.4-windows-x86_64.zip` (plus a `-installer.exe`)
 
 Download, extract, and put the binary on your `PATH`:
 
 ```shell
-curl -LO https://github.com/prova-rs/prova/releases/download/v0.2.2/prova-v0.2.2-linux-x86_64.tar.gz
-tar -xzf prova-v0.2.2-linux-x86_64.tar.gz
-sudo mv prova-v0.2.2-linux-x86_64/prova /usr/local/bin/
+curl -LO https://github.com/prova-rs/prova/releases/download/v0.2.4/prova-v0.2.4-linux-x86_64.tar.gz
+tar -xzf prova-v0.2.4-linux-x86_64.tar.gz
+sudo mv prova-v0.2.4-linux-x86_64/prova /usr/local/bin/
 ```
 
 In GitHub Actions, skip all of this — the [`prova-rs/run-action`](../running-prova/ci-and-output.md#the-github-action) action installs a release binary for you.

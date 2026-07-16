@@ -14,7 +14,7 @@ The `[run]` table is what `prova` with no arguments executes:
 [run]                       # the default profile
 paths  = ["tests"]          # files/dirs to discover (*_test.lua / *.test.lua)
 jobs   = 4                  # concurrency — throughput only, never changes meaning
-format = "console"          # "console" (human) | "json" (JSONL event protocol)
+format = "console"          # "console" (human) | "json" (JSONL event protocol) | "tap"
 
 [run.env]                   # environment variables set for the whole run
 LOG_LEVEL = "info"
@@ -24,7 +24,7 @@ Every field is optional:
 
 - **`paths`** — files and directories to discover tests in.
 - **`jobs`** — how many suites may run concurrently (default `1`).
-- **`format`** — `"console"` or `"json"` (see [CI & Output](./ci-and-output.md)).
+- **`format`** — `"console"`, `"json"`, or `"tap"` (see [CI & Output](./ci-and-output.md)).
 - **`env`** — environment variables applied to the process before any test runs. This is the channel your tests read connection details from.
 
 A manifest that declares no `paths` and no `[suites.*]` is an error — there's nothing to run.
@@ -49,6 +49,7 @@ The merge semantics are simple and field-wise — **base first, then profile**:
 - `paths` — the profile's paths replace the base's *if the profile sets any*; otherwise inherited.
 - `jobs` and `format` — the profile's value if set, otherwise the base's.
 - `env` — **merged**: base entries first, profile entries added on top (the profile wins on a key both define).
+- `plugins` — a `[profiles.<name>.plugins]` table is **overlaid** on the project-wide `[plugins]` set: base plugins stay available, the profile adds its own, and a same-named profile entry wins. The in-repo home for CI-only capabilities — see [Using Plugins](/docs/plugins/using-plugins).
 
 So `prova --profile ci` on the manifest above runs the base `tests` paths with `jobs = 8`, `format = "json"`, and an environment of both `LOG_LEVEL=info` and `CI=true`. `prova --profile smoke` runs only `tests/smoke` but inherits `jobs = 4` from `[run]`. Naming a profile that doesn't exist is an error.
 

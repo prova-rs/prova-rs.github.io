@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Using Plugins
 
-Plugins are declared once, in `prova.toml`, and attached in test files with `require()`. The plugin set is a property of the *project* — it is not profile-specific, and it applies to every run.
+Plugins are declared once, in `prova.toml`, and attached in test files with `require()`. The plugin set is a property of the *project*: `[plugins]` applies to every run, and a profile can layer additional entries on top with `[profiles.<name>.plugins]`.
 
 ## `[plugins]` in prova.toml
 
@@ -71,6 +71,21 @@ mirror = "https://git.acme.io/plugins"    # or a full base URL
 redis = "acme:prova-redis@v1"             # → https://github.com/acme/prova-redis @ v1
 queue = "mirror:prova-queue"              # → https://git.acme.io/plugins/prova-queue
 ```
+
+## Profile-scoped plugins
+
+A `[profiles.<name>.plugins]` table declares plugins of the profile's own, overlaid on the project-wide `[plugins]` set when that profile is selected:
+
+```toml
+[plugins]
+redis = "prova-rs/prova-redis@v1"
+
+[profiles.nightly]
+[profiles.nightly.plugins]
+loadtest = "acme/prova-loadtest@v2"     # only resolved under --profile nightly
+```
+
+Base plugins remain available under the profile; the profile adds its entries, and a same-named profile entry overrides the base one. This is the principled home for CI-only or nightly-only capabilities — the plugin stays declared in `prova.toml`, pinned and versioned with the tests, so a `--profile ci` run and local dev resolve the same source instead of a workflow file injecting it out-of-band. Reach for the `--plugin` flag (below) only when the plugin is a fact about a single invocation.
 
 ## `require()` semantics
 

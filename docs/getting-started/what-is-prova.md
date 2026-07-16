@@ -45,6 +45,17 @@ Prova's wedge is that it refuses the trade-off: a **real programming language** 
 
 The binary ships the primitives and the network-drive clients: `fs`, `shell` (+`net`), `http`, `grpc`, `graphql`, `yaml`, `docker`, `sqlite`, and the bundled `archetect` plugin. Everything containerized — `postgres`, `mysql`, `redis`, `kafka`, `pulsar`, `rabbitmq`, `s3` — is an official external [plugin](../plugins/index.md) (`prova-rs/prova-<name>`): pure Lua over docker-exec, authored through `prova.containerized`, with zero native code. You declare them in `prova.toml` under `[plugins]` and attach with `require("postgres")`. The same authoring seam is open to you — see [Authoring Plugins](/docs/plugins/authoring-plugins).
 
+## Prova teaches your agent
+
+If the implementer is an agent, Prova carries its own instructions. `prova skill` prints the **embedded agent skill** — a compact document, versioned with the binary so it can never drift from the features, that teaches an agent the whole discipline: write the proof first, probe unknowns with `prova eval`, implement to green with `prova --last-failed`, never weaken a proof to pass it. It compresses the test-file idiom, the resource grammar, topologies, and selection into a few screens an agent ingests in one read.
+
+```shell
+prova skill              # print it (an agent session ingests it with `! prova skill`)
+prova skill --install    # write .claude/skills/prova/SKILL.md so the repo carries it
+```
+
+An **MCP mode** is designed and coming: `prova` as a server whose tools mirror the CLI one-to-one (`run`, `eval`, `up`), serving this same skill as its instructions and holding **warm topologies** so an agent's re-run takes milliseconds instead of re-provisioning. When it lands, the contract stays: if Prova is an MCP server, call tools; if it is a CLI, run commands; everything else is identical.
+
 ## What Prova deliberately is not
 
 Being good at the acceptance layer means being honest about the boundary:

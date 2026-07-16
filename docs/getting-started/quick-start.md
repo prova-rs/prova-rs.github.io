@@ -61,9 +61,22 @@ When a test fails, the assertion's message is printed right under it:
 
 The exit code tells CI everything it needs: `0` when all tests pass, `1` when any fail, `2` for usage or harness errors (no files found, bad flag, broken manifest).
 
-:::note Planned
-Selecting tests by name (`-k`) and by tag expression is planned. Today, select what runs by pointing `prova` at files and directories. See the [Roadmap](../reference/roadmap.md).
+:::tip
+As the suite grows, you never re-run all of it to iterate: `prova -k greeting` selects by name, `prova --tags '!slow'` by tag, and `prova --last-failed` re-runs exactly what was red. See [The Command Line](../running-prova/command-line.md#run-a-subset).
 :::
+
+## Probe before you write
+
+Not sure what `shell.run` returns, or what a module's output looks like? `prova eval` runs a one-shot snippet in the same environment your tests get — no test file needed:
+
+```shell
+$ prova eval 'return shell.run("echo hello prova").stdout'
+hello prova
+$ prova eval 'return fs.exists("hello_test.lua")'
+true
+```
+
+Whatever the snippet returns is printed (tables come back as JSON), so you can check a shape in seconds and then write the assertion with confidence. More in [The Command Line](../running-prova/command-line.md#probing-with-prova-eval).
 
 ## Next steps
 

@@ -20,7 +20,7 @@ documented in this section is implemented.
 
 | Global | Description |
 |---|---|
-| [`prova`](./prova.md) | The registration DSL: `fixture`, `test`, `test_each`, `flow`, `group`, `describe`, resource constructors, `sleep`, `retry` — plus the plugin-facing [`prova.parse`](./prova.md#provaparse) toolkit and the [`prova.containerized`](./prova.md#provacontainerized) scaffolding helper. |
+| [`prova`](./prova.md) | The registration DSL: `fixture`, `topology`, `test`, `test_each`, `flow`, `group`, `describe`, resource constructors, `sleep`, `retry` — plus the plugin-facing [`prova.parse`](./prova.md#provaparse) toolkit and the [`prova.containerized`](./prova.md#provacontainerized) scaffolding helper. |
 | [`suite`](./prova.md#suiteconfig) | Suite configuration — `suite.config{...}` in a `suite.lua` setup file. |
 | [`Scope`](./prova.md#scope-constants) | Typed fixture-scope constants: `Scope.Test`, `Scope.Flow`, `Scope.File`, `Scope.Suite`. |
 | [`fs`](../modules/fs.md) | Filesystem: read/write files, temp dirs, globbing. |

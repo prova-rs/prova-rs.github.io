@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # CI & Output
 
-Prova's executor never prints — it emits a structured event stream, and output formats are just consumers of it. Today two consumers ship in the CLI: `console` for humans and `json` for machines. That, plus exit codes (`0` pass, `1` failures, `2` usage error), is everything CI needs.
+Prova's executor never prints — it emits a structured event stream, and output formats are just consumers of it. Four consumers ship in the CLI: `console` for humans, `json` for machines, `tap` for TAP harnesses, and a JUnit XML file writer (`--junit`) for CI dashboards. That, plus exit codes (`0` pass, `1` failures, `2` usage error), is everything CI needs.
 
 ## Console output
 
@@ -57,9 +57,31 @@ prova --json | jq -r 'select(.type == "run_finished") | "::notice::\(.passed) pa
 
 The exit code still carries the verdict (`1` on any failure), so parsing is for *detail*, never for pass/fail.
 
-:::note Planned
-Additional reporter formats — TAP, a JUnit-style XML writer, and a richer `pretty` console — are on the [roadmap](../reference/roadmap.md). The reporter seam is designed for it: they'll be new consumers of the same event stream, and JSONL output will not change shape.
-:::
+## `--format tap` — the Test Anything Protocol
+
+`prova --format tap` streams TAP version 13 to stdout — the line-oriented protocol a long tail of harnesses and CI plugins already ingest. One `ok`/`not ok N - path` line per test as it finishes, a `# SKIP` directive (with the reason) for skips, a YAML diagnostic block carrying the failure message, and the `1..N` plan at the end (a trailing plan is valid TAP, which is what lets Prova stream without knowing the count up front):
+
+```text
+TAP version 13
+ok 1 - orders api › creates an order
+not ok 2 - orders api › rejects an empty cart
+  ---
+  message: "expected status 422, got 200"
+  ...
+ok 3 - admin api › bulk import # SKIP docker daemon unreachable
+1..3
+```
+
+## `--junit PATH` — a JUnit XML report file
+
+`prova --junit results.xml` writes a JUnit XML document — the format Jenkins, GitLab, GitHub Actions, CircleCI, and friends ingest to render per-test results — to the given **file**, alongside whatever `--format` prints to stdout. The two are independent sinks of the same event stream, so one run can print console output for the human *and* drop the XML for the dashboard:
+
+```shell
+prova --profile ci --junit results.xml           # console + results.xml
+prova --format tap --junit results.xml           # TAP + results.xml
+```
+
+Each test becomes a `<testcase>`: the last `›` segment of the node path is its `name`, and the ancestors join with `.` as its `classname` (the attribute dashboards group by), falling back to the suite name for top-level tests. Failures carry a `<failure>` with the assertion message; skips carry `<skipped>` with the reason.
 
 ## The GitHub Action
 
@@ -76,7 +98,7 @@ Inputs:
 
 | Input | Default | Description |
 |---|---|---|
-| `version` | `v0.2.2` | The [Prova release](https://github.com/prova-rs/prova/releases) to install |
+| `version` | `v0.2.4` | The [Prova release](https://github.com/prova-rs/prova/releases) to install |
 | `paths` | — | Files/dirs to run. Setting this bypasses the manifest. |
 | `manifest` | `prova.toml` | Path to the suite manifest |
 | `profile` | — | Manifest profile to run (`prova --profile <profile>`) |
@@ -93,14 +115,14 @@ The action also puts `prova` on `PATH`, so later steps in the same job can invok
 
 Nothing extra is needed for a suite that declares [plugins](/docs/plugins/using-plugins) in `prova.toml` — Prova fetches and pins them in CI exactly as it does locally. The action just makes that fast: by default it caches the plugin clone directory (`~/.cache/prova/plugins`), keyed on the manifest, so pinned plugins clone once and reuse across runs; a changed pin invalidates the key and only the changed plugins re-fetch. Disable with `cache-plugins: false`.
 
-The `plugins:` input is an escape hatch (it expands to [`--plugin` flags](./command-line.md#--plugin--p)), not a second place to declare dependencies — reach for it only when the plugin is a fact about *this CI job* rather than the project, like a nightly-only load-test capability:
+The `plugins:` input is an escape hatch (it expands to [`--plugin` flags](./command-line.md#--plugin--p)), not a second place to declare dependencies. Even a CI-only capability usually belongs in the manifest — a [`[profiles.ci.plugins]` table](/docs/plugins/using-plugins#profile-scoped-plugins) keeps it pinned in-repo and resolved identically by `--profile ci` everywhere — so reach for the input only when the plugin is a fact about *this one job*:
 
 ```yaml
 - uses: prova-rs/run-action@v1
   with:
     profile: nightly
     plugins: |
-      loadtest = acme/prova-loadtest@v2   # CI-only; not in prova.toml on purpose
+      loadtest = acme/prova-loadtest@v2   # this job only; not in prova.toml on purpose
 ```
 
 ### Example: suite against a CI-provided Postgres

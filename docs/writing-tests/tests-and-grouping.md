@@ -37,13 +37,13 @@ end)
 | Option | Effect |
 |---|---|
 | `timeout` | Duration string (`"30s"`, `"500ms"`). The test fails with `timed out after ...`; teardown still runs. |
-| `tags` | Free-form labels attached to the test. |
+| `tags` | Free-form labels attached to the test — the handles `prova --tags` selects (or excludes) from the command line. A group's tags are inherited by everything inside it. |
 | `requires` | Capabilities the test needs (`"docker"`, `"cargo"`, ...). Missing → the test is **skipped**, never failed. See [Dependencies & Scheduling](./dependencies-and-scheduling.md). |
 | `depends_on` | Unit handles this test must wait for. See [Dependencies & Scheduling](./dependencies-and-scheduling.md). |
 | `resources` / `serial` | Concurrency gating. See [Dependencies & Scheduling](./dependencies-and-scheduling.md). |
 
-:::note Planned
-Tag-based selection from the command line (`-k` name filtering, `--tags` expressions) is on the [roadmap](../reference/roadmap.md). Today tags are recorded metadata; to run a subset, point Prova at a narrower path or define a [profile](../running-prova/manifest-and-profiles.md).
+:::tip
+Run a subset from the command line with `prova -k <pattern>` (name filtering), `prova --tags a,b` (with `!tag` excludes), `--node` for an exact path, or `--last-failed`. See [The Command Line](../running-prova/command-line.md#run-a-subset).
 :::
 
 :::note Planned

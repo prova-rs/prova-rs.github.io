@@ -78,9 +78,10 @@ ctx:log("seeded 3 rows")
 Attach a log line to the current test/fixture. (Currently written to stderr,
 keeping stdout clean for the JSON protocol.)
 
-:::note Planned
-`ctx:param()` and parametrized fixtures are not yet implemented; use
-`prova.test_each` for table-driven cases. See the [Roadmap](../roadmap.md).
+:::note
+`ctx:param()` and parametrized fixtures were considered and **deliberately
+dropped** — parametrization stays explicit Lua: use `prova.test_each` for
+table-driven cases. See [Decided against](../roadmap.md#decided-against).
 :::
 
 ## `TestContext` — tests and flow steps
@@ -138,10 +139,12 @@ flow's context bag.
 |---|---|
 | `f:step(name, body)` / `f:step(name, opts, body)` | Declare an ordered step (`body : fun(t: TestContext)`). Steps run in declaration order on one worker; after a failure the remaining steps cascade-skip. `opts` are the [shared unit options](./prova.md#shared-unit-options-unitopts) — notably a per-step `timeout`. |
 
-:::note Planned
-`f:use(fixture)` on the builder is not yet implemented. Call `t:use(fixture)`
-inside a step instead — a `Scope.Flow` fixture is built once per flow and shared
-across its steps. See the [Roadmap](../roadmap.md).
+:::note
+A builder-level `f:use(fixture)` was considered and **deliberately dropped**.
+Call `t:use(fixture)` inside a step instead — a `Scope.Flow` fixture is built
+once per flow and shared across its steps, which is the same
+one-instance-per-flow semantics. See
+[Decided against](../roadmap.md#decided-against).
 :::
 
 ## `GroupBuilder`

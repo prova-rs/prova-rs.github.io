@@ -93,9 +93,17 @@ On failure it lists each offender as `relpath:line: snippet`, so you go straight
 
 ### Snapshots
 
-:::note Planned
-Snapshot matching (`matches_snapshot()`, with a `--update-snapshots` flag to rewrite stored snapshots, in the spirit of Rust's `insta`) is on the [roadmap](../reference/roadmap.md). Today, read the file and assert directly — `t:expect(out:file("src/main.rs"):read()):contains(...)` — or use `is_fully_rendered()` for whole-tree checks.
-:::
+`matches_snapshot` compares the subject against a stored `.snap` file colocated with the test — in the spirit of Rust's `insta`. The first run fails and writes a reviewable `.snap.new`; accept it (and every later intentional change) with `prova -u` / `--update-snapshots`, and review the diff like code:
+
+```lua
+prova.test("renders the expected layout", function(t)
+  local out = t:use(project)
+  t:expect(out):matches_snapshot{ level = "layout" }      -- the tree's shape
+  t:expect(out:file("Cargo.toml")):matches_snapshot{ level = "content" }
+end)
+```
+
+The subject is a string (compared as-is) or a path handle. For a directory, `level = "layout"` snapshots the sorted relative paths (the default — cheap, rot-resistant) while `"content"` also captures each file's bytes; keep `content` snapshots narrow. A mismatch fails with a line diff. `.snap` files live in a `snapshots/` directory next to the test file — commit them; `prova --unreferenced warn` in CI catches ones no test uses anymore. Full semantics in the [matcher reference](../reference/lua-api/matchers.md#matches_snapshot).
 
 ## Negation: `:never()`
 

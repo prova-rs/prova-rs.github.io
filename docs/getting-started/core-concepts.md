@@ -53,8 +53,8 @@ flowchart TB
 
 Fixtures can depend on other fixtures (`ctx:use` inside a factory), and dependencies always outlive their dependents. Deep dive: [Fixtures](../writing-tests/fixtures.md).
 
-:::note Planned
-Parametrized fixtures (`ctx:param()` + a `params` list, multiplying every dependent test across variants) are planned. Today, use `prova.test_each` for table-driven tests. See the [Roadmap](../reference/roadmap.md).
+:::note
+There is deliberately no parametrized-fixture DSL — parametrization stays explicit, plain Lua: `prova.test_each` for table-driven tests, and a `for` loop generating fixtures and groups per variant for matrices. See the [Roadmap](../reference/roadmap.md#decided-against).
 :::
 
 ## Groups vs. flows: independent vs. ordered
@@ -73,6 +73,10 @@ A **suite** is a named group of test files that share **one Lua state** — the 
 ## Plugins
 
 The core runtime ships the **primitives** — `shell`, `fs`, `net`, `docker`, `http`, `grpc`, and friends. Real infrastructure recipes (`postgres.container(ctx)`, `mysql.container(ctx)`, `pulsar.container(ctx)`, …) are **plugins**: Lua packages declared in the manifest's `[plugins]` table, fetched and pinned by ref, and attached in a test file with `require("postgres")`. A plugin resource comes back in a standard shape — `url`, `host`/`port`, a `client` for cross-checking, the `container` handle — so wiring a service to its database is a few plain assignments, and everything the plugin does can also be built by hand from the primitives when no plugin exists. Deep dive: [Plugins](/docs/plugins/).
+
+## Topologies
+
+A **topology** is a fixture designed to be a whole environment and **addressable by name**: `prova.topology("orders", fn)` declares a named bundle of wired resources (a seeded database, a cache, the app connecting them) that your tests consume like any fixture — and that `prova up orders` stands up *live* for you to develop against, printing each resource's endpoint and holding until Ctrl-C. `prova watch` re-applies it as you edit; `prova start`/`down`/`ps` manage it detached. One definition powers both your tests and your dev environment, so they cannot drift. Deep dive: [Topologies](../writing-tests/topologies.md).
 
 ## The manifest: `prova.toml`
 

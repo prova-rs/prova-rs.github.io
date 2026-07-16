@@ -41,6 +41,7 @@ t:expect(body):never():contains("secret")
 | `:is_dir()` | path | The path is a directory. |
 | `:is_empty()` | path | An existing directory with no entries, or a zero-byte file. A missing path (or non-path subject) fails. |
 | `:is_fully_rendered()` | path | No leftover template markers — `{{`, `{%`, or `{#` — in any file's contents or path segments under the subject. GitHub Actions `${{ ... }}` expressions are excluded; binary/unreadable files are skipped; a missing path fails. Failure lists each offender as `relpath:line: snippet` (up to 10, then a count). The signature archetype check. |
+| `:matches_snapshot(opts?)` | string, path | The subject equals a stored `.snap` file colocated with the test. See [Snapshots](#matches_snapshot) below. |
 
 **Path subjects.** The filesystem matchers accept a path **string**, or a table
 handle carrying a `path` field — such as the tree handle returned by
@@ -72,8 +73,40 @@ Inside `t:expect_all(function() ... end)`, failed matcher calls do not abort;
 they are collected and reported together when the block ends. See
 [`t:expect_all`](./context.md#texpect_all).
 
-:::note Planned
-`:matches_snapshot(name?)` and `--update-snapshots` are not yet implemented. Read
-files with `fs` and assert with `:equals()` / `:contains()` / `:matches()`
-instead. See the [Roadmap](../roadmap.md).
-:::
+## `matches_snapshot`
+
+```lua
+t:expect(subject):matches_snapshot()                      -- auto-named
+t:expect(subject):matches_snapshot("greeting")            -- named
+t:expect(tree):matches_snapshot{ level = "layout" }       -- options table
+t:expect(tree):matches_snapshot{ name = "scaffold", level = "content" }
+```
+
+Compare the subject against a stored `.snap` file colocated with the test:
+`<test-file-dir>/snapshots/<file-stem>__<key>.snap`. The `key` is a
+filesystem-safe slug of the given name, or (unnamed) of the test's node path
+plus a per-test counter (`<slug>-1`, `<slug>-2`, …) so several unnamed
+snapshots in one test stay distinct. The argument is `nil`, a name string, or
+an options table `{ name?, level? }`.
+
+- **On a mismatch** the test fails with a line diff against the stored snapshot.
+- **On a missing snapshot** the test fails after writing a reviewable
+  `.snap.new` next to where the `.snap` would live — inspect it, then accept.
+- **`prova -u` / `--update-snapshots`** (re)writes the `.snap` files instead of
+  comparing (and clears any pending `.snap.new`). Review the diff like code.
+- **`prova --unreferenced warn|delete`** reconciles `.snap` files no test
+  referenced on a full run — see the [CLI reference](../cli.md#options).
+
+The subject may be a **string** (compared as-is) or a **path handle** — a path
+string or any table with a `path` field, such as `archetect.render` output. For
+a directory subject, `level` selects how much is captured:
+
+| `level` | Captures |
+|---|---|
+| `"layout"` | The sorted relative paths — the tree's *shape*. The default for a directory subject. |
+| `"content"` | The paths **and** each file's bytes. Keep `content` snapshots narrow — broad ones rot. |
+
+A stored `.snap` is a small reviewable document: a header naming the source
+test, a `---` line, then the raw captured body. `matches_snapshot` cannot be
+negated with `:never()` (that is an error), and it requires a test-file context
+(it needs a source file to colocate the snapshot with).

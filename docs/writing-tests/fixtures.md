@@ -151,8 +151,8 @@ All three target the **fixture's own scope**: a `Scope.File` fixture's `defer` r
 
 ## Parametrization and autouse
 
-:::note Planned
-Parametrized fixtures (`opts.params` with `ctx:param()`, multiplying every dependent test across variants) and `autouse` fixtures (ambient setup that runs without being named) are on the [roadmap](../reference/roadmap.md) — the LuaCATS stubs already sketch both. Today, express variants with [`prova.test_each`](./tests-and-grouping.md) and request ambient fixtures explicitly with `use`.
+:::note
+Parametrized fixtures (`opts.params` with `ctx:param()`, multiplying every dependent test across variants) were considered and **deliberately dropped** — parametrization stays explicit Lua: express variants with [`prova.test_each`](./tests-and-grouping.md), or a `for` loop generating fixtures + groups per variant for matrices (see [Decided against](../reference/roadmap.md#decided-against)). `autouse` fixtures (ambient setup that runs without being named) remain on the [roadmap](../reference/roadmap.md); request ambient fixtures explicitly with `use` today.
 :::
 
 ## Next
