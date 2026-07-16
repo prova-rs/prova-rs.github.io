@@ -54,7 +54,7 @@ prova skill              # print it (an agent session ingests it with `! prova s
 prova skill --install    # write .claude/skills/prova/SKILL.md so the repo carries it
 ```
 
-An **MCP mode** is designed and coming: `prova` as a server whose tools mirror the CLI one-to-one (`run`, `eval`, `up`), serving this same skill as its instructions and holding **warm topologies** so an agent's re-run takes milliseconds instead of re-provisioning. When it lands, the contract stays: if Prova is an MCP server, call tools; if it is a CLI, run commands; everything else is identical.
+Prova also ships an **MCP mode**: `prova mcp` is a server whose tools mirror the CLI one-to-one (`run`, `list`, `eval`), serving this same skill as its instructions — plus **warm topology tools** (`up`/`down`/`status`) that hold a [topology](../writing-tests/topologies.md) live inside the server, so an agent's `run { topology }` re-run takes milliseconds instead of re-provisioning. The contract holds either way: if Prova is an MCP server, call tools; if it is a CLI, run commands; everything else is identical. See the [CLI reference](../reference/cli.md#prova-mcp).
 
 ## What Prova deliberately is not
 

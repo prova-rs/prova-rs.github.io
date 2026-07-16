@@ -297,7 +297,31 @@ See [prova.toml](./prova-toml.md) for the full manifest schema and merge semanti
 prova mcp [--profile NAME] [--manifest PATH] [-P name=source]
 ```
 
-Serves Prova as an MCP server over stdio, resolved against the prova home exactly like a CLI run. Tools mirror the CLI: `run` (the selection fields — `keywords`, `tags`, `nodes`, `last_failed`, plus `profile`), `list` (same selection), and `eval` (one-shot code). Every tool returns one text content item containing JSON; a failing `run` sets `isError` and carries `failures: [{ path, message }]`. The server's `instructions` field is the embedded [agent skill](#prova-skill) — MCP clients know Prova on connect. Warm topology tools (`up`/`down`/`status`, `run { topology }`) are the next phase.
+Serves Prova as an MCP server over stdio, resolved against the prova home exactly like a CLI run. The server's `instructions` field is the embedded [agent skill](#prova-skill), so MCP clients know Prova on connect. Every tool returns one text content item whose text is compact JSON — the stable machine contract.
+
+**Cold tools** mirror the CLI one-to-one:
+
+| Tool | CLI equivalent | Result JSON |
+|---|---|---|
+| `run { keywords?, keyword_excludes?, tags?, tag_excludes?, nodes?, last_failed?, profile?, jobs? }` | `prova` + selection flags | `{ passed, failed, skipped, deselected, duration_ms, failures: [{ path, message }] }` — `isError` when any node failed |
+| `list { same selection fields }` | `prova --list` | `{ nodes: [{ path }] }` |
+| `eval { code }` | `prova eval '<code>'` | the snippet's returned value as JSON |
+
+A `run` also records the failed nodes, so a later `run { last_failed = true }` re-runs exactly them — the same state the CLI's [`--last-failed`](#selection-semantics) reads.
+
+### Warm topology tools (MCP-only)
+
+The CLI is cold by design: every `prova` run re-provisions its fixtures. Over MCP the server can also be a **topology holder** — provision a [topology](../writing-tests/topologies.md) once and re-run against the held live instance in milliseconds. This is the one capability MCP has that the CLI does not; the CLI equivalent of holding an environment is [`prova up`/`start`](#topology-verbs-up-watch-start-down-ps).
+
+| Tool | Purpose | Result JSON |
+|---|---|---|
+| `up { name, profile?, fixed? }` | Provision the named topology **once, inside the server**, and hold it across tool calls (`fixed` pins canonical ports, like `prova up --fixed`) | `{ name, resources: [{ name, url }] }` |
+| `run { …, topology: name }` | Run **warm**: `t:use(<name>)` resolves the held instance instead of provisioning | same shape as a cold `run` |
+| `eval { code, topology: name }` | Evaluate **warm** inside the held env — the held value is a global named after the topology (`return orders.db.url`) | the returned value as JSON |
+| `down { name }` | Run the held scope's teardown (LIFO `ctx:manage`/`ctx:defer`) and release it | `{ name, down: true }` |
+| `status {}` | List what's currently held | `{ held: [{ name, resources: [{ name, url }] }] }` |
+
+The semantics in one breath: `up` provisions once and holds it; `run { topology }` and `eval { topology }` then resolve that **held instance** — the same live Lua values — so re-runs are milliseconds and **state accumulates across calls** (that is the point of warmth). The holder is the only reaper: `down` (or server shutdown) runs the one true teardown, and warm runs never tear the held instance down. A `run { topology }` **without a prior `up` is an explicit error** — warm mode never silently provisions. When you need isolation, `down` then `up`, exactly as a developer would.
 
 ## Exit codes
 

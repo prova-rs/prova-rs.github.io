@@ -4,7 +4,7 @@ sidebar_position: 9
 
 # Topologies
 
-A **topology** is a named, wired bundle of resources — a seeded database, a cache, the app that connects them — declared once and consumed by *multiple verbs*. Your tests `use` it like any fixture; `prova up <name>` stands the identical environment up for you to develop against; `prova watch` re-applies it as you edit; `prova start`/`down`/`ps` manage it detached. **One definition powers both your tests and your dev environment, so they cannot drift.**
+A **topology** is a named, wired bundle of resources — a seeded database, a cache, the app that connects them — declared once and consumed by *multiple verbs*. Your tests `use` it like any fixture; `prova up <name>` stands the identical environment up for you to develop against; `prova watch` re-applies it as you edit; `prova start`/`down`/`ps` manage it detached; and it is the same topology an [MCP client holds warm](../reference/cli.md#warm-topology-tools-mcp-only) so an agent's re-runs land in milliseconds. **One definition powers your tests, your dev environment, and warm MCP re-runs, so they cannot drift.**
 
 That is the problem topologies exist to kill: today a compose file, a testcontainers setup, and your test fixtures are separate descriptions of "the same" environment that silently diverge. Prova collapses them to one.
 

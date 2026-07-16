@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # The Command Line
 
-The `prova` binary is one run command plus a small family of subcommands: `init` to scaffold a project, `eval` for one-shot snippets, `skill` for agents, the topology verbs (`up`, `watch`, `start`, `down`, `ps`), and `plugin lint` for plugin authors. Give the run command paths and it runs them; give it nothing and it runs the suite declared in `prova.toml`. Every flag composes with either mode, and command-line flags always win over manifest values.
+The `prova` binary is one run command plus a small family of subcommands: `init` to scaffold a project, `eval` for one-shot snippets, `skill` for agents, the topology verbs (`up`, `watch`, `start`, `down`, `ps`), `mcp` to serve an agent over MCP, and `plugin lint` for plugin authors. Give the run command paths and it runs them; give it nothing and it runs the suite declared in `prova.toml`. Every flag composes with either mode, and command-line flags always win over manifest values.
 
 ```text
 usage:
@@ -20,6 +20,7 @@ usage:
   prova start <topology>    stand up a topology detached (returns; use `down` to stop)
   prova down <topology>     tear down a detached topology
   prova ps                  list running topologies
+  prova mcp                 serve Prova to an agent as an MCP server over stdio
   prova plugin lint <f>...  check plugin files against the namespacing grammar
 
 options:
@@ -113,6 +114,17 @@ prova down orders            # tear down a detached topology
 ```
 
 `up` and `watch` hold your terminal and tear down on Ctrl-C; `start` spawns a detached holder (its output goes to `<home>/running/<name>.log`) that `down` stops with the identical in-process teardown. By default ports are random so several topologies coexist; `--fixed` pins canonical container ports for external tools. All the verbs accept `--profile` and `--manifest`. The full walkthrough is in [Topologies](../writing-tests/topologies.md); the flag-by-flag reference in the [CLI reference](../reference/cli.md#topology-verbs-up-watch-start-down-ps).
+
+## Serving an agent: `prova mcp`
+
+`prova mcp` serves Prova as an MCP server over stdio, resolved against the prova home exactly like a run. Its tools mirror the CLI — `run`, `list`, `eval` — and the embedded [agent skill](../getting-started/what-is-prova.md#prova-teaches-your-agent) rides along as the server's `instructions`, so an MCP client knows Prova the moment it connects.
+
+```shell
+prova mcp                                   # serve on stdio; the client speaks JSON-RPC
+prova mcp --profile ci --manifest prova.toml  # same resolution flags as a run
+```
+
+Because the server is one long-lived process, it can also **hold a topology warm** — the one thing the CLI cannot do. `up { name }` provisions a [topology](../writing-tests/topologies.md) once inside the server; `run { topology = name }` and `eval { topology = name }` then resolve that held live instance instead of re-provisioning, so an agent's iterate-and-re-run loop lands in milliseconds and state accumulates across calls. `down` runs the teardown, `status` lists what's held. This is the MCP analogue of leaving `prova up` running in a terminal. The full tool set, result shapes, and warm semantics are in the [CLI reference](../reference/cli.md#prova-mcp).
 
 ## Flags
 

@@ -12,7 +12,8 @@ yet implemented by the engine — calling them either has no effect or errors.
 
 ## Shipped since 0.2.3
 
-- **`prova mcp` (cold)** (0.2.5) — stdio MCP server with `run`/`list`/`eval` at CLI parity and the agent skill as its instructions; the wire contract is guarded by a prova-written proof in the selftest suite. Warm topology tools remain planned below.
+- **`prova mcp` (cold)** (0.2.5) — stdio MCP server with `run`/`list`/`eval` at CLI parity and the agent skill as its instructions; the wire contract is guarded by a prova-written proof in the selftest suite.
+- **`prova mcp` (warm)** (0.2.6) — held-scope injection: `up`/`down`/`status` tools provision a named [topology](../writing-tests/topologies.md) once inside the server, and `run { topology }` / `eval { topology }` resolve the held live instance in milliseconds instead of re-provisioning. The MCP-only capability, guarded by its own selftest proof. See the [CLI reference](./cli.md#prova-mcp).
 
 - **Snapshot assertions** — `matches_snapshot{ level = "layout"|"content" }`,
   `-u`/`--update-snapshots`, the reviewable `.snap`/`.snap.new` flow, and
@@ -59,8 +60,7 @@ Formerly on this page, now documented as regular reference material:
 
 | Feature | Status | What to use today |
 |---|---|---|
-| **MCP mode** (`prova mcp`) | Designed | An MCP server whose tools mirror the CLI one-to-one (`run`, `list`, `eval`, `up`/`down`/`status`), serving the agent skill as its instructions — and holding **warm topologies** so a re-run resolves a held environment in milliseconds instead of re-provisioning. Today: the CLI verbs plus `prova skill`. |
-| Failure bundles | Planned | Attach managed process/container output tails to failed-node results. Today: read `proc:output()` yourself and `ctx:log` what matters. |
+| Failure bundles | Planned | Attach managed process/container output tails to failed-node results (both transports). Today: read `proc:output()` yourself and `ctx:log` what matters. |
 | Versioned capability requirements (e.g. `requires = { "dotnet>=9" }`) | Planned | Capability gating is **name-only** today (`requires = { "dotnet" }` checks the tool is on `PATH`). Probe the version yourself in a fixture/test — e.g. `shell.run("dotnet --version")` — and `t:skip(...)` when it's too old. |
 | `prova test` and other run subcommands | Planned | The bare command: `prova [OPTIONS] [PATHS...]`. See the [CLI](./cli.md). |
 | `--shuffle[=seed]` (prove group independence) | Planned | Groups already make no order guarantee; don't rely on definition order. |
