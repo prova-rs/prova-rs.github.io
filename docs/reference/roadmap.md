@@ -12,6 +12,8 @@ yet implemented by the engine — calling them either has no effect or errors.
 
 ## Shipped in 0.2
 
+- **Test selection** (0.2.3) — `-k` keyword substrings, `--tags` (with `!` excludes), `--node` exact paths, and `--last-failed`; dependency-aware, flow-atomic, with a `deselected` count in every summary.
+
 Formerly on this page, now documented as regular reference material:
 
 - **The plugin system** — `[plugins]` in `prova.toml`, `--plugin/-P`,
@@ -34,8 +36,6 @@ Formerly on this page, now documented as regular reference material:
 | Feature | Status | What to use today |
 |---|---|---|
 | `prova test` and other run subcommands | Planned | The bare command: `prova [OPTIONS] [PATHS...]`. See the [CLI](./cli.md). |
-| Name filtering (`-k`) and tag expressions | Planned | Point `prova` at specific files/directories, or split subsets into [manifest profiles](./prova-toml.md). `tags` on a test are accepted and recorded but do not yet select anything. |
-| `--last-failed`, sharding | Planned | Re-run the failing file directly. |
 | `--shuffle[=seed]` (prove group independence) | Planned | Groups already make no order guarantee; don't rely on definition order. |
 | Snapshot assertions (`:matches_snapshot()`, `--update-snapshots`) | Planned | Read files with `fs` and assert with `:equals()` / `:contains()` / `:matches()`. |
 | Output formats: TAP, pretty, JUnit XML | Planned | `--format console` or `--format json` (JSONL events). |

@@ -24,6 +24,17 @@ options:
   -h, --help                print this help
 ```
 
+## Run a subset
+
+```shell
+prova -k MySQL                 # every node whose path mentions MySQL — one variant of a matrix
+prova --tags '!build'          # skip the slow build tier
+prova --node "dotnet-rest[MySQL] CRUD round-trip › created items land in MySQL"
+prova --last-failed            # re-run exactly what was red, nothing else
+```
+
+Selection is dependency-aware (upstream gates are pulled in) and flow-atomic; deselected nodes never provision fixtures, so filtering a container-heavy matrix is as cheap as it sounds. Full semantics in the [CLI reference](../reference/cli.md#selection-semantics).
+
 ## Starting a project: `prova init`
 
 `prova init` scaffolds everything a project needs in one command: a `prova.toml` manifest (in `./prova/` by default; `--hidden` for `./.prova/`, `--flat` for a root-level `./prova.toml`) and the [IDE integration](./ide-setup.md) — a synced `annotations/` folder plus a `.luarc.json` pointer, unless you pass `--no-luals`. It refuses to run if a manifest already exists, so it never clobbers a configured project.
