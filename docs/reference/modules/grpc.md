@@ -100,3 +100,55 @@ Polls until the server answers a reflection request or the deadline elapses — 
 | `every` | `string?` | Poll interval (default `"500ms"`) |
 
 **Returns:** nothing. **Raises** if the deadline elapses.
+
+## The `mock` facet: `grpc.mock`
+
+```lua
+grpc.mock(ctx, opts) --> GrpcMock
+```
+
+The [`mock` facet](http.md#the-mock-facet-httpmock), carried to gRPC unchanged: a real gRPC server, in this process, that you stub and assert on. It **serves reflection** (via `tonic-reflection`), so the unmodified [`grpc.client`](#grpcclientaddr-opts) drives it with no special case — *if the real client can't tell it from a server, it is a server* — and `m.url` wires into a system under test exactly as a real service's would.
+
+Unlike `grpc.client`, a mock **must be told its schema.** The client needs no `.proto` because it learns one *from the server* by reflection; a mock **is** the server, so there is nobody to learn from. Hence `proto`, compiled at runtime by **protox** (pure Rust — no `protoc` on PATH).
+
+```lua
+local m = grpc.mock(t, { proto = t:use(proto) })
+
+m:on{ method = "pricing.Pricing/GetPrice" }:reply{ response = { sku = "A1", cents = 999 } }
+m:on{ method = "pricing.Pricing/OutOfStock" }:reply{ code = "NotFound", message = "unknown sku" }
+m:on{ method = "pricing.Pricing/Quote" }:reply(function(call)
+  return { response = { sku = call.request.sku, cents = 100 * call.request.qty } }
+end)
+
+local c = grpc.client(m.url)                    -- reflection: no .proto on this side
+c:call("pricing.Pricing/GetPrice", { sku = "A1" })
+```
+
+### `GrpcMockOpts`
+
+| Field | Type | Description |
+|---|---|---|
+| `proto` | `string \| string[]` | `.proto` path(s), compiled at runtime |
+| `includes` | `string[]?` | Import paths (default: each proto's own directory) |
+| `allow_handler_errors` | `boolean?` | A raising `:reply` handler normally **fails the owning scope** at teardown; set true when the error path is the subject — see [http.mock](http.md#raising-handlers-fail-the-scope) |
+| `network` | `boolean\|string?` | Expose a `.network` host-gateway vantage — see [http.mock](http.md#reaching-a-mock-from-a-container-the-network-vantage) |
+
+### Stubs, replies, and the journal
+
+`GrpcMock` mirrors `MockServer`: `m:on(match):reply(reply)`, `m:received(filter?)`, `m:stop()`. Only the vocabulary inside the tables changes — a reply is a **message or a status**, not an HTTP body.
+
+| `GrpcMockMatch` | Type | Description |
+|---|---|---|
+| `method` | `string?` | Exact — `"package.Service/Method"` |
+| `method_matches` | `string?` | A Lua pattern |
+
+| `GrpcMockReply` | Type | Description |
+|---|---|---|
+| `response` | `any?` | The reply message, as a table (default: an empty message) |
+| `code` | `string?` | A non-Ok status name — `"NotFound"`, `"ResourceExhausted"`, … (default `"Ok"`) |
+| `message` | `string?` | The status message, for a non-Ok code |
+| `delay` | `string?` | Hold the reply this long (`"250ms"`) — fault injection |
+
+`response` and `code` are mutually exclusive: an RPC returns a message or a status. `code` uses the **spelling [`client:call_status`](#clientcall_statusmethod-request) reports**, so what a failure tells you is what you write to reproduce it.
+
+`m:received(filter?)` returns `GrpcMockCall[]` — `{ method, request }`, plus journal-only `code` / `matched` / `error`. **Unstubbed calls are recorded too**, and answer `Unimplemented`. `grpc.mock` is **unary-only**, matching the client; `{ response = … }`-style stubs and journal assertions are the whole surface.

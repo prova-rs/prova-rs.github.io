@@ -12,6 +12,10 @@ yet implemented by the engine — calling them either has no effect or errors.
 
 ## Shipped since 0.2.3
 
+- **Mocking & proxying** (0.2.9) — the [`mock` facet](../writing-tests/mocking-and-proxies.md): [`http.mock`](./modules/http.md#the-mock-facet-httpmock) and [`grpc.mock`](./modules/grpc.md#the-mock-facet-grpcmock) provision a real in-process fake with Lua reply handlers and a journal you assert on. `http.mock` also **proxies** — `passthrough` to a real upstream, `record`/`replay` cassettes (redacted, strict, ordered), and a `network` vantage so a containerized SUT can reach a host-bound mock.
+- **Capability expressions & `must_run`** (0.2.9) — [`requires`](../writing-tests/dependencies-and-scheduling.md#the-capability-expression) now takes version constraints (`"dotnet >= 9"`) and platform predicates (`"unix"`/`"windows"`); [`must_run`](./prova-toml.md#must_run) is the inverse (an unmet guarantee **fails** the run); custom capabilities register in a [`prova.lua`](../writing-tests/dependencies-and-scheduling.md#custom-capabilities-the-provalua-companion) companion.
+- **MCP `introspect` + `project`** (0.2.8) — the [`introspect`](./cli.md#prova-mcp) tool exposes the API surface with no environment; [`prova.help([filter])`](./lua-api/prova.md#provahelp) is its in-Lua twin; and a `project` argument targets a suite anywhere on disk, resolved fresh so a just-scaffolded manifest works without a restart.
+- **The containerized SUT** (0.2.7) — [`docker.build`](./modules/docker.md) and a resource whose `build` (not `image`) compiles the project's own Dockerfile; topology [auto-networking](../writing-tests/topologies.md) joins resources on a shared network with name aliases, and each exposes a `network` vantage — the suite needs only Docker, no host SDK.
 - **`prova mcp` (cold)** (0.2.5) — stdio MCP server with `run`/`list`/`eval` at CLI parity and the agent skill as its instructions; the wire contract is guarded by a prova-written proof in the selftest suite.
 - **`prova mcp` (warm)** (0.2.6) — held-scope injection: `up`/`down`/`status` tools provision a named [topology](../writing-tests/topologies.md) once inside the server, and `run { topology }` / `eval { topology }` resolve the held live instance in milliseconds instead of re-provisioning. The MCP-only capability, guarded by its own selftest proof. See the [CLI reference](./cli.md#prova-mcp).
 
@@ -61,7 +65,7 @@ Formerly on this page, now documented as regular reference material:
 | Feature | Status | What to use today |
 |---|---|---|
 | Failure bundles | Planned | Attach managed process/container output tails to failed-node results (both transports). Today: read `proc:output()` yourself and `ctx:log` what matters. |
-| Versioned capability requirements (e.g. `requires = { "dotnet>=9" }`) | Planned | Capability gating is **name-only** today (`requires = { "dotnet" }` checks the tool is on `PATH`). Probe the version yourself in a fixture/test — e.g. `shell.run("dotnet --version")` — and `t:skip(...)` when it's too old. |
+| `net.mock` / `graphql.mock` | Planned | The [`mock` facet](../writing-tests/mocking-and-proxies.md) covers `http` and `grpc` today. For raw TCP/Unix-stream fault injection or GraphQL, stub over `http.mock` or run the real dependency. |
 | `prova test` and other run subcommands | Planned | The bare command: `prova [OPTIONS] [PATHS...]`. See the [CLI](./cli.md). |
 | `--shuffle[=seed]` (prove group independence) | Planned | Groups already make no order guarantee; don't rely on definition order. |
 | Autouse fixtures (`{ autouse = true }`) | Planned | `use` the fixture explicitly from a test or another fixture. |

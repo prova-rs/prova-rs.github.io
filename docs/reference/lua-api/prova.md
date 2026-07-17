@@ -303,6 +303,33 @@ local conn = prova.retry(function() return sqlite.client(url) end,
 | `every` | `string` | `"500ms"` | Interval between attempts. |
 | `message` | `string` | — | Error message on timeout. |
 
+## Introspection & paths
+
+### `prova.help`
+
+```lua
+prova.help(filter?)   -- → { name, signature, summary }[]
+```
+
+Discover the prova API **from inside prova** — the in-Lua counterpart to the MCP [`introspect`](../cli.md#prova-mcp) tool, callable from `prova eval` and test bodies. `filter` is a case-insensitive substring matched across both name and summary; omit it for the whole surface.
+
+```lua
+prova.help("shell")        -- every entry whose name or summary mentions "shell"
+prova.help("ShellResult")  -- a value-shape (class) lookup — the field shape it returns
+prova.help()               -- everything
+```
+
+Each entry's `signature` is the typed shape — for a function, `(command: string, opts?: prova.ShellOpts) -> prova.ShellResult`; for a class, its fields. It is generated from the **same LuaCATS stubs** that drive editor completion, so what `prova.help` reports and what your IDE autocompletes cannot drift, and a Rust test enforces that every function is documented.
+
+### `prova.root` and `prova.home`
+
+| Value | Description |
+|---|---|
+| `prova.root` | The **project root** — the directory the manifest's home lives under (where `cargo build` or a repo-relative path resolves from). |
+| `prova.home` | The **prova home** — the directory holding `prova.toml` (e.g. `./prova/`). |
+
+Both are absolute paths, resolved against the project a run (or an MCP [`project`](../cli.md#prova-mcp)) targets — so a test reads the same files whether it is run from the repo root or a subdirectory.
+
 ## `prova.parse`
 
 The exec-CLI output-parsing toolkit: turn the text a CLI prints (typically via

@@ -1,5 +1,5 @@
 ---
-sidebar_position: 9
+sidebar_position: 10
 ---
 
 # Topologies
@@ -31,6 +31,34 @@ end)
 ```
 
 Nothing in the body knows which verb runs it. `ctx:manage` (inside the plugins' `.container`) declares *"I own this resource's lifecycle"*; **when** teardown happens belongs to the scope, and the scope's lifetime is set by the verb — test-end for a run, Ctrl-C or `prova down` for a held environment. Same code, one teardown path.
+
+## Auto-networking and the two vantages
+
+A topology **auto-creates a user-defined Docker network** and joins every resource to it, aliased by the resource's name. So containers reach each other **by name, container-to-container**, with no host round-trip — the app connects to `db:5432`, not to a mapped host port. You get container DNS for free, without calling [`docker.network`](../reference/modules/docker.md#dockernetworkopts) yourself.
+
+That gives every resource **two addresses**, and the distinction matters the moment a containerized app is in the topology:
+
+| Field | Who uses it | Example |
+|---|---|---|
+| `res.host` / `res.port` / `res.url` | the **test** process, over loopback | `127.0.0.1:54321` |
+| `res.network` (`{ url, host, port }`) | a **sibling container** on the topology network | `db:5432` |
+
+So when you wire a [containerized system under test](../reference/modules/docker.md#dockerbuildopts) (built with `docker.build`) to its database, you inject the **network** vantage — the app is a container, and a container reaches the db by its network alias:
+
+```lua
+local app = prova.topology("app", function(ctx)
+  local db = postgres.container(ctx, { database = "orders" })
+  local image = docker.build{ context = prova.root }        -- the SUT's own Dockerfile
+  local sut = ctx:manage(docker.run{
+    image = image, ports = { 8080 },
+    env = { DB_URL = db.network.url },                       -- the SIBLING address, not loopback
+    wait = { port = 8080, timeout = "60s" },
+  })
+  return { db = db, sut = sut }
+end)
+```
+
+The test still probes `sut` over loopback (`sut:endpoint(8080)`); only the container-to-container wiring uses `.network`.
 
 ## Consuming it from tests
 

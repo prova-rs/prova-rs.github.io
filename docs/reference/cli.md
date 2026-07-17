@@ -303,11 +303,16 @@ Serves Prova as an MCP server over stdio, resolved against the prova home exactl
 
 | Tool | CLI equivalent | Result JSON |
 |---|---|---|
-| `run { keywords?, keyword_excludes?, tags?, tag_excludes?, nodes?, last_failed?, profile?, jobs? }` | `prova` + selection flags | `{ passed, failed, skipped, deselected, duration_ms, failures: [{ path, message }] }` — `isError` when any node failed |
-| `list { same selection fields }` | `prova --list` | `{ nodes: [{ path }] }` |
-| `eval { code }` | `prova eval '<code>'` | the snippet's returned value as JSON |
+| `run { keywords?, keyword_excludes?, tags?, tag_excludes?, nodes?, last_failed?, profile?, jobs?, project? }` | `prova` + selection flags | `{ passed, failed, skipped, deselected, duration_ms, failures: [{ path, message }] }` — `isError` when any node failed |
+| `list { same selection fields, project? }` | `prova --list` | `{ nodes: [{ path }] }` |
+| `eval { code, project? }` | `prova eval '<code>'` | the snippet's returned value as JSON |
+| `introspect { filter? }` | — (see below) | `{ entries: [{ name, signature, summary }] }` |
 
 A `run` also records the failed nodes, so a later `run { last_failed = true }` re-runs exactly them — the same state the CLI's [`--last-failed`](#selection-semantics) reads.
+
+**`introspect`** answers *what the Lua API is* — every function's name, signature, and one-line summary — without a Lua environment, without provisioning, and **before a manifest even exists**. It is derived from the same LuaCATS stubs that drive editor completion, so it cannot drift from what an author sees; it is the tool an agent starts with instead of probing the surface by trial. Its in-Lua counterpart, callable from `eval` and test bodies, is [`prova.help([filter])`](./lua-api/prova.md#provahelp).
+
+**`project`** targets a suite **anywhere on disk**, not just the directory the server started in. Pass a directory (resolved as a CLI run there would, walking up to find the home) or a `prova.toml` path directly. Omit it to use the server's startup project — its "affinity", like a shell being *in* a directory. A `project` always **resolves fresh**, re-reading the manifest and its plugins, so a `prova.toml` you just scaffolded or edited is picked up **without restarting the server**. (`eval` works with no manifest at all, so a `project` there just roots [`prova.root`/`prova.home`](./lua-api/prova.md) and the plugin set at that home.)
 
 ### Warm topology tools (MCP-only)
 

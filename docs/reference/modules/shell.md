@@ -4,7 +4,12 @@ sidebar_position: 2
 
 # shell & net
 
-Run commands and manage long-running processes. `shell.run` is the one-shot "run it, capture output" primitive; `shell.spawn` starts a process that outlives the call — the building block of the boot-then-probe acceptance loop. Both run the command string through a shell (`sh -c` on Unix, `cmd /C` on Windows), so pipes, redirects, and quoting work verbatim. Both are async under the hood: child processes never block a worker.
+Run commands and manage long-running processes. `shell.run` is the one-shot "run it, capture output" primitive; `shell.spawn` starts a process that outlives the call — the building block of the boot-then-probe acceptance loop. Both are async under the hood: child processes never block a worker.
+
+Both take `command` as either a **string** or an **argv table**, and the choice picks the execution model:
+
+- A **string** runs through a shell (`sh -c` on Unix, `cmd /C` on Windows), so pipes, redirects, globs, and quoting work verbatim — `shell.run("cargo build 2>&1 | tee log")`.
+- An **argv table** runs the program **directly — no shell, no quoting** — so an argument with spaces or metacharacters is passed through untouched: `shell.run({ "git", "commit", "-m", msg })`. Prefer it whenever a value is interpolated from data (it needs a program on `PATH`, not a shell in the image).
 
 ## `shell.run(command, opts)`
 

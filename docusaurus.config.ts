@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: `Prova`,
   tagline: `Proof-driven development for the agentic era — executable, black-box proof that your system works.`,
-  favicon: 'img/favicon.ico',
+  favicon: 'img/favicon.svg',
 
   future: {
     v4: true,
@@ -71,7 +71,7 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: 'img/docusaurus-social-card.jpg',
+    image: 'img/prova-social-card.png',
     colorMode: {
       respectPrefersColorScheme: true,
     },

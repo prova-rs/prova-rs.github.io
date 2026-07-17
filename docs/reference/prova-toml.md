@@ -23,11 +23,33 @@ or one suite, or `prova` exits `2`.
 | `jobs` | integer | `1` | Maximum units run concurrently. Throughput only — never changes test semantics. |
 | `format` | string | `"console"` | Output format: `"console"`, `"json"`, or `"tap"`. Any other value is an error (exit `2`). |
 | `env` | table of string → string | `{}` | Environment variables set for the whole run, applied to the process before any test executes. Written as a `[run.env]` sub-table. |
+| `must_run` | array of strings | `[]` | Capabilities this run **guarantees**; an unmet one **fails** the run up front. See [below](#must_run). |
+
+### `must_run`
+
+`must_run` is the inverse of a test's [`requires`](../writing-tests/dependencies-and-scheduling.md#capability-gating-requires). Where `requires` **skips** a unit whose capability is absent, `must_run` **fails the whole run** — before anything executes — if a guaranteed capability is missing. It stops a green "0 failed" from hiding "everything skipped" (a CI box that lost its Docker daemon, say).
+
+```toml
+[run]
+must_run = ["docker"]
+
+[profiles.ci]
+must_run = ["docker", "dotnet >= 9"]   # unmet → FAIL, never skip
+```
+
+- **Same grammar as `requires`** — a name, optionally with a semver constraint (`"dotnet >= 9"`, `"unix"`), resolved by the same probes. No capability is privileged; `must_run = ["kubectl"]` means kubectl on `PATH`.
+- **Checked as a precondition** (fail-fast), reporting the probe's own answer, e.g. `profile 'ci' guarantees capability 'docker', which is unavailable`.
+- **Additive across `[run]` and the selected profile** — the sets are **unioned**, so a laxer profile can never silence a stricter guarantee. A `must_run` naming an unregistered/typo'd capability still fails (a guarantee that can't be honored).
+- Custom capabilities registered in [`prova.lua`](../writing-tests/dependencies-and-scheduling.md#custom-capabilities-the-provalua-companion) work here too.
+
+:::note Empty selection is also a failure
+Related to the same "silent green" hazard: a selection that matches nothing (`-k thisdoesnotexist`) exits non-zero rather than reporting `0 passed`. Opt out with `--allow-empty`.
+:::
 
 ## `[profiles.<name>]` — overlays
 
 Each profile accepts the same keys as `[run]` (`paths`, `jobs`, `format`,
-`env`), plus its own `plugins` table. Selecting one with
+`env`, `must_run`), plus its own `plugins` table. Selecting one with
 `prova --profile <name>` overlays it on `[run]`:
 
 - `paths` — the profile's `paths` **replace** the base paths, but only if the
@@ -35,6 +57,8 @@ Each profile accepts the same keys as `[run]` (`paths`, `jobs`, `format`,
 - `jobs`, `format` — taken from the profile when present, otherwise from `[run]`.
 - `env` — **merged** key-by-key: base entries first, then the profile's entries;
   on a key collision the profile wins.
+- `must_run` — **unioned** with the base: the profile's guarantees are *added* to
+  `[run]`'s, never subtracted (a guarantee is additive by design).
 - `plugins` — `[profiles.<name>.plugins]` entries are **overlaid** on the
   project-wide `[plugins]` set: the base plugins all remain available, the
   profile adds its own, and a same-named entry from the profile wins. See

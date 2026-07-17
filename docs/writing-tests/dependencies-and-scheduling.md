@@ -71,6 +71,10 @@ Resource declarations are inert at `--jobs 1` and enforced above it. Declare the
 
 ## Capability gating: `requires`
 
+A **capability is a fact about the machine** — its OS, its hardware, the tools on its `PATH` — not a fact about your code. That split is the whole doctrine:
+
+> A pass is a claim about the code. A skip is a claim about the environment.
+
 `requires` lists what a unit needs from the host. A missing capability **skips** the unit — visibly, with a reason — rather than failing it:
 
 ```lua
@@ -84,16 +88,64 @@ prova.test("compiles cleanly", { timeout = "180s", requires = { "cargo" } }, fun
 end)
 ```
 
-How capabilities resolve, once per run:
+This is what makes a suite honest across machines: on a laptop without Docker, the container-backed tests report as skipped with `requires "docker" (unavailable)` — and the rest of the suite still runs and still means something.
+
+### The capability expression
+
+A `requires` entry is a **string expression**: a name, optionally with a semver constraint.
+
+```lua
+requires = { "docker" }            -- the daemon answers AND runs Linux containers (not just any daemon)
+requires = { "dotnet >= 9" }       -- present AND new enough; SDK 8 SKIPS instead of dying at build time
+requires = { "node ^20" }          -- any semver operator; whitespace is not significant
+requires = { "git >= 1.0, < 3.0" } -- ranges work
+requires = { "unix" }              -- a platform predicate (no version — the OS has no number)
+requires = { "windows" }
+requires = { "kubectl" }           -- an unknown name → a binary-on-PATH probe, no registration needed
+```
+
+How they resolve, once per run:
 
 | Capability | Available when |
 |---|---|
-| `"docker"` | the Docker daemon is actually reachable (`docker info`), not merely installed |
+| `"docker"` | the daemon is reachable **and serves Linux containers** — a Windows-container daemon is *not* `docker` for prova |
+| `"unix"` / `"windows"` | the host platform matches |
 | `"github"` | `GITHUB_TOKEN` is set in the environment |
-| `"network"` / `"internet"` | currently assumed present |
+| a name with a version (`"dotnet >= 9"`) | the tool is present and its reported version satisfies the constraint (probed via `--version`; docker reports its **server** version) |
 | anything else | a binary of that name is on `PATH` — so `requires = { "cargo" }` or `{ "kubectl" }` just works |
 
-This is what makes a suite honest across machines: on a laptop without Docker, the container-backed tests report as skipped with `requires "docker" (unavailable)` — and the rest of the suite still runs and still means something.
+An unmet requirement skips with a reason that says **which** of three things went wrong: **absent** (install it), **too old** (upgrade it), or a **malformed expression** — and that last one is an *error*, not a skip, because a constraint that can never parse would skip forever and read as green. A version-bearing gate is what lets a suite say "I need .NET 9" and *skip cleanly on 8* instead of failing three minutes into a build.
+
+Also available at suite grain: `suite.config{ requires = {...} }` cascades the gate to every file in the suite.
+
+### `must_run` — turning a skip into a failure
+
+`requires` protects a test from an environment it can't run in. Sometimes you want the opposite: an environment where a capability had **better** be present, and its absence is a bug in the setup — not something to paper over with a green skip. That is `must_run`, declared in [`prova.toml`](../reference/prova-toml.md#must_run):
+
+```toml
+[run]
+must_run = ["docker"]              # a run here that skips every docker test is a failure, not a pass
+
+[profiles.ci]
+must_run = ["docker", "dotnet >= 9"]   # CI guarantees these; an unmet one FAILS the run up front
+```
+
+It is the **other direction** of the exact same vocabulary — same expression grammar, same probes. Where `requires` skips, `must_run` **fails**, and it fails **fast**: as a precondition, before any test runs, with the probe's own answer in the message. `[run] must_run` and a profile's `must_run` are additive (a guarantee can't be relaxed by a laxer profile). The point is to stop "0 failed" from hiding "everything skipped" — the most dangerous green there is.
+
+### Custom capabilities: the `prova.lua` companion
+
+The built-ins cover OS, Docker, and anything on `PATH` with a `--version`. For a capability no name-and-version can express — a GPU, a `kind` cluster, a licence file — register your own in an optional **`prova.lua`** file beside `prova.toml`:
+
+```lua
+-- prova.lua — loaded WITH the manifest, project-wide
+runtime.capability("gpu", function() return probe_cuda() end)          -- true / false
+runtime.capability("kind-cluster", function() return #kind_clusters() > 0 end)
+runtime.capability("gpu-driver", function() return driver_version() end)  -- a version string → "gpu-driver >= 2" works
+```
+
+The predicate returns `true` (available), a **version string** (comparable, so `requires = { "gpu-driver >= 2" }` works), or `false`/`nil` (unavailable). It is evaluated **once per run** at load. Once registered, the name works in **both directions** — `requires = { "gpu" }` to skip, `must_run = ["gpu"]` to fail.
+
+The rules that keep it honest: `prova.lua` lives next to `prova.toml` (found by the same home-anchoring as the manifest, not the cwd); a broken one is a **config error**, not a silent skip; and you cannot shadow a built-in like `docker`. The division of labor mirrors Archetect's `archetype.yaml` + `archetype.lua`: **TOML declares, Lua computes.** The `runtime.*` namespace is available *only* in this companion — calling it from a test raises, because it configures the environment tests run *in*.
 
 ## `--jobs` changes throughput, never meaning
 
@@ -110,6 +162,8 @@ One nuance worth knowing: `--jobs` counts concurrent [suites](./suites-and-share
 | "These can't share a port/db/account" | `resources` |
 | "This test must own the whole machine" | `serial = true` |
 | "Skip cleanly where Docker/cargo is absent" | `requires` |
+| "This environment must have Docker/.NET — fail if not" | [`must_run`](../reference/prova-toml.md#must_run) in `prova.toml` |
+| "A capability no version string can express (GPU, kind)" | [`runtime.capability`](#custom-capabilities-the-provalua-companion) in `prova.lua` |
 | Passing a value between units | a [fixture](./fixtures.md) — never a dependency |
 
 ## Next
