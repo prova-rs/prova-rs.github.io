@@ -54,15 +54,15 @@ Selection is dependency-aware (upstream gates are pulled in) and flow-atomic; de
 
 ## Starting a project: `prova init`
 
-`prova init` scaffolds everything a project needs in one command: a `prova.toml` manifest (in `./prova/` by default; `--hidden` for `./.prova/`, `--flat` for a root-level `./prova.toml`) and the [IDE integration](./ide-setup.md) — a synced `annotations/` folder plus a `.luarc.json` pointer, unless you pass `--no-luals`. It refuses to run if a manifest already exists, so it never clobbers a configured project.
+`prova init` scaffolds a project by rendering a catalog archetype into the current directory, then wiring [IDE integration](./ide-setup.md) as a finishing step (unless you pass `--no-ide`). The archetype owns the layout; Prova selects and renders it. It refuses to run if a manifest already exists, so it never clobbers a configured project.
 
 ```shell
-prova init            # ./prova/prova.toml + IDE wiring
-prova init --hidden   # ./.prova/prova.toml
-prova init --flat     # ./prova.toml at the root
+prova init            # choose an archetype interactively, then render it here
+prova init default    # render the built-in default archetype
+prova init --list     # print the catalog; render nothing
 ```
 
-Drop a test file under the manifest's directory and a plain `prova` runs it — [Your First Test Suite](../getting-started/your-first-test-suite.md) walks the whole loop.
+The catalog is the built-in `default` plus your own `[init.*]` entries in `~/.config/prova/config.toml` — see [Scaffolding](./scaffolding.md) for the full picture. Drop a test file under the rendered manifest's directory and a plain `prova` runs it — [Your First Test Suite](../getting-started/your-first-test-suite.md) walks the whole loop.
 
 ## Two modes: explicit paths vs. manifest-driven
 

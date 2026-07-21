@@ -9,10 +9,11 @@ Everything about *executing* your test suites — from ad-hoc runs against a sin
 
 ## In this section
 
-- **[The Command Line](./command-line.md)** — paths vs. manifest-driven runs, selection (`-k`, `--tags`, `--last-failed`), `prova init`, `prova eval`, the topology verbs (`up`/`watch`/`start`/`down`/`ps`), every flag, discovery rules, and exit codes.
+- **[The Command Line](./command-line.md)** — paths vs. manifest-driven runs, selection (`-k`, `--tags`, `--last-failed`), `prova eval`, the topology verbs (`up`/`watch`/`start`/`down`/`ps`), every flag, discovery rules, and exit codes.
+- **[Scaffolding](./scaffolding.md)** — `prova init`: render a catalog archetype into your project (interactively or headless), and author your own init catalog entries in `~/.config/prova/config.toml`.
 - **[Manifest & Profiles](./manifest-and-profiles.md)** — `prova.toml`: declare what to run (and which plugins) once, then switch environments with `--profile`.
 - **[CI & Output](./ci-and-output.md)** — console, JSONL, TAP, and JUnit XML output, consuming the event stream, and the GitHub Action (with plugin caching).
-- **[IDE Setup](./ide-setup.md)** — autocomplete, hover docs, and type-checking for your test files via lua-language-server, wired up automatically by `prova init`.
+- **[IDE Setup](./ide-setup.md)** — autocomplete, hover docs, and type-checking for your test files via lua-language-server, via `prova ide setup` (also run automatically by `prova init`).
 
 ## The shape of a run
 

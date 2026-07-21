@@ -1,5 +1,5 @@
 ---
-sidebar_position: 4
+sidebar_position: 5
 ---
 
 # IDE Setup
@@ -16,30 +16,30 @@ Prova tests are plain Lua, which means the mature Lua tooling ecosystem works on
 
 ## Automatic setup
 
-On a project with a [manifest](./manifest-and-profiles.md), there is exactly one step:
+On a project with a [manifest](./manifest-and-profiles.md), wiring is one step — and it happens for you as the finishing step of [`prova init`](./scaffolding.md). To wire (or re-wire) a project on its own — say after cloning one someone else scaffolded — run the verb directly:
 
 ```shell
-prova init        # new project — or just run `prova` on an existing one
+prova ide setup   # wire this project; also runs automatically at the end of `prova init`
 ```
 
-Two things appear, and stay current on every subsequent run:
+Every subsequent `prova` run keeps things current, so declaring a new plugin and running the suite is enough to pick up its completions.
 
-- **`<home>/annotations/`** (e.g. `prova/annotations/`) — a Prova-owned folder holding the embedded core stubs (`prova.lua`, `modules.lua`) plus, under `annotations/plugins/`, the `---@meta` stub of every plugin the manifest declares. The folder is **refreshed on every manifest run**: add a plugin to `[plugins]` and its completions appear after the next `prova`; remove one and its stale stub is dropped. It is generated and gitignored in place — never edit or commit it.
-- **`.luarc.json`** at the project root — a pointer telling LuaLS to read that folder (`workspace.library`) and that Prova embeds Lua 5.4. The pointer never changes; only the folder's contents do.
+- **The core stubs** (`prova.lua`, `modules.lua`) are written once to a shared folder under Prova's data directory (`~/.local/share/prova/lua/annotations/`) — the same copy for every project on the machine, refreshed when you upgrade Prova. **Each plugin's** `---@meta` stub is read straight from that plugin's cached checkout. Nothing is copied into your project.
+- **`.luarc.json`** at the project root — the one project-local file — points LuaLS (`workspace.library`) at the shared core stubs plus each declared plugin's stub directory, and declares Lua 5.4. It's re-derived when your plugin set changes. Because it holds **machine-local absolute paths**, it isn't shareable — **add it to `.gitignore`** rather than committing it.
 
 Open the project in an editor running LuaLS and completion, hover, and diagnostics are live — including for `require("<plugin>")`.
 
 ### The `.luarc.json` policy: `[luals] manage`
 
-Prova is deliberately polite about a file your project may own. The manifest's `[luals] manage` key controls the pointer (the annotations folder is always synced regardless):
+Prova is deliberately polite about a file your project may own. The manifest's `[luals] manage` key controls the pointer (the shared core stubs are installed regardless):
 
 | Policy | Behavior |
 |---|---|
 | `"auto"` (default) | Create `.luarc.json` when absent. If one already exists (a Lua-native project), leave it alone and print a hint. |
-| `"always"` | Merge Prova's entry into an existing `.luarc.json` non-destructively (your other keys survive). |
+| `"always"` | Merge Prova's entries into an existing `.luarc.json` non-destructively (your other keys survive). |
 | `"never"` | Never create or edit `.luarc.json`. |
 
-`prova init` is the explicit ask, so it creates-or-merges regardless of policy — running it once is also the fix when `auto` found a pre-existing `.luarc.json` and stayed out of it. If you keep `manage = "never"`, add the annotations folder to your own config by hand: `"workspace.library": ["prova/annotations"]` (or `.prova/annotations` / `annotations`, matching your layout).
+`prova ide setup` is the explicit ask, so it creates-or-merges regardless of policy — running it once is also the fix when `auto` found a pre-existing `.luarc.json` and stayed out of it. If you keep `manage = "never"`, wire the pointer yourself: run `prova ide setup` once to see the exact `workspace.library` paths it would write, then add them to your own `.luarc.json`.
 
 ## Install lua-language-server
 
@@ -58,7 +58,7 @@ On other platforms, grab a release from the [LuaLS releases page](https://github
 **Neovim / other LSP editors** — anything that can launch `lua-language-server` against your workspace gets the identical experience; `.luarc.json` is the single source of configuration.
 
 :::tip
-Commit `.luarc.json` to your repository (the `annotations/` folder gitignores itself and regenerates on any run). Editor setup then becomes "clone, run `prova`, open" for everyone on the team — the same philosophy as checking in [`prova.toml`](./manifest-and-profiles.md).
+**Don't** commit `.luarc.json` — it holds machine-local absolute paths, so add it to `.gitignore`. Editor setup for a teammate is then "clone, run `prova ide setup`, open": the pointer is regenerated locally, and the annotations it points at are shared machine-wide, so nothing project-local needs to travel — the same clone-and-go philosophy as checking in [`prova.toml`](./manifest-and-profiles.md), just with the pointer generated rather than committed.
 :::
 
 ## Manual setup (no manifest)
@@ -73,6 +73,6 @@ Running Prova purely ad hoc, with no manifest anywhere? There is nothing to sync
 }
 ```
 
-The moment the project grows a manifest, delete the vendored stubs and let `prova init` take over — the automatic path also keeps plugin annotations current, which the manual one cannot.
+The moment the project grows a manifest, delete the vendored stubs and let `prova ide setup` take over — the automatic path also keeps plugin annotations current, which the manual one cannot.
 
 For the full annotated API surface the stubs describe, see the [Lua API reference](../reference/lua-api/index.md).

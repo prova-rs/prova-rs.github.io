@@ -25,7 +25,7 @@ next: add a test at ./prova/example_test.lua and run `prova`
 
 One command does three things:
 
-- **`prova/prova.toml`** — the [manifest](../running-prova/manifest-and-profiles.md). Its default `paths = ["."]` discovers any `*_test.lua` under `prova/`, so a plain `prova` from anywhere in the project runs the suite. (Prefer `./.prova/` or a root-level `./prova.toml`? Use `prova init --hidden` or `--flat`.)
+- **`prova/prova.toml`** — the [manifest](../running-prova/manifest-and-profiles.md). Its default `paths = ["."]` discovers any `*_test.lua` under `prova/`, so a plain `prova` from anywhere in the project runs the suite. (The layout — where the manifest lands, what the proof dir is called — is the archetype's choice; author your own [init catalog entry](../running-prova/scaffolding.md) to change it.)
 - **`prova/annotations/` + `.luarc.json`** — [IDE integration](../running-prova/ide-setup.md): open the project in an editor with lua-language-server and the whole `prova` API completes and type-checks immediately.
 - It **never clobbers** — `init` refuses to run if a manifest already exists.
 

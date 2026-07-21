@@ -11,7 +11,8 @@ Complete reference for the `prova` command-line interface.
 
 ```text
 prova [OPTIONS] [PATHS...]      run tests (the default command)
-prova init [INIT-OPTIONS]       scaffold prova.toml + LuaLS IDE support
+prova init [KEY] [INIT-OPTIONS] render a catalog archetype into this project, then wire IDE support
+prova ide setup [--manage ...]  (re)wire LuaLS support: core stubs + .luarc.json
 prova eval '<code>'             run a one-shot Lua snippet in the full prova environment
 prova skill [--install]         print (or install) the embedded agent skill
 prova up <topology>             stand up a topology and hold it until Ctrl-C
@@ -99,31 +100,46 @@ All value-taking flags accept both `--flag value` and `--flag=value`.
 
 ## `prova init`
 
-Scaffold a prova project: a `prova.toml` manifest, its home directory, and
-(unless opted out) the LuaLS IDE integration.
+Scaffold a project by rendering a **catalog archetype** into the current directory, then wiring
+LuaLS IDE support as a finishing step. The archetype owns the layout; Prova just selects and renders
+it. Full guide: [Scaffolding](../running-prova/scaffolding.md).
 
 ```text
-prova init                 # home in ./prova/ (visible — tests + config in one dir)
-prova init --hidden        # home in ./.prova/ (tucked away)
-prova init --flat          # manifest at ./prova.toml (no nesting)
-prova init --no-luals      # skip IDE wiring (sets [luals] manage = "never")
+prova init                 # choose an archetype interactively, then render it here
+prova init <key>           # render the named catalog entry
+prova init --list          # print the catalog (keys + descriptions); renders nothing
 ```
 
-`init` generates:
+The catalog is Prova's built-in `default` entry plus any `[init.*]` in
+`~/.config/prova/config.toml`. With no key, `prova init` prompts interactively; in a non-interactive
+context (no TTY) that is an error naming `--list` / a key, never a hang.
 
-- **`prova.toml`** — a starter manifest with `[run] paths = ["."]` (so any
-  `*_test.lua` dropped in the home dir just runs) and a commented `[plugins]`
-  example.
-- **`<home>/annotations/`** — the core LuaCATS `---@meta` stubs, so
-  `lua-language-server` completes the injected globals. Each **plugin's** stub is
-  added automatically on the first `prova` run that resolves it.
-- **`.luarc.json`** at the project root, pointing the editor at the annotations
-  — skipped with `--no-luals`, which instead writes `[luals] manage = "never"`
-  into the manifest.
+| Option | Effect |
+|---|---|
+| `--answer key=value` | Supply an archetype answer (repeatable). Overrides a baked config answer. |
+| `--switch name` | Pass an archetype switch (repeatable); unions with the entry's `switches`. |
+| `--defaults` | Take each prompt's default instead of asking. |
+| `--headless` | Never prompt; an unanswered, undefaulted prompt is an error, not a hang. |
+| `--no-ide` | Skip the IDE-wiring finishing step (alias: `--no-luals`). |
 
-`init` **refuses to run** if any of the three manifest locations
-(`prova.toml`, `prova/prova.toml`, `.prova/prova.toml`) already exists — it
-never clobbers an existing layout. See [IDE setup](../running-prova/ide-setup.md).
+Answer precedence, highest first: `--answer` → the entry's baked `answers` → an interactive prompt →
+`--defaults`. `init` **refuses to run** if any manifest location (`prova.toml`, `.prova.toml`,
+`prova/prova.toml`, `.prova/prova.toml`) already exists — it never clobbers an existing layout.
+
+## `prova ide setup`
+
+Install the shared LuaCATS core stubs and create/merge the project's `.luarc.json` pointer — the
+IDE-wiring half of `init`, as its own re-runnable verb (regenerate the machine-local `.luarc.json`
+after a clone, or wire a project scaffolded some other way).
+
+```text
+prova ide setup                    # create-or-merge .luarc.json (default: manage = always)
+prova ide setup --manage auto      # create if absent; if you already own one, leave it and hint
+prova ide setup --manage never     # install stubs only; never touch .luarc.json
+```
+
+See [IDE setup](../running-prova/ide-setup.md) for what the annotations provide and the `[luals]
+manage` policy.
 
 ## `prova eval`
 
