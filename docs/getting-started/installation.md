@@ -16,7 +16,7 @@ To pin a major line or an exact version:
 
 ```shell
 brew install prova-rs/tap/prova@0        # latest stable 0.x
-brew install prova-rs/tap/prova@0.2.2    # exactly 0.2.2
+brew install prova-rs/tap/prova@0.9.1    # exactly 0.9.1
 ```
 
 The tap's formulas are generated automatically from each release — see [prova-rs/homebrew-tap](https://github.com/prova-rs/homebrew-tap).
@@ -25,17 +25,26 @@ The tap's formulas are generated automatically from each release — see [prova-
 
 Every release publishes prebuilt archives on the [GitHub releases page](https://github.com/prova-rs/prova/releases), named `prova-<version>-<platform>-<arch>.tar.gz` (with SHA256 checksums alongside):
 
-- `prova-v0.2.4-linux-x86_64.tar.gz`
-- `prova-v0.2.4-linux-arm64.tar.gz`
-- `prova-v0.2.4-macos-arm64.tar.gz`
-- `prova-v0.2.4-windows-x86_64.zip` (plus a `-installer.exe`)
+- `prova-v0.9.1-linux-x86_64.tar.gz`
+- `prova-v0.9.1-linux-arm64.tar.gz`
+- `prova-v0.9.1-macos-arm64.tar.gz`
+- `prova-v0.9.1-windows-x86_64.zip` (plus a `-installer.exe`)
+
+There is no prebuilt **macOS x86_64** archive — on an Intel Mac, use Homebrew or build from source.
 
 Download, extract, and put the binary on your `PATH`:
 
 ```shell
-curl -LO https://github.com/prova-rs/prova/releases/download/v0.2.4/prova-v0.2.4-linux-x86_64.tar.gz
-tar -xzf prova-v0.2.4-linux-x86_64.tar.gz
-sudo mv prova-v0.2.4-linux-x86_64/prova /usr/local/bin/
+curl -LO https://github.com/prova-rs/prova/releases/download/v0.9.1/prova-v0.9.1-linux-x86_64.tar.gz
+tar -xzf prova-v0.9.1-linux-x86_64.tar.gz
+sudo mv prova-v0.9.1-linux-x86_64/prova /usr/local/bin/
+```
+
+To resolve the latest tag automatically rather than pinning one by hand:
+
+```shell
+TAG=$(curl -fsSL https://api.github.com/repos/prova-rs/prova/releases/latest \
+      | grep '"tag_name"' | head -1 | cut -d'"' -f4)
 ```
 
 In GitHub Actions, skip all of this — the [`prova-rs/run-action`](../running-prova/ci-and-output.md#the-github-action) action installs a release binary for you.
