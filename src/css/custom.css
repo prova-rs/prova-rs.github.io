@@ -4,28 +4,66 @@
  * work well for content-centric websites.
  */
 
-/* Prova emerald palette — "green means proven". Intentional, not the
+/* Prova has two brand states, and the color mode picks one:
+   light = PASSING (emerald + checkmark), dark = FAILING (red + X).
+   Same mark, same stroke grammar, opposite verdict. The logo and favicon
+   swap with it — see docusaurus.config.ts and src/clientModules/.
+
+   Each state carries TWO values, in the same two roles:
+
+     role                      passing            failing
+     ----------------------------------------------------------------
+     text, links, the mark     emerald-700        red-400
+       against page chrome     #047857  5.5:1     #f87171  5.6:1
+     solid fills — hero,       emerald-600        red-500
+       favicon tile            #059669  3.8:1     #ef4444  3.8:1
+
+   The contrast figures are what make the two states weigh the same: text
+   against its own page, fill against the white sitting on it. The raw
+   lightnesses diverge wildly (L* 51 vs 71 for the text pair) precisely
+   because the grounds are inverted — comparing those directly would be the
+   wrong measure. One value per state can't cover both roles: a red readable
+   on a dark page goes salmon as a full-bleed fill, and an emerald deep
+   enough to pass AA as link text goes muddy as one. */
+
+/* PASSING — emerald. "Green means proven." Intentional, not the
    Docusaurus default green; sibling in spirit to archetect's blue. */
 :root {
-  --ifm-color-primary: #059669;
-  --ifm-color-primary-dark: #04875e;
-  --ifm-color-primary-darker: #047f58;
-  --ifm-color-primary-darkest: #036848;
-  --ifm-color-primary-light: #06a574;
-  --ifm-color-primary-lighter: #07ad7a;
-  --ifm-color-primary-lightest: #0ac78d;
+  --ifm-color-primary: #047857;
+  --ifm-color-primary-dark: #046c4e;
+  --ifm-color-primary-darker: #03664a;
+  --ifm-color-primary-darkest: #03543d;
+  --ifm-color-primary-light: #048460;
+  --ifm-color-primary-lighter: #058a64;
+  --ifm-color-primary-lightest: #059c71;
   --ifm-code-font-size: 95%;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
 
-/* Lighter palette in dark mode for readability. */
+/* FAILING — red. Light enough on #1b1b1d and on the #242526 card/sidebar
+   surfaces to clear 4.5:1 as body-link text, which rules out the deeper reds:
+   red-500 manages only 4.2:1 on cards and red-600 just 3.3:1. */
 [data-theme='dark'] {
-  --ifm-color-primary: #34d399;
-  --ifm-color-primary-dark: #1fca8b;
-  --ifm-color-primary-darker: #14c483;
-  --ifm-color-primary-darkest: #10a06b;
-  --ifm-color-primary-light: #52daa8;
-  --ifm-color-primary-lighter: #5edeb0;
-  --ifm-color-primary-lightest: #82e6c3;
+  --ifm-color-primary: #f87171;
+  --ifm-color-primary-dark: #f64f4f;
+  --ifm-color-primary-darker: #f53d3d;
+  --ifm-color-primary-darkest: #f10c0c;
+  --ifm-color-primary-light: #fa9393;
+  --ifm-color-primary-lighter: #fba5a5;
+  --ifm-color-primary-lightest: #fdd8d8;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* The fill role. Infima points the hero at --ifm-color-primary, which is the
+   text value — too deep on the emerald side, too pale on the red side. Pin
+   both heroes to their fill value instead, so the flip between them is a
+   change of verdict and not a change of intensity. */
+.hero--primary {
+  --ifm-hero-background-color: #059669;
+  --ifm-hero-text-color: #ffffff;
+}
+
+[data-theme='dark'] .hero--primary {
+  --ifm-hero-background-color: #ef4444;
+  --ifm-hero-text-color: #ffffff;
 }

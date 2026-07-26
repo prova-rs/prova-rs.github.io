@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Prova favicon, FAILING state — unconditional. Set by
+       src/clientModules/faviconState.ts when the site is in dark mode. -->
+  <!-- #ef4444, not the dark-mode primary: a solid tile under a white glyph is
+       the hero's job, not a link's. It carries white at 3.78:1 — the same
+       weight emerald-600 gives favicon-pass.svg (3.77:1). -->
+  <rect width="128" height="128" rx="24" fill="#ef4444"/>
+  <g fill="none" stroke="#ffffff" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M42 42 L86 86"/>
+    <path d="M86 42 L42 86"/>
+  </g>
+</svg>

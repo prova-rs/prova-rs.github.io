@@ -3,6 +3,10 @@
        expression — green means proven. Placeholder until the full logo lands.
        Sibling to archetect's compass "A": same stroke grammar, distinct glyph. -->
   <defs>
+    <!-- Anchored on the light-mode text value (emerald-700), not the fill:
+         the navbar is chrome, so the mark answers to the same legibility
+         constraint the link color does. High-contrast end at bottom left,
+         fading toward the top right; logo-fail.svg mirrors this. -->
     <linearGradient id="p" x1="0" y1="1" x2="1" y2="0">
       <stop offset="0" stop-color="#047857"/>
       <stop offset="1" stop-color="#34d399"/>

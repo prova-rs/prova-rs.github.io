@@ -19,6 +19,10 @@ const config: Config = {
 
   onBrokenLinks: 'throw',
 
+  // Swaps the favicon between the passing and failing marks when the reader
+  // toggles the theme; favicon.svg handles the OS-preference case on its own.
+  clientModules: ['./src/clientModules/faviconState.ts'],
+
   markdown: {
     mermaid: true,
     hooks: {
@@ -79,7 +83,9 @@ const config: Config = {
       title: `Prova`,
       logo: {
         alt: `Prova Logo`,
+        // Light mode is the passing brand, dark mode the failing one.
         src: 'img/logo.svg',
+        srcDark: 'img/logo-fail.svg',
       },
       items: [
         {
