@@ -26,7 +26,7 @@ The `postgres` here is a [plugin](/docs/plugins/), declared in the directory's o
 
 ```toml
 [run]
-paths = ["."]
+proofs = ["."]
 
 [plugins]
 postgres = "prova-rs/prova-postgres@main"

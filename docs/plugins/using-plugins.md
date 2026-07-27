@@ -151,7 +151,7 @@ The [kitchen-sink example](https://github.com/prova-rs/prova/tree/main/examples/
 
 ```toml
 [run]
-paths = ["."]
+proofs = ["."]
 
 [plugins]
 postgres = "prova-rs/prova-postgres@main"

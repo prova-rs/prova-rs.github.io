@@ -51,12 +51,12 @@ Related to the same "silent green" hazard: a selection that matches nothing (`-k
 
 ## `[profiles.<name>]` — overlays
 
-Each profile accepts the same keys as `[run]` (`paths`, `jobs`, `format`,
+Each profile accepts the same keys as `[run]` (`proofs`, `jobs`, `format`,
 `env`, `must_run`), plus its own `plugins` table. Selecting one with
 `prova --profile <name>` overlays it on `[run]`:
 
-- `paths` — the profile's `paths` **replace** the base paths, but only if the
-  profile's list is non-empty; an absent or empty `paths` inherits the base.
+- `proofs` (or the `paths` alias) — the profile's **replace** the base's, but only if the
+  profile's list is non-empty; an absent or empty list inherits the base.
 - `jobs`, `format` — taken from the profile when present, otherwise from `[run]`.
 - `env` — **merged** key-by-key: base entries first, then the profile's entries;
   on a key collision the profile wins.
@@ -77,7 +77,7 @@ alternative (see [CLI discovery rules](./cli.md#discovery-rules)).
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `paths` | array of strings | `[]` | Files/directories whose discovered test files form the suite. |
+| `paths` | array of strings | `[]` | Files/directories whose discovered test files form the suite. **`paths` only** — unlike `[run]`, a suite does not accept `proofs`, and writing it here silently drops the suite from the run. |
 | `setup` | string | — | Optional setup file (a `suite.lua`) loaded first; where suite-scoped fixtures and `suite.config{...}` live. |
 
 Declared suites run **in addition to** the resolved `paths`, and are not affected

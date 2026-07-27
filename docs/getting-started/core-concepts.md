@@ -84,7 +84,7 @@ A `prova.toml` (typically written by `prova init`) declares *what* to run and *h
 
 ```toml
 [run]
-paths  = ["tests"]
+proofs = ["tests"]
 jobs   = 4
 
 [profiles.ci]

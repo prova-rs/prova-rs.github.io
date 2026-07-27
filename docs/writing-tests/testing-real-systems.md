@@ -14,7 +14,7 @@ The database recipe is not built into the runtime — it is the external `postgr
 
 ```toml
 [run]
-paths = ["."]
+proofs = ["."]
 
 [plugins]
 postgres = "prova-rs/prova-postgres@main"

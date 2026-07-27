@@ -43,7 +43,7 @@ format = "json"
 CI = "true"
 
 [profiles.smoke]
-paths = ["tests/smoke"]
+proofs = ["tests/smoke"]
 ```
 
 The merge semantics are simple and field-wise — **base first, then profile**:
@@ -71,7 +71,11 @@ setup = "services/grpc/suite.lua"   # optional setup file (suite-scoped fixtures
 paths = ["services/rest"]
 ```
 
-Each `[suites.<name>]` collects the test files under its `paths` into a single named suite: the files share one Lua state (so `Scope.Suite` fixtures are built once for all of them), and the optional `setup` file runs first. Declared suites run *in addition to* the profile's `paths`, and `--jobs` parallelizes across all suites together. Anything environment- or capability-related belongs in the setup file (`suite.config`) or `[run.env]`, not the suite declaration.
+Each `[suites.<name>]` collects the test files under its `paths` into a single named suite: the files share one Lua state (so `Scope.Suite` fixtures are built once for all of them), and the optional `setup` file runs first. Declared suites run *in addition to* the profile's `proofs`, and `--jobs` parallelizes across all suites together. Anything environment- or capability-related belongs in the setup file (`suite.config`) or `[run.env]`, not the suite declaration.
+
+:::caution `[suites.*]` uses `paths`, not `proofs`
+`proofs` is the key for `[run]` and `[profiles.*]`. A suite declaration still takes **`paths`** — and writing `proofs` there is not an error: the key is ignored and the whole suite silently disappears from the run, with no warning and a green result. If a declared suite stops executing after a rename, this is why.
+:::
 
 ## `[plugins]` — infrastructure the suite depends on
 
@@ -91,7 +95,7 @@ The payoff of profiles is running the *same suite* against different worlds. Loc
 
 ```toml
 [run]
-paths = ["tests/acceptance"]
+proofs = ["tests/acceptance"]
 jobs  = 4
 # No DATABASE_URL here: tests that need Postgres start their own container
 # via the docker module and derive the URL from it.

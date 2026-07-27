@@ -122,7 +122,7 @@ prova-<name>/
 
 ```toml
 [run]
-paths = ["tests"]
+proofs = ["tests"]
 
 [plugins]
 postgres = { path = "." }        # a consumer would write "prova-rs/prova-postgres@v1" instead
