@@ -323,10 +323,21 @@ Serves Prova as an MCP server over stdio, resolved against the prova home exactl
 | `list { same selection fields, project? }` | `prova --list` | `{ nodes: [{ path }] }` |
 | `eval { code, project? }` | `prova eval '<code>'` | the snippet's returned value as JSON |
 | `introspect { filter? }` | — (see below) | `{ entries: [{ name, signature, summary }] }` |
+| `learn { topic?, package? }` | — (see below) | the topic as markdown; no `topic` lists the catalog |
 
 A `run` also records the failed nodes, so a later `run { last_failed = true }` re-runs exactly them — the same state the CLI's [`--last-failed`](#selection-semantics) reads.
 
 **`introspect`** answers *what the Lua API is* — every function's name, signature, and one-line summary — without a Lua environment, without provisioning, and **before a manifest even exists**. It is derived from the same LuaCATS stubs that drive editor completion, so it cannot drift from what an author sees; it is the tool an agent starts with instead of probing the surface by trial. Its in-Lua counterpart, callable from `eval` and test bodies, is [`prova.help([filter])`](./lua-api/prova.md#provahelp).
+
+**`learn`** answers *how Prova works* — the progressive-disclosure topic catalog, one screen per
+topic, rendered for **this** package. Where `introspect` gives API shape, `learn` gives practice.
+Calling it with no `topic` lists the catalog (`pdd`, `specs`, `project`, `init`, `authoring`,
+`fixtures`, `doubles`, `proxies`, `drivers`, `topologies`, `plugins`, `plugin-authoring`, `running`,
+`mcp`); passing one returns that topic as markdown, and aliases resolve (`mocks` → `doubles`). The
+dynamic facts in a topic — proof locations, declared plugins, topologies, the init catalog — are
+computed at call time, so they are always current rather than a snapshot. Pass `package` (a
+directory or manifest path) to render another package's facts. It is the entry point an agent
+should reach for first when it needs anything beyond the server's instructions.
 
 **`project`** targets a suite **anywhere on disk**, not just the directory the server started in. Pass a directory (resolved as a CLI run there would, walking up to find the home) or a `prova.toml` path directly. Omit it to use the server's startup project — its "affinity", like a shell being *in* a directory. A `project` always **resolves fresh**, re-reading the manifest and its plugins, so a `prova.toml` you just scaffolded or edited is picked up **without restarting the server**. (`eval` works with no manifest at all, so a `project` there just roots [`prova.root`/`prova.home`](./lua-api/prova.md) and the plugin set at that home.)
 
