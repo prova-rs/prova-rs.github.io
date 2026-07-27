@@ -91,14 +91,23 @@ The composite action `prova-rs/run-action` installs a released `prova` binary (n
 - uses: actions/checkout@v4
 - uses: prova-rs/run-action@v1
   with:
+    version: v0.11.0      # pin explicitly; see the note below
     profile: ci
+```
+
+`profile: ci` is worth passing because of what the profile declares — above all its [`must_run`](../reference/prova-toml.md#must_run) guarantees, so a runner missing a capability fails the job instead of skipping the proofs that needed it:
+
+```toml
+# prova.toml
+[profiles.ci]
+must_run = ["docker"]   # unmet on the runner → the job fails, up front
 ```
 
 Inputs:
 
 | Input | Default | Description |
 |---|---|---|
-| `version` | `v0.2.4` | The [Prova release](https://github.com/prova-rs/prova/releases) to install |
+| `version` | see [`action.yaml`](https://github.com/prova-rs/run-action/blob/v1/action.yaml) | The [Prova release](https://github.com/prova-rs/prova/releases) to install. **Pin it explicitly.** The action's built-in default trails current releases, and a number repeated here would drift from the action independently — so this table deliberately does not restate it. |
 | `paths` | — | Files/dirs to run. Setting this bypasses the manifest. |
 | `manifest` | `prova.toml` | Path to the suite manifest |
 | `profile` | — | Manifest profile to run (`prova --profile <profile>`) |
@@ -163,6 +172,22 @@ jobs:
 Not every runner has everything. A test (or a whole suite, via `suite.config`) can declare `requires = { "docker" }` — when the capability is unavailable, the test is **skipped, not failed**, with a visible reason. The run still exits `0` if nothing failed, so a constrained runner degrades gracefully instead of going red.
 
 Built-in detectors: `"docker"` probes that the daemon actually responds (not just that the client is installed), `"github"` checks for a `GITHUB_TOKEN`, and any other name is treated as "a binary of that name on `PATH`" — so `requires = { "kubectl" }` just works. Skips show up in both output formats (`"outcome":"skipped"` in JSONL), so a runner silently skipping half your suite is visible in the totals, not hidden.
+
+:::warning In CI, guarantee — don't degrade
+Graceful degradation is right for a laptop and wrong for a merge gate. A CI box that lost its Docker daemon skips every Docker test and still exits `0`, and a typo in a `requires` name skips just as quietly — the most dangerous green there is.
+
+Name those capabilities in [`must_run`](../reference/prova-toml.md#must_run) on your CI profile. It is the inverse of `requires`: an unmet guarantee **fails the run up front**, before any test executes, with the probe's own answer in the message.
+
+```toml
+[run]
+must_run = ["node"]                    # true everywhere; a run without it proves nothing
+
+[profiles.ci]
+must_run = ["docker", "dotnet >= 9"]   # CI promises these; unmet is a broken box, not a skip
+```
+
+Profile guarantees are **unioned** with `[run]`'s and can never be subtracted, so `prova --profile ci` demands both sets.
+:::
 
 ```lua
 prova.test("migrates a fresh database", { requires = { "docker" } }, function(t)

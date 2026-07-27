@@ -110,7 +110,7 @@ prova init <key>           # render the named catalog entry
 prova init --list          # print the catalog (keys + descriptions); renders nothing
 ```
 
-The catalog is Prova's built-in `default` entry plus any `[init.*]` in
+The catalog is Prova's built-in `project` and `plugin` entries plus any `[init.*]` in
 `~/.config/prova/config.toml`. With no key, `prova init` prompts interactively; in a non-interactive
 context (no TTY) that is an error naming `--list` / a key, never a hang.
 

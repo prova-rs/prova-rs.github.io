@@ -19,7 +19,10 @@ or one suite, or `prova` exits `2`.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `paths` | array of strings | `[]` | Files/directories to discover (`*_test.lua` / `*.test.lua`). |
+| `proofs` | array of strings | `[]` | Directory-name patterns holding the proof suites to discover (`*_test.lua` / `*.test.lua`). This is the key `prova init` writes. |
+| `paths` | array of strings | `[]` | Legacy alias for `proofs`; still accepted, but new manifests should use `proofs`. |
+| `config` | string | — | The runtime companion (`prova.lua` / `.prova/config.lua`) where [custom capabilities](../writing-tests/dependencies-and-scheduling.md#custom-capabilities-the-provalua-companion) are registered. |
+| `plugin_root` | string | — | Directory of this project's own plugins; each child directory is reachable as `require("<dir>")`. |
 | `jobs` | integer | `1` | Maximum units run concurrently. Throughput only — never changes test semantics. |
 | `format` | string | `"console"` | Output format: `"console"`, `"json"`, or `"tap"`. Any other value is an error (exit `2`). |
 | `env` | table of string → string | `{}` | Environment variables set for the whole run, applied to the process before any test executes. Written as a `[run.env]` sub-table. |

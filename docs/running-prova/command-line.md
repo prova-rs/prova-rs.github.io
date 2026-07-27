@@ -58,7 +58,7 @@ Selection is dependency-aware (upstream gates are pulled in) and flow-atomic; de
 
 ```shell
 prova init            # choose an archetype interactively, then render it here
-prova init default    # render the built-in default archetype
+prova init project    # render the built-in project archetype
 prova init --list     # print the catalog; render nothing
 ```
 

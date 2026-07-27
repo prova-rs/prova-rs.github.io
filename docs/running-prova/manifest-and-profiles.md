@@ -12,9 +12,10 @@ The `[run]` table is what `prova` with no arguments executes:
 
 ```toml
 [run]                       # the default profile
-paths  = ["tests"]          # files/dirs to discover (*_test.lua / *.test.lua)
+proofs = ["proofs"]         # directory patterns to discover (*_test.lua / *.test.lua)
 jobs   = 4                  # concurrency — throughput only, never changes meaning
 format = "console"          # "console" (human) | "json" (JSONL event protocol) | "tap"
+must_run = ["docker"]       # capabilities this run GUARANTEES — an unmet one fails, never skips
 
 [run.env]                   # environment variables set for the whole run
 LOG_LEVEL = "info"
@@ -22,12 +23,13 @@ LOG_LEVEL = "info"
 
 Every field is optional:
 
-- **`paths`** — files and directories to discover tests in.
+- **`proofs`** — the directory patterns your proof suites live in. This is the key `prova init` writes; **`paths` is a legacy alias** that still works, so older manifests keep running unchanged.
 - **`jobs`** — how many suites may run concurrently (default `1`).
 - **`format`** — `"console"`, `"json"`, or `"tap"` (see [CI & Output](./ci-and-output.md)).
 - **`env`** — environment variables applied to the process before any test runs. This is the channel your tests read connection details from.
+- **`must_run`** — capabilities this run *guarantees*. The inverse of a test's `requires`: where `requires` **skips** a unit whose capability is missing, `must_run` **fails the run up front**. Reach for it the moment you write a CI profile — it is what stops "0 failed" from hiding "everything skipped". Full semantics in the [`prova.toml` reference](../reference/prova-toml.md#must_run).
 
-A manifest that declares no `paths` and no `[suites.*]` is an error — there's nothing to run.
+A manifest that declares no `proofs` and no `[suites.*]` is an error — there's nothing to run.
 
 ## `[profiles.<name>]` — overlays selected with `--profile`
 
@@ -46,8 +48,9 @@ paths = ["tests/smoke"]
 
 The merge semantics are simple and field-wise — **base first, then profile**:
 
-- `paths` — the profile's paths replace the base's *if the profile sets any*; otherwise inherited.
+- `proofs` (or the `paths` alias) — the profile's replace the base's *if the profile sets any*; otherwise inherited.
 - `jobs` and `format` — the profile's value if set, otherwise the base's.
+- `must_run` — **unioned** with the base, never subtracted. A guarantee is additive by design, so a laxer profile cannot silence a stricter one.
 - `env` — **merged**: base entries first, profile entries added on top (the profile wins on a key both define).
 - `plugins` — a `[profiles.<name>.plugins]` table is **overlaid** on the project-wide `[plugins]` set: base plugins stay available, the profile adds its own, and a same-named profile entry wins. The in-repo home for CI-only capabilities — see [Using Plugins](/docs/plugins/using-plugins).
 

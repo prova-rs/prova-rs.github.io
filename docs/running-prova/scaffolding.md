@@ -10,7 +10,7 @@ the layout: where `prova.toml` lands, what the proof directory is called, what s
 
 ```shell
 prova init                 # choose an archetype interactively, then render it here
-prova init default         # render the built-in `default` archetype
+prova init project         # render the built-in `project` archetype
 prova init --list          # print the catalog without rendering anything
 ```
 
@@ -20,7 +20,7 @@ non-interactive context (CI, a pipe) that has nothing to prompt on, so pass a ke
 ## The catalog
 
 The catalog is the set of archetypes `prova init` can scaffold from. It always contains a built-in
-**`default`** (a standard proof-suite scaffold), so `prova init` works with zero configuration. You
+**`project`** (a standard proof-suite scaffold), so `prova init` works with zero configuration. You
 extend or override it in **`~/.config/prova/config.toml`** under `[init.*]`:
 
 ```toml
@@ -60,7 +60,7 @@ never asked), **prompted** (omit it — the archetype asks each time), or suppli
 
 ```shell
 prova init service --answer db_name=orders --switch ci     # feed the render
-prova init default --headless                              # CI: never prompt (an unanswered,
+prova init project --headless                              # CI: never prompt (an unanswered,
                                                            # undefaulted prompt is an error, not a hang)
 ```
 
