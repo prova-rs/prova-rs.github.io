@@ -20,7 +20,6 @@ or one suite, or `prova` exits `2`.
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `proofs` | array of strings | `[]` | Directory-name patterns holding the proof suites to discover (`*_test.lua` / `*.test.lua`). This is the key `prova init` writes. |
-| `paths` | array of strings | `[]` | Legacy alias for `proofs`; still accepted, but new manifests should use `proofs`. |
 | `config` | string | — | The runtime companion (`prova.lua` / `.prova/config.lua`) where [custom capabilities](../writing-tests/dependencies-and-scheduling.md#custom-capabilities-the-provalua-companion) are registered. |
 | `plugin_root` | string | — | Directory of this project's own plugins; each child directory is reachable as `require("<dir>")`. |
 | `jobs` | integer | `1` | Maximum units run concurrently. Throughput only — never changes test semantics. |
@@ -55,7 +54,7 @@ Each profile accepts the same keys as `[run]` (`proofs`, `jobs`, `format`,
 `env`, `must_run`), plus its own `plugins` table. Selecting one with
 `prova --profile <name>` overlays it on `[run]`:
 
-- `proofs` (or the `paths` alias) — the profile's **replace** the base's, but only if the
+- `proofs` — the profile's **replace** the base's, but only if the
   profile's list is non-empty; an absent or empty list inherits the base.
 - `jobs`, `format` — taken from the profile when present, otherwise from `[run]`.
 - `env` — **merged** key-by-key: base entries first, then the profile's entries;
@@ -80,7 +79,7 @@ alternative (see [CLI discovery rules](./cli.md#discovery-rules)).
 | `paths` | array of strings | `[]` | Files/directories whose discovered test files form the suite. **`paths` only** — unlike `[run]`, a suite does not accept `proofs`, and writing it here silently drops the suite from the run. |
 | `setup` | string | — | Optional setup file (a `suite.lua`) loaded first; where suite-scoped fixtures and `suite.config{...}` live. |
 
-Declared suites run **in addition to** the resolved `paths`, and are not affected
+Declared suites run **in addition to** the resolved `proofs`, and are not affected
 by profile overlays. Capability gating and environment belong in the setup file
 (`suite.config{ requires = ... }`) and `[run.env]`, not in the suite declaration.
 
@@ -141,14 +140,14 @@ layers over the fully resolved (base + profile) set.
 
 ```toml
 [run]                       # the default profile (`prova` with no --profile)
-paths  = ["tests"]          # files/dirs to discover (*_test.lua / *.test.lua)
+proofs = ["proofs"]         # directory patterns to discover (*_test.lua / *.test.lua)
 jobs   = 4                  # concurrency — throughput only
 format = "console"          # "console" (human) | "json" (JSONL event protocol)
 
 [run.env]                   # environment for the whole run
 LOG_LEVEL = "info"
 
-# `prova --profile ci`: inherits paths/format, overrides jobs, merges env.
+# `prova --profile ci`: inherits proofs/format, overrides jobs, merges env.
 [profiles.ci]
 jobs   = 8
 format = "json"
@@ -157,11 +156,11 @@ CI = "true"
 
 # A fast subset for the inner loop: `prova --profile smoke`.
 [profiles.smoke]
-paths = ["tests/smoke"]
+proofs = ["tests/smoke"]
 
 # The same suite pointed at a live dev cluster: `prova --profile dev`.
 [profiles.dev]
-paths = ["tests/acceptance"]
+proofs = ["tests/acceptance"]
 [profiles.dev.env]
 TARGET_BASE_URL = "https://orders.dev.example.com"
 

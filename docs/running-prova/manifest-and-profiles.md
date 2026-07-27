@@ -23,7 +23,7 @@ LOG_LEVEL = "info"
 
 Every field is optional:
 
-- **`proofs`** — the directory patterns your proof suites live in. This is the key `prova init` writes; **`paths` is a legacy alias** that still works, so older manifests keep running unchanged.
+- **`proofs`** — the directory patterns your proof suites live in, and the key `prova init` writes.
 - **`jobs`** — how many suites may run concurrently (default `1`).
 - **`format`** — `"console"`, `"json"`, or `"tap"` (see [CI & Output](./ci-and-output.md)).
 - **`env`** — environment variables applied to the process before any test runs. This is the channel your tests read connection details from.
@@ -48,13 +48,13 @@ proofs = ["tests/smoke"]
 
 The merge semantics are simple and field-wise — **base first, then profile**:
 
-- `proofs` (or the `paths` alias) — the profile's replace the base's *if the profile sets any*; otherwise inherited.
+- `proofs` — the profile's replace the base's *if the profile sets any*; otherwise inherited.
 - `jobs` and `format` — the profile's value if set, otherwise the base's.
 - `must_run` — **unioned** with the base, never subtracted. A guarantee is additive by design, so a laxer profile cannot silence a stricter one.
 - `env` — **merged**: base entries first, profile entries added on top (the profile wins on a key both define).
 - `plugins` — a `[profiles.<name>.plugins]` table is **overlaid** on the project-wide `[plugins]` set: base plugins stay available, the profile adds its own, and a same-named profile entry wins. The in-repo home for CI-only capabilities — see [Using Plugins](/docs/plugins/using-plugins).
 
-So `prova --profile ci` on the manifest above runs the base `tests` paths with `jobs = 8`, `format = "json"`, and an environment of both `LOG_LEVEL=info` and `CI=true`. `prova --profile smoke` runs only `tests/smoke` but inherits `jobs = 4` from `[run]`. Naming a profile that doesn't exist is an error.
+So `prova --profile ci` on the manifest above runs the base `proofs` with `jobs = 8`, `format = "json"`, and an environment of both `LOG_LEVEL=info` and `CI=true`. `prova --profile smoke` runs only `tests/smoke` but inherits `jobs = 4` from `[run]`. Naming a profile that doesn't exist is an error.
 
 Command-line flags sit on top of all of this: `prova --profile ci --jobs 2` runs the `ci` profile with `jobs` forced to `2`.
 
@@ -133,7 +133,7 @@ end)
 - **Dev cluster:** `prova --profile dev` points the suite at a live environment via `TARGET_BASE_URL`.
 
 :::tip
-Keep the manifest boring: paths, jobs, format, env. Behavior — which fixtures exist, what they require, how they tear down — belongs in Lua, where it's typed, testable, and visible next to the tests. See [Testing Real Systems](../writing-tests/testing-real-systems.md).
+Keep the manifest boring: proofs, jobs, format, env. Behavior — which fixtures exist, what they require, how they tear down — belongs in Lua, where it's typed, testable, and visible next to the tests. See [Testing Real Systems](../writing-tests/testing-real-systems.md).
 :::
 
 For the complete schema — every table, field, and default — see the [prova.toml reference](../reference/prova-toml.md).
