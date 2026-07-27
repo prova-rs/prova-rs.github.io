@@ -1,9 +1,17 @@
-# The bar this site holds itself to. `prova` before you push runs exactly what
-# the pull-request check runs — same binary, same suite, same verdict — so the
-# answer to "will CI accept this?" is available before the commit exists.
+# The bar this site holds itself to. `prova` before you push runs what CI runs,
+# so the answer to "will CI accept this?" is available before the commit exists.
 #
 # Dogfooding is the secondary point. The primary one is that every proof here
 # encodes a defect this repo actually shipped at least once.
+#
+# "Same bar" holds only while the BINARIES match. CI pins v0.11.0 (see
+# .github/workflows/deploy.yml). A `cargo install --git` build reports the same
+# 0.11.0 while carrying unreleased API — `prova.writes` exists there and is nil
+# in the release — so a suite developed against it passes locally and dies in
+# CI on a nil field. Stay on the released binary, or check a change against it
+# before pushing:
+#
+#   gh release download v0.11.0 --repo prova-rs/prova --pattern '*macos-arm64*'
 
 [run]
 proofs = ["proofs"]

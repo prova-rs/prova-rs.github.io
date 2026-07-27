@@ -27,13 +27,13 @@ prova.test("typecheck passes", { requires = { "pnpm" }, timeout = "300s" }, func
   if not r:ok() then t:expect(r.stdout .. r.stderr, "tsc output"):equals("") end
 end)
 
-prova.test("the site builds", { requires = { "pnpm" }, timeout = "900s", resources = { prova.writes("build") } }, function(t)
+prova.test("the site builds", { requires = { "pnpm" }, timeout = "900s", serial = true }, function(t)
   local s = t:use(site)
   t:expect(s.build:ok(), "pnpm build exits 0"):is_true()
   t:expect(s.dir .. "/index.html", "index.html emitted"):is_file()
 end)
 
-prova.test("the build emits every brand asset", { requires = { "pnpm" }, timeout = "900s", resources = { prova.writes("build") } }, function(t)
+prova.test("the build emits every brand asset", { requires = { "pnpm" }, timeout = "900s", serial = true }, function(t)
   local s = t:use(site)
   for _, name in ipairs({ "logo.svg", "logo-fail.svg", "favicon.svg",
                           "favicon-pass.svg", "favicon-fail.svg",
@@ -42,7 +42,7 @@ prova.test("the build emits every brand asset", { requires = { "pnpm" }, timeout
   end
 end)
 
-prova.test("the built page advertises the social card", { requires = { "pnpm" }, timeout = "900s", resources = { prova.writes("build") } }, function(t)
+prova.test("the built page advertises the social card", { requires = { "pnpm" }, timeout = "900s", serial = true }, function(t)
   -- Docusaurus emits unquoted attributes, so match loosely on the tag.
   local s = t:use(site)
   local html = fs.read(s.dir .. "/index.html")
@@ -52,7 +52,7 @@ prova.test("the built page advertises the social card", { requires = { "pnpm" },
   t:expect(html, "og:image points at the card"):contains("prova-social-card.png")
 end)
 
-prova.test("the built CSS carries both brand states", { requires = { "pnpm" }, timeout = "900s", resources = { prova.writes("build") } }, function(t)
+prova.test("the built CSS carries both brand states", { requires = { "pnpm" }, timeout = "900s", serial = true }, function(t)
   -- A logo that swaps over a stylesheet that does not is a half-applied brand.
   local s = t:use(site)
   local css = ""
