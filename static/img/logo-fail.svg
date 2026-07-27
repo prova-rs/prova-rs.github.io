@@ -18,8 +18,13 @@
     <!-- brackets: an executable expression -->
     <path d="M42 26 L22 26 L22 102 L42 102"/>
     <path d="M86 26 L106 26 L106 102 L86 102"/>
-    <!-- the refutation: an X -->
-    <path d="M46 46 L82 82"/>
-    <path d="M82 46 L46 82"/>
+    <!-- The refutation: an X. Drawn at 10.5 rather than the bracket's 12 and
+         inset to a 30-unit span — two full diagonals carry ~1.5x the ink of
+         the checkmark at equal width, so the failing mark would otherwise read
+         heavier than the passing one. Diagonals also look heavier than
+         orthogonals at matched width, so the thinner stroke reads as correct
+         rather than as a different pen. -->
+    <path d="M49 49 L79 79" stroke-width="10.5"/>
+    <path d="M79 49 L49 79" stroke-width="10.5"/>
   </g>
 </svg>

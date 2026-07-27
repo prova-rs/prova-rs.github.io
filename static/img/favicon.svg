@@ -16,7 +16,8 @@
   <rect class="tile" width="128" height="128" rx="24"/>
   <g fill="none" stroke="#ffffff" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
     <path class="pass" d="M40 66 L56 86 L90 40"/>
-    <path class="fail" d="M42 42 L86 86"/>
-    <path class="fail" d="M86 42 L42 86"/>
+    <!-- 11.5 matches the checkmark by ink, not by width — see logo-fail.svg. -->
+    <path class="fail" d="M46 46 L82 82" stroke-width="11.5"/>
+    <path class="fail" d="M82 46 L46 82" stroke-width="11.5"/>
   </g>
 </svg>

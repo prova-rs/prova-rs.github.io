@@ -6,7 +6,9 @@
        weight emerald-600 gives favicon-pass.svg (3.77:1). -->
   <rect width="128" height="128" rx="24" fill="#ef4444"/>
   <g fill="none" stroke="#ffffff" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M42 42 L86 86"/>
-    <path d="M86 42 L42 86"/>
+    <!-- 11.5, not 13: matched to favicon-pass.svg's checkmark by ink rather
+         than by stroke width. See logo-fail.svg. -->
+    <path d="M46 46 L82 82" stroke-width="11.5"/>
+    <path d="M82 46 L46 82" stroke-width="11.5"/>
   </g>
 </svg>
