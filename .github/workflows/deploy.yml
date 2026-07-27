@@ -1,6 +1,19 @@
-name: Deploy to GitHub Pages
+name: Proofs & Deploy
+
+# One pipeline, one bar. `prova` here is the same command against the same
+# prova.toml a developer runs before committing, so the question "will CI accept
+# this?" is answerable locally — that is the whole point of putting the
+# requirements in proofs/ rather than in steps here.
+#
+# Proofs gate the deploy rather than running beside it. That matters because
+# this repo pushes straight to main routinely: a pull-request-only check would
+# have covered almost nothing.
+#
+# The proofs run `pnpm build` themselves, so the artifact uploaded below is the
+# very one they just verified — not a second, unproven build of the same commit.
 
 on:
+  pull_request:
   push:
     branches: [main]
   workflow_dispatch:
@@ -11,11 +24,11 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  build:
+  proofs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -26,14 +39,24 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
+
+      # The proofs shell out to the real pnpm commands, so the workspace has to
+      # be installed before prova runs.
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-      - uses: actions/upload-pages-artifact@v5
+
+      - uses: prova-rs/run-action@v1
+        with:
+          version: v0.11.0
+
+      - name: Upload the proven build
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
         with:
           path: build
 
   deploy:
-    needs: build
+    needs: proofs
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

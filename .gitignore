@@ -12,6 +12,9 @@
 # logs here; jj auto-snapshots new files, so leaving it untracked is not enough)
 /.playwright-mcp
 
+# Written by `prova` / `prova ide setup`; holds machine-local absolute paths
+/.luarc.json
+
 # Misc
 .DS_Store
 .env.local

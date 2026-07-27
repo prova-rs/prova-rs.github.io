@@ -1,0 +1,10 @@
+# The bar this site holds itself to. `prova` before you push runs exactly what
+# the pull-request check runs — same binary, same suite, same verdict — so the
+# answer to "will CI accept this?" is available before the commit exists.
+#
+# Dogfooding is the secondary point. The primary one is that every proof here
+# encodes a defect this repo actually shipped at least once.
+
+[run]
+proofs = ["proofs"]
+jobs = 4
