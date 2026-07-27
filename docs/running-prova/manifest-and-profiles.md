@@ -73,8 +73,14 @@ paths = ["services/rest"]
 
 Each `[suites.<name>]` collects the test files under its `paths` into a single named suite: the files share one Lua state (so `Scope.Suite` fixtures are built once for all of them), and the optional `setup` file runs first. Declared suites run *in addition to* the profile's `proofs`, and `--jobs` parallelizes across all suites together. Anything environment- or capability-related belongs in the setup file (`suite.config`) or `[run.env]`, not the suite declaration.
 
-:::caution `[suites.*]` uses `paths`, not `proofs`
-`proofs` is the key for `[run]` and `[profiles.*]`. A suite declaration still takes **`paths`** — and writing `proofs` there is not an error: the key is ignored and the whole suite silently disappears from the run, with no warning and a green result. If a declared suite stops executing after a rename, this is why.
+:::note `[suites.*]` uses `paths`, not `proofs`
+Not an inconsistency to be tidied away — the two name different things. `[run] proofs` are
+directory **names**, matched at any depth, so `["deep"]` finds `nested/deep`. A suite's `paths` are
+locations, resolved as written, so the same bare `"deep"` is simply missing.
+
+Writing `proofs` in a suite is an error. (Before v0.12.0 it was silently ignored, which dropped the
+entire declared suite from the run and still exited green — if you are on an older prova and a
+declared suite stopped executing after a rename, that is why.)
 :::
 
 ## `[plugins]` — infrastructure the suite depends on

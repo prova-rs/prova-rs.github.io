@@ -6,11 +6,16 @@ sidebar_label: "prova.toml"
 # prova.toml Reference
 
 The suite manifest. Place a `prova.toml` at your repository root and `prova` with
-no arguments runs the configured suite — CI is just `prova`. The manifest has
-five table kinds: `[run]` (the default profile), `[profiles.<name>]` (overlays
-selected with `--profile`), `[suites.<name>]` (explicitly-declared suites),
-`[plugins]` (+ `[sources]`) for external plugins, and `[luals]` for IDE
-integration.
+no arguments runs the configured suite — CI is just `prova`. Its tables:
+`[run]` (the default profile), `[profiles.<name>]` (overlays selected with
+`--profile`), `[requires]` (the prova version this package needs),
+`[suites.<name>]` (explicitly-declared suites), `[plugins]` (+ `[sources]`) for
+external plugins, `[topologies]`, `[updates]`, `[luals]` for IDE integration, and
+`[agent]`.
+
+One file, whichever hats it declares — there is no separate plugin manifest. A
+package that also exports a namespace adds `[plugin]`; see
+[Authoring Plugins](../plugins/authoring-plugins.md).
 
 All tables and keys are optional, but a resolved run must yield at least one path
 or one suite, or `prova` exits `2`.
@@ -24,6 +29,11 @@ or one suite, or `prova` exits `2`.
 | `plugin_root` | string | — | Directory of this project's own plugins; each child directory is reachable as `require("<dir>")`. |
 | `jobs` | integer | `1` | Maximum units run concurrently. Throughput only — never changes test semantics. |
 | `format` | string | `"console"` | Output format: `"console"`, `"json"`, or `"tap"`. Any other value is an error (exit `2`). |
+| `color` | string | `"auto"` | Console color: `"auto"` (TTY only, honors `NO_COLOR`), `"always"`, or `"never"`. CLI `--color` wins. |
+| `progress` | string | `"auto"` | Narrate blocking pauses on stderr so a long run never looks hung: `"auto"`, `"always"`, `"never"`. |
+| `quiet` | boolean | `false` | Print only failures, the recap, and the summary. CLI `--quiet` wins (it can only enable). |
+| `github` | string | `"auto"` | GitHub Actions annotations + step summary: `"auto"` (on exactly when `GITHUB_ACTIONS=true`), `"on"`, `"off"`. CLI `--gha` and `PROVA_GHA` win. |
+| `junit` | string | — | Also write a JUnit XML report to this home-relative path — the manifest form of `--junit`, so a CI profile needs no extra flag. |
 | `env` | table of string → string | `{}` | Environment variables set for the whole run, applied to the process before any test executes. Written as a `[run.env]` sub-table. |
 | `must_run` | array of strings | `[]` | Capabilities this run **guarantees**; an unmet one **fails** the run up front. See [below](#must_run). |
 
@@ -48,10 +58,38 @@ must_run = ["docker", "dotnet >= 9"]   # unmet → FAIL, never skip
 Related to the same "silent green" hazard: a selection that matches nothing (`-k thisdoesnotexist`) exits non-zero rather than reporting `0 passed`. Opt out with `--allow-empty`.
 :::
 
+## `[requires]` — the version this package needs
+
+```toml
+[requires]
+prova = ">= 0.13"
+```
+
+Declares the minimum prova a suite needs, so an out-of-date binary says so **up front** instead of
+failing somewhere in the middle with whatever symptom the missing feature happens to produce.
+
+**Write `>=`.** The value is a semver *range*, and a bare `"0.13"` means `^0.13`, which on 0.x is
+`>=0.13.0, <0.14.0` — a wall that refuses the very upgrades a suite should keep working across.
+`>= 0.13` is how you say "this version or newer".
+
+Read **before** the rest of the manifest is validated, from generic TOML. That ordering is what
+lets it work at all: `[run]` and friends reject unknown keys, so a manifest written for a newer
+prova would otherwise fail on a key this binary has never heard of — and "unknown field" is the
+wrong diagnosis for an out-of-date binary. Two consequences worth knowing: `[requires]` must never
+change shape, and the version must stay parseable by every future binary, because the binary that
+needs to read it is by definition the old one.
+
+The same key also declares a **plugin's** compatibility range (see
+[Using Plugins](../plugins/using-plugins.md)), and it means exactly the same thing in both places.
+That is not a coincidence to be tidied away later: a `prova.toml` is one file wearing whichever
+hats it declares, and `prova init plugin` scaffolds a plugin that carries its own proof suite — so
+one `requires.prova` is read once by the package gate and once by the plugin resolver. They must
+agree, and a proof holds them to it.
+
 ## `[profiles.<name>]` — overlays
 
-Each profile accepts the same keys as `[run]` (`proofs`, `jobs`, `format`,
-`env`, `must_run`), plus its own `plugins` table. Selecting one with
+Each profile accepts the same keys as `[run]` (`proofs`, `jobs`, `format`, `color`,
+`progress`, `quiet`, `github`, `junit`, `env`, `must_run`), plus its own `plugins` table. Selecting one with
 `prova --profile <name>` overlays it on `[run]`:
 
 - `proofs` — the profile's **replace** the base's, but only if the
@@ -76,7 +114,7 @@ alternative (see [CLI discovery rules](./cli.md#discovery-rules)).
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `paths` | array of strings | `[]` | Files/directories whose discovered test files form the suite. **`paths` only** — unlike `[run]`, a suite does not accept `proofs`, and writing it here silently drops the suite from the run. |
+| `paths` | array of strings | `[]` | Files/directories whose discovered test files form the suite. **`paths`, not `proofs`** — the two mean different things (literal paths here; directory-*name* patterns in `[run]`), and writing `proofs` in a suite is an error. |
 | `setup` | string | — | Optional setup file (a `suite.lua`) loaded first; where suite-scoped fixtures and `suite.config{...}` live. |
 
 Declared suites run **in addition to** the resolved `proofs`, and are not affected
