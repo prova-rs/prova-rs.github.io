@@ -11,15 +11,11 @@ local site = prova.fixture("site", Scope.File, function(ctx)
   return { build = r, dir = root .. "/build" }
 end)
 
-prova.test("the toolchain this suite needs is present", function(t)
-  -- Deliberately NOT `requires`. A capability that is missing makes a node skip
-  -- with a reason, which is right for an optional dependency and wrong for a
-  -- CI gate: a runner without pnpm would report all-green having built nothing.
-  -- This one fails loudly instead, so the skips below can never hide an
-  -- untested pull request.
-  t:expect(shell.run({ "pnpm", "--version" }):ok(), "pnpm on PATH"):is_true()
-  t:expect(shell.run({ "node", "--version" }):ok(), "node on PATH"):is_true()
-end)
+-- The "is the toolchain here?" guard is NOT a test. `must_run` in prova.toml
+-- does it properly: as a precondition, before anything executes, reporting the
+-- probe's own answer — so a runner missing pnpm fails up front rather than
+-- reporting all-green having built nothing. A hand-rolled test could only
+-- notice after the suite was already under way, and only if it ran at all.
 
 prova.test("typecheck passes", { requires = { "pnpm" }, timeout = "300s" }, function(t)
   local r = shell.run("pnpm typecheck", { cwd = root, timeout = "300s" })

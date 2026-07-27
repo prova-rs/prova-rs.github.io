@@ -44,9 +44,13 @@ jobs:
       # be installed before prova runs.
       - run: pnpm install --frozen-lockfile
 
+      # --profile ci unions the ci guarantees onto [run]'s, so a runner missing
+      # any of node/pnpm/python3/file fails the job up front instead of skipping
+      # the proofs that need it and reporting a green "0 failed".
       - uses: prova-rs/run-action@v1
         with:
           version: v0.11.0
+          profile: ci
 
       - name: Upload the proven build
         if: github.event_name != 'pull_request'

@@ -16,3 +16,17 @@
 [run]
 proofs = ["proofs"]
 jobs = 4
+
+# Without node and pnpm the build proofs would skip, and a run that skips them
+# has verified nothing while still exiting 0. Guarantee them everywhere.
+must_run = ["node", "pnpm"]
+
+# CI additionally guarantees the capabilities the lighter proofs gate on, so a
+# runner that lost one FAILS rather than quietly dropping that coverage.
+# `must_run` is unioned with [run]'s, never subtracted — a profile cannot
+# relax a guarantee — so `--profile ci` demands all four.
+#
+# Locally these stay soft: a contributor without python3 gets a visible skip on
+# the XML well-formedness proof instead of a hard stop.
+[profiles.ci]
+must_run = ["python3", "file"]
