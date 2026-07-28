@@ -35,6 +35,7 @@ or one suite, or `prova` exits `2`.
 | `github` | string | `"auto"` | GitHub Actions annotations + step summary: `"auto"` (on exactly when `GITHUB_ACTIONS=true`), `"on"`, `"off"`. CLI `--gha` and `PROVA_GHA` win. |
 | `junit` | string | — | Also write a JUnit XML report to this home-relative path — the manifest form of `--junit`, so a CI profile needs no extra flag. |
 | `env` | table of string → string | `{}` | Environment variables set for the whole run, applied to the process before any test executes. Written as a `[run.env]` sub-table. |
+| `globals` | table | — | Injection knobs for the bundled namespaces. See [below](#globals). |
 | `must_run` | array of strings | `[]` | Capabilities this run **guarantees**; an unmet one **fails** the run up front. See [below](#must_run). |
 
 ### `must_run`
@@ -57,6 +58,28 @@ must_run = ["docker", "dotnet >= 9"]   # unmet → FAIL, never skip
 :::note Empty selection is also a failure
 Related to the same "silent green" hazard: a selection that matches nothing (`-k thisdoesnotexist`) exits non-zero rather than reporting `0 passed`. Opt out with `--allow-empty`.
 :::
+
+### `globals`
+
+Every bundled namespace — `fs`, `shell`, `http`, `json` and the rest — is injected as an ambient
+global, so a proof reads without a preamble of imports. `[run] globals` is the knob for teams that
+would rather be explicit:
+
+```toml
+[run.globals]
+exclude = ["fs", "shell"]
+```
+
+An excluded name is no longer injected; reach it with `require` under whatever local name you like:
+
+```lua
+local fs = require("fs")        -- or `local files = require("fs")`
+```
+
+**Excluding is an injection choice, never a capability loss.** Nothing becomes unavailable — the
+same module, same functions, just named by you at the top of the file instead of appearing from
+nowhere. Useful when a house style forbids ambient globals, or when a project has its own `fs` and
+wants the name back.
 
 ## `[requires]` — the version this package needs
 
