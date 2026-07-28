@@ -47,6 +47,13 @@ The network-facing clients are **plaintext-only in v1** — no TLS, no SASL, no 
 | `docker` | Ephemeral containers (testcontainers-style) with readiness gates, exec, `container:run` | Docker daemon | [docker](docker.md) |
 | `sqlite` | Embedded SQL — the one database that needs no container | — | [sqlite](sqlite.md) |
 | `yaml` | Parse YAML text (including multi-document streams) to Lua values | — | [yaml](yaml.md) |
+| `json` | Encode/decode JSON; `json.null` and `json.array` for the shapes Lua cannot express | — | [data](data.md#json) |
+| `toml` | Encode/decode TOML | — | [data](data.md#toml) |
+| `csv` | Header-aware CSV, same row shape as `prova.parse.table` | — | [data](data.md#csv) |
+| `base64` | Base64 encode/decode, binary-safe | — | [data](data.md#base64) |
+| `hash` | `sha256` and `hmac_sha256` as lowercase hex — digests, and signing a request the SUT verifies | — | [data](data.md#hash) |
+| `uuid` | `uuid.v4()` — a fresh RFC 4122 id per call | — | [data](data.md#uuid) |
+| `url` | Parse a URL into parts; percent-encode a component | — | [data](data.md#url) |
 | `archetect` | Render and verify [Archetect](https://archetect.github.io) archetypes in-process | — | [archetect](archetect.md) |
 
 Alongside the module globals, the `prova` global carries **`prova.parse.*`** (`lines`/`rows`/`table`/`json` — the CLI-output parsing toolkit) and **`prova.containerized`** (the scaffolding containerized resources are authored through); both are documented under [Authoring Plugins](../../plugins/authoring-plugins.md#the-docker-exec-toolkit).
