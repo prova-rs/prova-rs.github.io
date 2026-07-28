@@ -54,6 +54,9 @@ The network-facing clients are **plaintext-only in v1** — no TLS, no SASL, no 
 | `hash` | `sha256` and `hmac_sha256` as lowercase hex — digests, and signing a request the SUT verifies | — | [data](data.md#hash) |
 | `uuid` | `uuid.v4()` — a fresh RFC 4122 id per call | — | [data](data.md#uuid) |
 | `url` | Parse a URL into parts; percent-encode a component | — | [data](data.md#url) |
+| `socket` | TCP/Unix: connect, listen, mock framed turns, or interpose a wiretap with fault injection | — | [doubles](../../writing-tests/mocking-and-proxies.md#sockets) |
+| `websocket` | WebSocket: connect, a real in-process server (including unprompted push), or a direction-tagged proxy | — | [doubles](../../writing-tests/mocking-and-proxies.md#websockets) |
+| `terminal` | Drive a program on a real pty, or shadow an interactive CLI on `PATH` | — | [doubles](../../writing-tests/mocking-and-proxies.md#terminals) |
 | `archetect` | Render and verify [Archetect](https://archetect.github.io) archetypes in-process | — | [archetect](archetect.md) |
 
 Alongside the module globals, the `prova` global carries **`prova.parse.*`** (`lines`/`rows`/`table`/`json` — the CLI-output parsing toolkit) and **`prova.containerized`** (the scaffolding containerized resources are authored through); both are documented under [Authoring Plugins](../../plugins/authoring-plugins.md#the-docker-exec-toolkit).

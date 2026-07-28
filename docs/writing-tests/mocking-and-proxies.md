@@ -172,6 +172,73 @@ grpc.client(m.url):call("pricing.Pricing/GetPrice", { sku = "A1" })
 
 gRPC mocking is **stub-and-journal only** — there is no passthrough/record/replay on the gRPC facet yet.
 
+## Beyond HTTP: sockets, WebSockets, and terminals
+
+The same three verbs reach every transport a system under test speaks, not just HTTP and gRPC.
+Each transport answers the same three questions:
+
+| | **originate** — be the client | **terminate** — be the server | **interpose** — sit in between |
+|---|---|---|---|
+| TCP / Unix | `socket.connect` · `socket.listen` | `socket.mock` | `socket.proxy` |
+| WebSocket | `websocket.connect` | `websocket.mock` | `websocket.proxy` |
+| Interactive CLI | `terminal.spawn` | `terminal.mock` | `terminal.proxy` |
+
+### Sockets
+
+```lua
+local m = socket.mock(t, { framing = "line" })
+m:on("PING"):reply("PONG")
+
+local c = socket.connect(m.addr, { framing = "line" })
+c:send("PING")
+t:expect(c:recv()):equals("PONG")
+```
+
+**Framing is required for `socket.mock`** — matching needs turns, and a raw byte stream has none.
+Script a raw exchange with `socket.listen` instead, where you drive `accept`/`recv`/`send` yourself.
+
+`socket.proxy` is the universal wiretap: put it in front of *any* `tcp://` or `unix://` dependency
+for a transcript plus the fault vocabulary — `latency`, `throttle`, `drop`, `corrupt`, `after`.
+That works against a dependency you did not write and cannot modify.
+
+### WebSockets
+
+```lua
+local m = websocket.mock(t)
+m:on("subscribe"):reply("ack")
+m:on_connect(function(conn) conn:send("welcome") end)   -- unprompted push
+```
+
+`on_connect` is the half a request/response mock cannot express: the server talking first. The
+journal is direction-aware, and `WsProxy:transcript()` tags every message `"up"` or `"down"`, so
+"who spoke when" is assertable rather than inferred.
+
+### Terminals
+
+`terminal.spawn` drives a program on a **real pty** (openpty / ConPTY behind one API), so a CLI
+that behaves differently when not attached to a terminal behaves the way a user would see:
+
+```lua
+local term = terminal.spawn(t, { cmd = { "./installer" }, cols = 80, rows = 24 })
+term:expect("Continue%? %[y/N%]")
+term:send("y\n")
+term:wait_stable()
+t:expect(term:screen():text()):contains("Installed")
+```
+
+`screen()` is a parsed screen, not a byte soup — `:line(n)`, `:cell(row, col)` with attributes, and
+`:snapshot_text()` for [snapshot assertions](assertions.md).
+
+`terminal.mock` goes the other way: **shadow a command name on `PATH`** with a scripted responder,
+for when the SUT shells out to something interactive (`ssh`, an installer) that you do not want to
+really run. `terminal.proxy` shadows a name while forwarding to the real one, recording as it goes.
+
+### Recording and replay
+
+`socket.proxy` and `terminal.proxy` take `cassette` and `mode`, following the same record/replay
+story as [HTTP proxying](#proxying-observe-record-replay), plus `redact` for values that must not
+land in a committed transcript.
+
 ## Reaching a mock from a container
 
 A mock is the one resource that is a **host process a container must reach** — the inverse of every other resource. When your system under test runs in a container and calls the mock, opt into a network vantage:
