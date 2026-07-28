@@ -1,0 +1,29 @@
+name: Nightly freshness
+
+# The docs quote version numbers, and version numbers rot. This site once advertised the
+# run-action default as v0.2.4 while the action said v0.10.0 and the current release was v0.11.0 —
+# three sources, three answers, each drifting on its own schedule, all three found by hand.
+#
+# These checks hit the network, so they are deliberately NOT in the merge gate: a docs build should
+# not go red because GitHub is slow. Running them on a schedule means rot shows up as a red run the
+# next morning instead of as a reader's confusion months later.
+on:
+  schedule:
+    - cron: '17 6 * * *'      # daily, off the hour so it does not pile into the top-of-hour rush
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: prova-rs/run-action@v1
+        with:
+          version: v0.14.0
+          profile: nightly
+        env:
+          # The proofs ask GitHub what the latest release is and what the action's default says.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

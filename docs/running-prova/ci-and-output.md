@@ -91,7 +91,7 @@ The composite action `prova-rs/run-action` installs a released `prova` binary (n
 - uses: actions/checkout@v4
 - uses: prova-rs/run-action@v1
   with:
-    version: v0.11.0      # pin explicitly; see the note below
+    version: v0.14.0      # pin explicitly; see the note below
     profile: ci
 ```
 

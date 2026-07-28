@@ -36,7 +36,7 @@ Download, extract, and put the binary on your `PATH`:
 
 ```shell
 # The one place to change — see https://github.com/prova-rs/prova/releases/latest
-VERSION=v0.11.0
+VERSION=v0.14.0
 
 curl -LO https://github.com/prova-rs/prova/releases/download/$VERSION/prova-$VERSION-linux-x86_64.tar.gz
 tar -xzf prova-$VERSION-linux-x86_64.tar.gz

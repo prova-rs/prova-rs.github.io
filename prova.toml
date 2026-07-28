@@ -30,3 +30,10 @@ must_run = ["node", "pnpm"]
 # the XML well-formedness proof instead of a hard stop.
 [profiles.ci]
 must_run = ["python3", "file"]
+
+# Network-touching checks, run on a schedule rather than in the merge gate — a docs build should
+# not go red because GitHub is slow. `proofs` is a directory-NAME pattern, so naming `nightly`
+# here selects exactly that directory and the default run never sees it.
+[profiles.nightly]
+proofs = ["nightly"]
+must_run = ["gh"]
