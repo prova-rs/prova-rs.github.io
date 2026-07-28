@@ -4,32 +4,31 @@
 # Dogfooding is the secondary point. The primary one is that every proof here
 # encodes a defect this repo actually shipped at least once.
 #
-# "Same bar" holds only while the BINARIES match. CI pins v0.11.0 (see
-# .github/workflows/deploy.yml). A `cargo install --git` build reports the same
-# 0.11.0 while carrying unreleased API — `prova.writes` exists there and is nil
-# in the release — so a suite developed against it passes locally and dies in
-# CI on a nil field. Stay on the released binary, or check a change against it
-# before pushing:
+# "Same bar" holds only while the BINARIES match. CI pins a release (see
+# .github/workflows/deploy.yml); a `cargo install --git` build now reports
+# `+dev.<sha>` so the two are at least distinguishable — `prova --version` and
+# `prova.version` both show it. To check a change against exactly what CI runs:
 #
-#   gh release download v0.11.0 --repo prova-rs/prova --pattern '*macos-arm64*'
+#   gh release download <tag> --repo prova-rs/prova --pattern '*macos-arm64*'
 
 [run]
 proofs = ["proofs"]
 jobs = 4
 
-# Without node and pnpm the build proofs would skip, and a run that skips them
-# has verified nothing while still exiting 0. Guarantee them everywhere.
-must_run = ["node", "pnpm"]
-
-# CI additionally guarantees the capabilities the lighter proofs gate on, so a
-# runner that lost one FAILS rather than quietly dropping that coverage.
-# `must_run` is unioned with [run]'s, never subtracted — a profile cannot
-# relax a guarantee — so `--profile ci` demands all four.
+# Deliberately no base `must_run`. Guarantees are unioned into EVERY profile and
+# can never be subtracted, so a base guarantee has to be true of every run this
+# package can perform — and `--profile nightly` only reads version strings, with
+# no reason to own a toolchain. node and pnpm were once guaranteed here and the
+# nightly job failed on the union, which is the rule working, not fighting us.
 #
-# Locally these stay soft: a contributor without python3 gets a visible skip on
-# the XML well-formedness proof instead of a hard stop.
+# On a laptop a missing pnpm SHOULD skip the build proofs visibly: that is what
+# a test's `requires` is for. Turning that skip into a failure is policy about
+# an environment, so it belongs to the profile that makes the promise.
+
+# The merge gate. Everything the proofs here gate on, guaranteed — a runner that
+# lost one FAILS rather than quietly dropping that coverage and reporting green.
 [profiles.ci]
-must_run = ["python3", "file"]
+must_run = ["node", "pnpm", "python3", "file"]
 
 # Network-touching checks, run on a schedule rather than in the merge gate — a docs build should
 # not go red because GitHub is slow. `proofs` is a directory-NAME pattern, so naming `nightly`
