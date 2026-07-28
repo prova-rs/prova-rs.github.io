@@ -77,6 +77,8 @@ All value-taking flags accept both `--flag value` and `--flag=value`.
 | `--tags <a,b>` | — | Select nodes carrying any listed tag — their own or inherited from an enclosing group (comma-separated; repeatable). `!tag` excludes. |
 | `--node <PATH>` | — | Select an exact node path (repeatable) — re-run precisely the node a report named. |
 | `--last-failed` | — | Select only the nodes that failed in the previous run (state kept in `.last-failed.json` in the prova home). With no failure state, prints a note and runs everything. |
+| `--specs` | — | Select only [spec-flagged](../writing-tests/specs-and-burndown.md) tests — the open backlog. Composes with the other selectors and with `--list`. |
+| `--strict-specs` | — | Open specs report as real failures instead of the `spec` outcome. The driving mode; `prova burndown` is `--specs --strict-specs`. |
 | `-u`, `--update-snapshots` | — | (Re)write `.snap` files instead of comparing — accept the current output as the new snapshot. See [Matchers](./lua-api/matchers.md#matches_snapshot). |
 | `--unreferenced <ignore\|warn\|delete>` | `ignore` | What to do with `.snap` files no test referenced this run: `warn` lists them and fails the run (exit `1`), `delete` removes them. Sound only on a **full** run — skipped (with a note) when any selection flag is active. |
 | `--list` | — | Discover and print every test/step path (one per line) without executing anything, then exit `0`. Respects selection. |
@@ -172,6 +174,44 @@ Output: scalars print plainly (a string without quotes, so the value is
 shell-friendly), `nil` prints nothing, and tables/arrays print as pretty JSON.
 `--format json` (or `--json`) forces JSON for everything. Exit codes: `0` on
 success, `1` if the snippet raises, `2` on usage errors.
+
+## `prova specs`
+
+```text
+prova specs [<selection>]      # enumerate the open spec surface; runs nothing
+```
+
+Lists every [spec-flagged](../writing-tests/specs-and-burndown.md) test — proofs authored ahead of
+their implementation. This is the executable backlog: unlike a `TODO` grep it cannot go stale,
+because the entries are the tests themselves. An empty list means the burndown is complete.
+
+Composes with [selection](#selection-semantics), so `prova specs -k websocket` narrows to one area.
+Equivalent to `prova --specs --list`.
+
+## `prova burndown`
+
+```text
+prova burndown [<selection>]   # run ONLY spec-flagged tests, open ones failing loud
+```
+
+The implementing loop. Runs just the spec surface and inverts the CI-friendly behavior: an open
+spec reports as a real failure with its full error, which is what you want while driving it green
+rather than while protecting a build.
+
+Equivalent to `prova --specs --strict-specs`. An empty surface means **complete** — exit `0`, not
+a selection error.
+
+## `prova plugins`
+
+```text
+prova plugins                  # list every plugin the configured registries serve
+prova plugins <query>          # search by name/description
+prova plugins info <name>      # details for one
+prova plugins add <name>[@ref] # pin it into [plugins] in this package's manifest
+```
+
+Searches the configured plugin registries. `add` writes the pinned source into the manifest so the
+plugin resolves identically on a laptop and in CI, rather than being injected out-of-band.
 
 ## `prova skill`
 
