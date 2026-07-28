@@ -174,6 +174,80 @@ profile's entries are added, and a same-named profile entry **wins** over the
 base. Values take every source form `[plugins]` accepts. `--plugin`/`-P` still
 layers over the fully resolved (base + profile) set.
 
+## `[topologies]` — environments addressable by name
+
+Names an environment a plugin can stand up, so `prova up <name>` (and any proof) can reach it.
+Sugar for `prova.topology(<name>, require(<plugin>).<factory>)` — a property of the package, not a
+profile.
+
+```toml
+[topologies]
+vm = { plugin = "parallels", topology = "vm", options = { image = "ubuntu-24.04" } }
+```
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `plugin` | string | *required* | The plugin providing it — a name from `[plugins]`, or an ambient plugin under `plugin_root`. |
+| `topology` | string | — | The plugin's **advertised** topology name (`[[plugin.topologies]]`). Mutually exclusive with `factory`. |
+| `factory` | string | — | A dotted path to a factory inside the plugin's namespace, when it advertises none. Mutually exclusive with `topology`. |
+| `requires` | array of strings | `[]` | Capabilities the environment needs, added to whatever the plugin's advertisement declares. Unmet blocks `prova up` **before** provisioning. |
+| `options` | table | `{}` | Passed to the factory as `require("<plugin>").<factory>(ctx, <options>)` — what the factory needs and the caller cannot otherwise supply. Absent → registered bare. |
+
+Exactly one of `topology` / `factory` must be present. Because `requires` is checked before
+anything is provisioned, a machine without the capability **skips cleanly** rather than failing
+half-way through a stand-up.
+
+## `[updates]` — freshness policy for git plugin sources
+
+Governs the shared cache's gate for `[plugins]` git sources: inside `interval` the cache is used
+with no network at all; past it, a cheap `ls-remote` decides whether a pull is actually needed.
+Mirrors archetect's `updates` config, so the sibling tools read the same knobs.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `interval` | duration string | `1d` | How long a cached source is trusted without checking. `"1d"`, `"12h"`, `"30m"`, `"3600s"`, or a bare integer (seconds). |
+| `force` | boolean | `false` | Ignore the freshness gates entirely. The CLI `-U` / `--update` also sets this. |
+| `retention` | duration string | `90d` | How long an unused materialized source tree survives before the quiet prune reaps it. |
+
+`--offline` is the opposite end: never fetch, use only what is already cached.
+
+## `context` — project docs an agent can discover
+
+A top-level array of markdown/text files surfaced by [`prova learn`](../running-prova/command-line.md)
+as `ctx:<stem>` topics, so a team's own doctrine rides the same discovery rail as prova's built-in
+ones — an agent finds it by listing topics rather than by being told a path.
+
+```toml
+context = ["docs/agent.md", "~/team/conventions.md"]
+```
+
+Paths are home-relative and `~/` expands. A property of the package, not a profile. A declared file
+that does not exist is **reported loudly** by `learn` rather than silently skipped — a context doc
+nobody notices has gone missing is worse than none.
+
+Note it is a top-level key. Putting `context` inside `[run]` is an error rather than a
+silently-ignored setting, which it used to be before `[run]` became strict.
+
+## `[agent]` — how `prova learn` addresses an agent
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `spec_first` | boolean | `true` | Whether `prova learn project` nudges spec-first PDD — author behaviour as `spec`-flagged proofs, then burn them down. Set `false` for a package not run that way. |
+
+It is a one-line inclination in `learn`, never a gate: turning it off changes what an agent is
+*told*, not what prova enforces.
+
+## `[luals]` — editor integration policy
+
+Controls whether prova manages the project's `.luarc.json` pointer for LuaLS completion.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `manage` | string | `"auto"` | `"auto"` — create if absent, else reconcile prova's entries quietly and non-destructively (user keys untouched, identical content never rewritten, so the steady state is silent); a file prova cannot parse as plain JSON is left alone with a hint. `"always"` — same reconcile, but an unmergeable file is an error, for the explicit `prova ide setup` ask. `"never"` — install annotations, never touch the pointer. |
+
+`.luarc.json` holds machine-local absolute paths, so it usually belongs in `.gitignore`. Set
+`manage = "never"` when the file is deliberately committed and hand-maintained.
+
 ## Complete annotated example
 
 ```toml
