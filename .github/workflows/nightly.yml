@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: prova-rs/run-action@v1
         with:
-          version: v0.14.0
+          version: v0.16.0   # the package-vocabulary line ([dependencies], packages)
           profile: nightly
         env:
           # The proofs ask GitHub what the latest release is and what the action's default says.
