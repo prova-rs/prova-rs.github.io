@@ -1,3 +1,6 @@
+[requires]
+prova = ">= 0.16"
+
 # The bar this site holds itself to. `prova` before you push runs what CI runs,
 # so the answer to "will CI accept this?" is available before the commit exists.
 #
