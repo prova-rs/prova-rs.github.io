@@ -31,13 +31,13 @@ reporter names it. An unflagged test holds the line immediately. The full semant
 why a promise that *starts passing* fails the run — are in
 [Promises & Burndown](../writing-tests/promises-and-burndown.md#the-three-states).
 
-## The backlog you cannot lose
+## The spec you cannot lose
 
 ```shell
 prova promises     # enumerate the open surface; nothing runs
 ```
 
-This is the executable backlog. `git grep TODO` lies — comments rot, move, and describe work
+This is the executable spec — and it cannot go stale. `git grep TODO` lies — comments rot, move, and describe work
 nobody scoped — but `prova promises` cannot: every line on it is a real contract, stated as
 assertions, carrying its own reason, and checked by the same binary that runs the suite. When
 the list is empty, the work is *done*, in the only sense that survives contact with a reviewer.

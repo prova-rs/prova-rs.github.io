@@ -76,7 +76,7 @@ prova promises     # enumerate the open surface; nothing runs, empty means burnd
 prova burndown     # run ONLY promised tests, open promises failing loud with full detail
 ```
 
-`prova promises` is the executable backlog. `prova burndown` is the implementing loop: promises
+`prova promises` is the executable spec's open surface. `prova burndown` is the implementing loop: promises
 fall due — it inverts the CI-friendly behavior so open promises report as real failures with
 their full error, which is what you want while you are driving them green.
 

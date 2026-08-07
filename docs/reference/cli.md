@@ -93,7 +93,7 @@ All value-taking flags accept both `--flag value` and `--flag=value`.
 | `--tags <a,b>` | — | Select nodes carrying any listed tag — their own or inherited from an enclosing group (comma-separated; repeatable). `!tag` excludes. |
 | `--node <PATH>` | — | Select an exact node path (repeatable) — re-run precisely the node a report named. |
 | `--last-failed` | — | Select only the nodes that failed in the previous run. With no failure state, prints a note and runs everything. |
-| `--promises` | — | Select only [promised](../writing-tests/promises-and-burndown.md) tests — the open backlog. Composes with the other selectors and with `--list`. |
+| `--promises` | — | Select only [promised](../writing-tests/promises-and-burndown.md) tests — the open surface. Composes with the other selectors and with `--list`. |
 | `--due` | — | Promises fall due: open promises report as real failures. With `--promises` this is burndown's mode; alone, the whole suite tolerates no open promise. |
 | `--falsify` | — | Select only tests declaring `falsified_by`, apply each test's mutation, and **invert the verdict** — a body that survives its falsifier is reported vacuous and fails. `prova falsify` is `--falsify --allow-empty`. |
 | `--allow-empty` | — | A selection matching no tests is OK (by default that is an error). |
@@ -250,7 +250,7 @@ prova promises [<selection>]   # enumerate the open promise surface; runs nothin
 ```
 
 Lists every [promised](../writing-tests/promises-and-burndown.md) test — proofs authored ahead of
-their implementation. This is the executable backlog: unlike a `TODO` grep it cannot go stale,
+their implementation. This is the executable spec's open surface: unlike a `TODO` grep it cannot go stale,
 because the entries are the tests themselves. An empty list means the burndown is complete.
 
 Composes with [selection](#selection-semantics), so `prova promises -k websocket` narrows to one

@@ -129,7 +129,7 @@ The same content an agent gets over MCP; a team's own docs join the catalog via 
 The evidence account, queryable. None of these execute proof bodies except `burndown` and `falsify`:
 
 ```shell
-prova promises        # the executable backlog: proofs authored ahead of implementation
+prova promises        # the open surface: proofs authored ahead of implementation
 prova burndown        # run only the promised tests, open ones failing loud — the implementing loop
 prova owed            # every open obligation: promises, unproven claims, dangling covers, due reminders
 prova evidence        # where does this package stand? CLAIMED / BOUND / PROMISED / ATTESTED + owed

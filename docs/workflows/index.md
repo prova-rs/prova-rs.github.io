@@ -6,7 +6,7 @@ sidebar_label: "Workflows"
 # Workflows
 
 Prova meets you where you are. You can use it as a test runner for one throwaway Lua file, as
-the discipline behind every change you ship, as an executable backlog for work you haven't
+the discipline behind every change you ship, as an executable spec for work you haven't
 started, or as the ledger that keeps a design doc, its proofs, and its CI runs from ever
 drifting apart. Those are not four products — they are four depths of the same pool, and this
 section is the ramp between them.
@@ -44,12 +44,12 @@ comes first and fails, the implementation makes it pass, and both land in one co
 re-runs byte-identically. Done stops being a claim and becomes a proof that runs.
 
 **Spec-First** points the same loop at work that hasn't started. A proof flagged
-`promises = "reason"` is red by design and reports without breaking CI — the backlog becomes
+`promises = "reason"` is red by design and reports without breaking CI — the open work becomes
 executable, and `prova burndown` becomes the implementing loop that empties it.
 
 **Docs That Cannot Drift** closes the last gap: prose. A normative sentence in a design doc
 gains a claim anchor, a proof covers it, and CI attests that the covering proof actually ran
-and passed. Prose, backlog, suite, and run stop being four artifacts that drift apart.
+and passed. Prose, open work, suite, and run stop being four artifacts that drift apart.
 
 Everything on these pages is also in the binary itself — `prova learn pdd` is the one-screen
 version of the middle of this ramp, rendered with your own package's facts. The pages here

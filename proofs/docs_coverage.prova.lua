@@ -50,6 +50,10 @@ prova.test("no page teaches retired vocabulary", {
     { needle = 'spec = "',          was = "the promises flag's old spelling" },
     { needle = "--strict-specs",    was = "burndown's old primitive" },
     { needle = "prova-plugin.toml", was = "a separate package manifest that never shipped" },
+    -- "backlog" now names the cold tier below a claim; promises are the executable SPEC.
+    -- One word, one meaning — the PM/UI layer says "add this to our backlog" and must not
+    -- collide with the promise vocabulary.
+    { needle = "executable backlog", was = "the promise surface's old nickname" },
   }
   t:expect_all(function()
     for _, r in ipairs(RETIRED) do

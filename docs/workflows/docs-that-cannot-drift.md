@@ -71,7 +71,7 @@ Say the design doc for a placement broker gains a new sentence. The whole lifecy
    end)
    ```
 
-   The claim is now bound and the work is on the backlog: `prova owed` shows it PROMISED.
+   The claim is now bound and the work is on the open surface: `prova owed` shows it PROMISED.
 3. **Burn it down.** `prova burndown` fails loud on the open promise; you implement; the
    promise is kept and the run demands graduation.
 4. **Graduate in the same commit.** `promises` becomes
@@ -96,7 +96,7 @@ CLAIMED / BOUND / PROMISED / ATTESTED, then what is owed
 
 ## The payoff
 
-Stated plainly: the doc, the backlog, the suite, and the run stop being four artifacts that
+Stated plainly: the doc, the open work, the suite, and the run stop being four artifacts that
 drift apart. They become **one ledger with four views** — the prose says what must be true, the
 promises say what is not yet, the proofs say what is, and the record says what was actually
 demonstrated, this run, on this machine. Any sentence in the doc that matters is one

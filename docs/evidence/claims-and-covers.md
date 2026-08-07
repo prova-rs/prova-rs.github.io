@@ -48,7 +48,7 @@ end)
 The address is `<path>#<id>`, package-relative. One claim may be covered by several proofs —
 they are then all obligations, not a menu (see [attestation](./record-and-attest.md)). A proof
 authored before its implementation carries `covers` *and* [`promises`](../writing-tests/promises-and-burndown.md);
-the binding is how the intake (a claim someone wrote) meets the backlog (a proof someone owes).
+the binding is how the intake (a claim someone wrote) meets the open surface (a proof someone owes).
 
 ## What the ledger reports
 
