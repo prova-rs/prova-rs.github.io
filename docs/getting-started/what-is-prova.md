@@ -8,6 +8,8 @@ Prova is a **black-box acceptance-test runner** and the reference implementation
 
 That layer — above unit tests, below load tests, across every protocol — is real, and it is badly served. Every team ends up gluing it together from shell scripts, `Makefile` targets, and one-off harnesses. Prova makes it a first-class discipline.
 
+It is also more than a runner. Prova tracks the whole life of an obligation — a claim anchored in prose, a proof promised ahead of its implementation, the promise kept, the run that attests it — so a project can answer *"is everything we claim actually evidenced?"* with one command instead of a meeting. The runner is the ground floor of that building; the [ledger](../evidence/index.md) is what grows on top.
+
 ## Proof-Driven Development
 
 The name is the thesis: *prova* is Italian for **proof**. In Proof-Driven Development (PDD), the durable artifact of a codebase is an executable, black-box definition of what the system must do. Humans define the proof; implementers drive it green; CI holds the bar after every context is gone. Changes are **proof-carrying** — an homage to proof-carrying code — meaning work merges only when it arrives with its proof passing, and the suite *is* the proof. A repo's suite is its **proving ground**.
@@ -19,6 +21,18 @@ One disambiguation, briefly: PDD is *not* theorem proving or formal verification
 Every prior acceptance tool assumes a human writes tests to drive human development. When the implementer is increasingly an agent, three things shift at once: the agent holds the pen, the runner's feedback must be machine-legible enough for autonomous iteration, and the system under test is a black box the author *conjures into existence* — scaffold a repo, render an archetype, build it, boot it. Unit frameworks assume the code already exists inside a language; agents must be verified at the outside boundary. That boundary is precisely where Prova lives.
 
 This is running in production, not on a slide: nine service archetypes across three languages (C#, TypeScript, Python) and three transports (REST, gRPC, GraphQL) are held to a persisted-CRUD bar by prova suites in CI. Those suites surfaced latent defects the untested variants had hidden — renders that never compiled, database pools closed at boot, health endpoints reporting UNKNOWN — and agents implemented to the bar with roughly 30–60 second feedback loops.
+
+### The lifecycle of an obligation
+
+PDD gives every piece of work one road, and Prova makes each stage of it a checkable state:
+
+1. **Claimed** — a normative sentence in a design doc carries a [claim anchor](../evidence/claims-and-covers.md); prose becomes an obligation.
+2. **Bound** — a proof declares `covers = "<doc>#<id>"`; the claim has an owner.
+3. **Promised** — the proof is [authored ahead of the implementation](../writing-tests/promises-and-burndown.md), red by design; `prova promises` is the executable backlog and `prova burndown` the implementing loop.
+4. **Proven** — the implementation lands and the flag graduates to `proves` in the same commit.
+5. **Attested** — [`prova attest`](../evidence/record-and-attest.md) confirms the covering proof executed and passed in the recorded run — the stage a suite that never ran cannot fake.
+
+`prova evidence` reports where a project stands on that road; `prova owed` lists exactly what is still owed. An implementing human uses this as a sharper to-do list; an implementing agent uses it as its assignment, its inner loop, and its definition of done — which is what makes Prova a natural spine for agent-driven development: every phase from idea to evidence is a state the tool can verify, in any language the system happens to be written in. The [Workflows](../workflows/index.md) section walks this ramp end to end.
 
 ## The landscape, honestly
 

@@ -10,6 +10,8 @@ To be precise about the word: PDD is *not* theorem proving or formal verificatio
 
 Concretely, Prova is a programmable, language-agnostic acceptance-test runner: a real scripting language (Lua) plus a real fixture model, shipped as a single static binary. It brings a system into existence — render it, build it, boot it — then pokes it through its real surfaces (files, processes, exit codes, HTTP/gRPC/GraphQL), with fixtures holding setup and teardown together. It is deliberately *not* a unit-test framework — JUnit, pytest, and Go's `testing` own that layer inside their languages — and not a single-protocol tool like Hurl.
 
+The runner is the ground floor. On top of it, Prova keeps a project's **evidence ledger**: a sentence in a design doc becomes a [claim](./evidence/claims-and-covers.md), a proof authored ahead of the implementation is a [promise](./writing-tests/promises-and-burndown.md), a kept promise graduates to `proves`, and the [run record attests](./evidence/record-and-attest.md) that the covering proof actually executed. **Claimed → bound → promised → proven → attested** — every stage of a change, from idea to evidence, is a state the tool can report (`prova evidence`) and the one open question is always answerable: `prova owed`. You can use Prova as nothing more than a very good test runner; the ledger is there the day a claim is worth anchoring.
+
 Here is a complete, runnable test file. `prova` and the `fs`/`shell`/`http` modules are injected globals — no `require` needed:
 
 ```lua
@@ -66,7 +68,10 @@ Two arguments, one tool.
 | Section | What you'll find |
 |---|---|
 | [Getting Started](./getting-started/index.md) | What Prova is, how to install it, core concepts, and your first test suite |
+| [Workflows](./workflows/index.md) | The ramp: complete ways of working, from "just write some tests" to docs that cannot drift |
 | [Writing Tests](./writing-tests/index.md) | Tests, fixtures, assertions, flows, scheduling, and testing real systems |
+| [Evidence & Obligations](./evidence/index.md) | The ledger: claims, covers, the run record, attestation, and falsifiers |
 | [Running Prova](./running-prova/index.md) | The command line, the `prova.toml` manifest, profiles, and CI |
 | [Packages](./packages/index.md) | Using official packages, authoring your own, and the docker-exec architecture |
+| [Patterns](./patterns/index.md) | Production-tested shapes: shared standards packages, published topologies, org catalogs |
 | [Reference](./reference/index.md) | Exhaustive reference for the CLI, the Lua API, and every module |

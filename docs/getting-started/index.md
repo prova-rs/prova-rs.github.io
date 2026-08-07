@@ -15,6 +15,8 @@ New to Prova? This section takes you from zero to a working acceptance-test suit
 4. **[Quick Start](./quick-start.md)** — write a two-test file, run it, and read the output.
 5. **[Your First Test Suite](./your-first-test-suite.md)** — grow the quick start with a shared file-scoped fixture, soft assertions, and parallel execution.
 
+From there, the [Workflows](../workflows/index.md) section is the ramp: complete ways of working with Prova, from the shallow end to the deep end.
+
 ## Prerequisites
 
 - A terminal and basic command-line familiarity.

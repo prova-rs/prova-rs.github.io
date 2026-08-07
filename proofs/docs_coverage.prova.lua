@@ -114,8 +114,8 @@ prova.test("the attention and quality accounts have their own section", {
 end)
 
 prova.test("a reader can ramp from first test to the full practice", {
-  promises = "the Workflows (shallow end → agentic SDLC) and Patterns (real-world usage) "
-    .. "sections are designed but not yet written",
+  proves = "landed 2026-08-07: docs/workflows (the four-depth ramp) and docs/patterns "
+    .. "(the production-tested shapes) — both grow further with the next release's features",
 }, function(t)
   t:expect(root .. "/docs/workflows", "no Workflows section"):is_dir()
   t:expect(root .. "/docs/patterns", "no Patterns section"):is_dir()
