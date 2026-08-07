@@ -87,8 +87,8 @@ end)
 -- ── The coverage bar — the docs backlog, as promises ─────────────────────────────────────────
 
 prova.test("the evidence ledger has its own section", {
-  promises = "wave 2 (claims/covers, owed/evidence/attest, the run record, falsifiers) "
-    .. "has reference rows but no guide pages yet — the Evidence section is a planned slice",
+  proves = "landed 2026-08-07: docs/evidence — the lifecycle, claims & covers, the run "
+    .. "record & attestation, and falsifiers, each grounded in the binary's own semantics",
 }, function(t)
   t:expect(root .. "/docs/evidence", "no Evidence section directory"):is_dir()
   t:expect_all(function()
