@@ -10,63 +10,18 @@ the single place that tracks what's next. Items here may appear in the editor's
 completion (the LuaCATS stubs annotate a small aspirational subset) but are not
 yet implemented by the engine — calling them either has no effect or errors.
 
-## Shipped since 0.2.3
-
-- **Mocking & proxying** (0.2.9) — the [`mock` facet](../writing-tests/mocking-and-proxies.md): [`http.mock`](./modules/http.md#the-mock-facet-httpmock) and [`grpc.mock`](./modules/grpc.md#the-mock-facet-grpcmock) provision a real in-process fake with Lua reply handlers and a journal you assert on. `http.mock` also **proxies** — `passthrough` to a real upstream, `record`/`replay` cassettes (redacted, strict, ordered), and a `network` vantage so a containerized SUT can reach a host-bound mock.
-- **Capability expressions & `must_run`** (0.2.9) — [`requires`](../writing-tests/dependencies-and-scheduling.md#the-capability-expression) now takes version constraints (`"dotnet >= 9"`) and platform predicates (`"unix"`/`"windows"`); [`must_run`](./prova-toml.md#must_run) is the inverse (an unmet guarantee **fails** the run); custom capabilities register in a [`prova.lua`](../writing-tests/dependencies-and-scheduling.md#custom-capabilities-the-provalua-companion) companion.
-- **MCP `introspect` + `project`** (0.2.8) — the [`introspect`](./cli.md#prova-mcp) tool exposes the API surface with no environment; [`prova.help([filter])`](./lua-api/prova.md#provahelp) is its in-Lua twin; and a `project` argument targets a suite anywhere on disk, resolved fresh so a just-scaffolded manifest works without a restart.
-- **The containerized SUT** (0.2.7) — [`docker.build`](./modules/docker.md) and a resource whose `build` (not `image`) compiles the project's own Dockerfile; topology [auto-networking](../writing-tests/topologies.md) joins resources on a shared network with name aliases, and each exposes a `network` vantage — the suite needs only Docker, no host SDK.
-- **`prova mcp` (cold)** (0.2.5) — stdio MCP server with `run`/`list`/`eval` at CLI parity and the agent skill as its instructions; the wire contract is guarded by a prova-written proof in the selftest suite.
-- **`prova mcp` (warm)** (0.2.6) — held-scope injection: `up`/`down`/`status` tools provision a named [topology](../writing-tests/topologies.md) once inside the server, and `run { topology }` / `eval { topology }` resolve the held live instance in milliseconds instead of re-provisioning. The MCP-only capability, guarded by its own selftest proof. See the [CLI reference](./cli.md#prova-mcp).
-
-- **Snapshot assertions** — `matches_snapshot{ level = "layout"|"content" }`,
-  `-u`/`--update-snapshots`, the reviewable `.snap`/`.snap.new` flow, and
-  `--unreferenced ignore|warn|delete` reconciliation. See
-  [Matchers](./lua-api/matchers.md#matches_snapshot).
-- **TAP and JUnit reporters** — `--format tap` on stdout, `--junit PATH` as a
-  composing XML file sink. See [CI & Output](../running-prova/ci-and-output.md).
-- **Topologies** — `prova.topology(name, [scope,] fn)`: one named environment
-  definition consumed by tests *and* the inhabited verbs `prova up` (attached,
-  `--fixed` for canonical ports), `prova watch` (re-apply on edit), and the
-  detached lifecycle `prova start`/`down`/`ps`. See
-  [Topologies](../writing-tests/topologies.md).
-- **Profile-scoped plugins** — `[profiles.<name>.plugins]` overlays the
-  project-wide `[plugins]` set: the in-repo home for CI-only capabilities. See
-  [prova.toml](./prova-toml.md#profile-scoped-plugins).
-- **`prova eval`** — one-shot Lua snippets in the full environment (modules,
-  plugins, a real transient `ctx` with guaranteed teardown), text or JSON
-  output, `-` for stdin. See the [CLI](./cli.md#prova-eval).
-- **`prova skill`** — prints the embedded agent skill; `--install` writes
-  `.claude/skills/prova/SKILL.md`. See the [CLI](./cli.md#prova-skill).
-
-## Shipped in 0.2
-
-- **Test selection** (0.2.3) — `-k` keyword substrings, `--tags` (with `!` excludes), `--node` exact paths, and `--last-failed`; dependency-aware, flow-atomic, with a `deselected` count in every summary.
-
-Formerly on this page, now documented as regular reference material:
-
-- **The plugin system** — `[plugins]` in `prova.toml`, `--plugin/-P`,
-  `require("<name>")`, `prova plugin lint`, and the `prova.containerized` +
-  `Container:run` + `prova.parse` authoring surface. See
-  [Using plugins](../plugins/using-plugins.md) and
-  [Authoring plugins](../plugins/authoring-plugins.md).
-- **`prova init`** — scaffolds `prova.toml` and the LuaLS IDE integration
-  (replaces the previously planned `prova ide setup`). See the [CLI](./cli.md#prova-init).
-- **`shell.spawn` output capture** — combined stdout+stderr kept (last 64 KB)
-  and readable via [`Process:output()`](./modules/shell.md#process).
-- **Containerized resource `host`/`port` fields** — resources expose the
-  primary published port's mapping directly. See
-  [docker](./modules/docker.md#containerized-resources-host-and-port).
-- **Binary releases** — tag-driven GitHub releases and a Homebrew tap. See
-  [Installation](../getting-started/installation.md).
-
 ## Planned
 
 | Feature | Status | What to use today |
 |---|---|---|
-| Failure bundles | Planned | Attach managed process/container output tails to failed-node results (both transports). Today: read `proc:output()` yourself and `ctx:log` what matters. |
-| `net.mock` / `graphql.mock` | Planned | The [`mock` facet](../writing-tests/mocking-and-proxies.md) covers `http` and `grpc` today. For raw TCP/Unix-stream fault injection or GraphQL, stub over `http.mock` or run the real dependency. |
-| `prova test` and other run subcommands | Planned | The bare command: `prova [OPTIONS] [PATHS...]`. See the [CLI](./cli.md). |
+| Standalone interposing proxies (sit between the SUT and a *real* dependency without terminating the stream) | Designed | [Partial mocking](../writing-tests/mocking-and-proxies.md) — `http.mock(ctx, { target = ... })` passthrough/record/replay — covers observe-and-override for HTTP today; run toxiproxy as a resource for raw-TCP fault injection. |
+| Formal verifiers (TLA+/TLC over a pinned image) as a deputed-verifier package | Designed | The `junit` seam covers test-framework deputies today. |
+| TAP ingestion (a deputy that reports TAP instead of JUnit XML) | Planned | Most tools can emit JUnit XML; use that seam. |
+| Per-case re-run translation for deputed cases (`--last-failed` → the deputy's own selector) | Planned | Re-run the deputy yourself with its native selection. |
+| A burndown lane in CI (a scheduled job that *works* the open promise surface, not just reports it) | Designed | `prova burndown` locally; CI reports open promises without failing. |
+| Placement: distributing units across machines (the broker `prova broker` scaffolds the spec for) | Design | `-j` concurrency on one machine; lanes to split the suite across CI jobs. |
+| Failure bundles | Planned | Attach managed process/container output tails to failed-node results. Today: read `proc:output()` yourself and `ctx:log` what matters. |
+| `net.mock` / `graphql.mock` | Planned | The [`mock` facet](../writing-tests/mocking-and-proxies.md) covers `http`, `grpc`, `socket`, `websocket`, `terminal`, and `shell` today; stub GraphQL over `http.mock`. |
 | `--shuffle[=seed]` (prove group independence) | Planned | Groups already make no order guarantee; don't rely on definition order. |
 | Autouse fixtures (`{ autouse = true }`) | Planned | `use` the fixture explicitly from a test or another fixture. |
 | Lifecycle hooks (`before_each` / `after_each` / `before_all` / `after_all`) | Planned | Fixtures: a `Scope.Test` fixture is per-test setup; broader scopes plus `ctx:defer` cover the rest. |
@@ -76,7 +31,7 @@ Formerly on this page, now documented as regular reference material:
 
 ## Decided against
 
-Two formerly planned features were dropped by design decision — **explicit Lua
+Formerly planned features dropped by design decision — **explicit Lua
 parametrization is the idiom**, not a DSL:
 
 - **Parametrized fixtures** (`{ params = ... }` with `ctx:param()`) — use
@@ -86,3 +41,5 @@ parametrization is the idiom**, not a DSL:
 - **A flow-builder fixture handle (`f:use`)** — call `t:use(fixture)` inside a
   step; a `Scope.Flow` fixture is built once per flow and shared across its
   steps, which is the same one-instance-per-flow semantics.
+- **Promise-aware `depends_on`** (gating a unit on a promise's state) — parked:
+  the promise surface is a reporting axis, not a scheduling one.

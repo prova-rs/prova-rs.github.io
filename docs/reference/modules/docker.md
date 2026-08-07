@@ -6,10 +6,10 @@ sidebar_position: 6
 
 Testcontainers-style ephemeral dependencies: spin up a real container as a scoped fixture, map a random host port, wait for readiness, drive it over its network interface, remove it on teardown. Backed by the typed **bollard** Docker daemon client (structured errors, streamed logs, exec) — not CLI shelling.
 
-This module is also the substrate the plugin ecosystem stands on: every containerized resource plugin (`postgres`, `redis`, `kafka`, …) is authored through [`prova.containerized`](../lua-api/prova.md#provacontainerized) over `docker.run`, and drives its CLI through [`Container:run`](#containerruncommand-opts). See [Using plugins](../../plugins/using-plugins.md) and [Authoring plugins](../../plugins/authoring-plugins.md).
+This module is also the substrate the package ecosystem stands on: every containerized resource package (`postgres`, `redis`, `kafka`, …) is authored through [`prova.containerized`](../lua-api/prova.md#provacontainerized) over `docker.run`, and drives its CLI through [`Container:run`](#containerruncommand-opts). See [Using packages](../../packages/using-packages.md) and [Authoring packages](../../packages/authoring-packages.md).
 
 :::note Requires the Docker daemon
-Tests using this module should declare `requires = { "docker" }` (on the test, group, or suite) so they **skip gracefully** where the daemon is absent — see [Dependencies & Scheduling](../../writing-tests/dependencies-and-scheduling.md). Containerized resource plugins carry the same requirement.
+Tests using this module should declare `requires = { "docker" }` (on the test, group, or suite) so they **skip gracefully** where the daemon is absent — see [Dependencies & Scheduling](../../writing-tests/dependencies-and-scheduling.md). Containerized resource packages carry the same requirement.
 :::
 
 ## `docker.run(opts)`
@@ -133,11 +133,11 @@ A `Network` carries its `name` and a `net:remove()` (idempotent, called for you 
 
 ### `Container:run(command, opts)`
 
-The exec-CLI entry point — the primitive every **docker-exec plugin** drives its
+The exec-CLI entry point — the primitive every **docker-exec package** drives its
 resource's CLI through, with no shell-quoting or `printf | …` piping by hand:
 
 - Pass an **argv table** (`{ "psql", "-U", "prova", "-tA", "-c", sql }`) to run
-  the program **directly — no shell, no quoting**. This is the form plugins
+  the program **directly — no shell, no quoting**. This is the form packages
   should use.
 - Pass a **string** to run it under `sh -c` (when you genuinely want pipes,
   globs, or redirects; needs a shell in the image — `FROM scratch` images have
@@ -150,7 +150,7 @@ On a non-zero exit it raises `container:run exited <code>: <detail>` where
 `<detail>` is the trimmed stderr (or stdout, if stderr was empty).
 
 ```lua
--- Drive the resource's own CLI and parse what it prints — the docker-exec plugin pattern.
+-- Drive the resource's own CLI and parse what it prints — the docker-exec package pattern.
 local out = c:run({ "psql", "-U", "prova", "-tA", "-F", "\t",
                     "-c", "select id, status from orders" })
 local rows = prova.parse.rows(out)          -- see prova.parse
@@ -176,7 +176,7 @@ t:expect(c:logs()):contains("database system is ready")
 ## Containerized resources: `host` and `port`
 
 Resources built with [`prova.containerized`](../lua-api/prova.md#provacontainerized)
-(first-party recipes and plugins alike) return the standard shape
+(first-party recipes and packages alike) return the standard shape
 `{ url, container, host, port, client? }`. Their `host` is `"127.0.0.1"` and
 `port` is the **mapped host port of the primary published port** (the spec's
 `port`, or the first `ports` entry) — so wiring an app's environment is

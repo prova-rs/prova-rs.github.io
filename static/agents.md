@@ -59,7 +59,7 @@ cargo install --git https://github.com/prova-rs/prova prova-cli
 prova --version
 ```
 
-Expected: a version string such as `prova 0.9.1`. If the command is not found, `prova` is not on
+Expected: a version string such as `prova 0.17.0`. If the command is not found, `prova` is not on
 `PATH` — fix that before continuing.
 
 ---
@@ -67,8 +67,9 @@ Expected: a version string such as `prova 0.9.1`. If the command is not found, `
 ## Step 3 — Connect Prova to your harness
 
 This is the step that matters most for you. Prova as an MCP server gives you `run`, `list`, `eval`,
-`introspect`, and `learn` tools, plus warm topology tools (`up`, `down`, `status`) that hold a live
-environment across calls so re-runs take milliseconds. The server's `instructions` field is the
+`introspect`, and `learn` tools, the ledger tools (`owed`, `evidence`, `attest`), plus warm
+topology tools (`up`, `down`, `status`) that hold a live environment across calls so re-runs take
+milliseconds. The server's `instructions` field is the
 embedded skill, so you understand Prova the moment you connect.
 
 Find your harness below and run the matching setup.
@@ -140,8 +141,8 @@ commands. Nothing else changes.
 
 ## Step 4 — Scaffold a project, if the repo needs one
 
-First check whether the repo already has a Prova package — look for `prova.toml`, `prova/prova.toml`,
-or `.prova/prova.toml`, walking up from the working directory. **If one exists, skip this step.**
+First check whether the repo already has a Prova package — look for `prova.toml`, `.prova.toml`,
+`prova/prova.toml`, or `.prova/prova.toml`, walking up from the working directory. **If one exists, skip this step.**
 `prova init` refuses to clobber an existing layout.
 
 If there is none, scaffold one. Always pass `--headless --defaults` so it never blocks on an
@@ -151,14 +152,14 @@ interactive prompt:
 prova init project --headless --defaults
 ```
 
-This creates `.prova/` (manifest, runtime config, and a shared `lib` plugin), a `proofs/` starter
+This creates `.prova/` (manifest, runtime config, and a shared `lib` package), a `proofs/` starter
 suite, and a `.luarc.json` for editor completion. Note that `.luarc.json` holds machine-local paths —
 add it to `.gitignore`.
 
-To scaffold a **plugin** instead (a package that exports a namespace others `require()`):
+To scaffold a **package** instead (one that exports a namespace others `require()`):
 
 ```bash
-prova init plugin --headless --defaults
+prova init package --headless --defaults
 ```
 
 See the full catalog with `prova init --list`.
@@ -179,8 +180,8 @@ Expected: the starter suite executes and reports passing tests, exiting `0`.
 
 - `learn {}` — returns the topic catalog. This is your primary discovery rail; start here whenever
   you need to know how something in Prova works.
-- `introspect {}` — returns every function, signature, and summary in the API, including any plugins
-  the package declares. Use it instead of guessing at the API or probing by trial.
+- `introspect {}` — returns every function, signature, and summary in the API, including any packages
+  this one declares. Use it instead of guessing at the API or probing by trial.
 
 If both return content, the connection is live.
 
@@ -235,4 +236,4 @@ Do not claim work is correct. Prove it.
 - CLI reference — https://prova-rs.github.io/docs/reference/cli
 - Lua API — https://prova-rs.github.io/docs/reference/lua-api/
 - Source and issues — https://github.com/prova-rs/prova
-- Official plugins — https://prova-rs.github.io/docs/plugins/official-plugins
+- Official packages — https://prova-rs.github.io/docs/packages/official-packages

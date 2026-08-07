@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Manifest & Profiles
 
-A `prova.toml` turns "how do I run the tests here?" into `prova` — no arguments, no wrapper script, no README archaeology. The manifest names *what* to run and *how*, profiles adapt the same suite to different environments, and CI becomes a one-liner. It lives at the repo root, or in a `prova/` or `.prova/` subdirectory — `prova init` [scaffolds it](./command-line.md#starting-a-project-prova-init), and discovery walks up from wherever you run, like git finding `.git`. Explicit path arguments always bypass the manifest; command-line flags always override its values.
+A `prova.toml` turns "how do I run the tests here?" into `prova` — no arguments, no wrapper script, no README archaeology. The manifest names *what* to run and *how*, profiles adapt the same suite to different environments, and CI becomes a one-liner. It lives at the repo root, or in a `prova/` or `.prova/` subdirectory — `prova init` [scaffolds it](./command-line.md#starting-a-package-prova-init), and discovery walks up from wherever you run, like git finding `.git`. Explicit path arguments always bypass the manifest; command-line flags always override its values.
 
 ## `[run]` — the default profile
 
@@ -12,7 +12,7 @@ The `[run]` table is what `prova` with no arguments executes:
 
 ```toml
 [run]                       # the default profile
-proofs = ["proofs"]         # directory patterns to discover (*_test.lua / *.test.lua)
+proofs = ["proofs"]         # directory patterns to discover (*.prova.lua; *_test.lua / *.test.lua also accepted)
 jobs   = 4                  # concurrency — throughput only, never changes meaning
 format = "console"          # "console" (human) | "json" (JSONL event protocol) | "tap"
 must_run = ["docker"]       # capabilities this run GUARANTEES — an unmet one fails, never skips
@@ -52,7 +52,7 @@ The merge semantics are simple and field-wise — **base first, then profile**:
 - `jobs` and `format` — the profile's value if set, otherwise the base's.
 - `must_run` — **unioned** with the base, never subtracted. A guarantee is additive by design, so a laxer profile cannot silence a stricter one.
 - `env` — **merged**: base entries first, profile entries added on top (the profile wins on a key both define).
-- `plugins` — a `[profiles.<name>.plugins]` table is **overlaid** on the project-wide `[plugins]` set: base plugins stay available, the profile adds its own, and a same-named profile entry wins. The in-repo home for CI-only capabilities — see [Using Plugins](/docs/plugins/using-plugins).
+- `dependencies` — a `[profiles.<name>.dependencies]` table is **overlaid** on the project-wide `[dependencies]` set: base packages stay available, the profile adds its own, and a same-named profile entry wins. The in-repo home for CI-only capabilities — see [Using Packages](/docs/packages/using-packages).
 
 So `prova --profile ci` on the manifest above runs the base `proofs` with `jobs = 8`, `format = "json"`, and an environment of both `LOG_LEVEL=info` and `CI=true`. `prova --profile smoke` runs only `tests/smoke` but inherits `jobs = 4` from `[run]`. Naming a profile that doesn't exist is an error.
 
@@ -78,22 +78,20 @@ Not an inconsistency to be tidied away — the two name different things. `[run]
 directory **names**, matched at any depth, so `["deep"]` finds `nested/deep`. A suite's `paths` are
 locations, resolved as written, so the same bare `"deep"` is simply missing.
 
-Writing `proofs` in a suite is an error. (Before v0.12.0 it was silently ignored, which dropped the
-entire declared suite from the run and still exited green — if you are on an older prova and a
-declared suite stopped executing after a rename, that is why.)
+Writing `proofs` in a suite is an error.
 :::
 
-## `[plugins]` — infrastructure the suite depends on
+## `[dependencies]` — infrastructure the suite depends on
 
-The manifest is also where a suite declares its [plugins](/docs/plugins/) — the external packages behind `require("postgres")` and friends:
+The manifest is also where a suite declares its [packages](/docs/packages/) — the external packages behind `require("postgres")` and friends:
 
 ```toml
-[plugins]
-postgres = "prova-rs/prova-postgres@v0.2.0"   # org/repo@ref shorthand
-greet    = "./plugins/greet.lua"              # a local path works too
+[dependencies]
+postgres = "prova-rs/prova-postgres@v1"   # org/repo@ref shorthand
+greet    = "./packages/greet.lua"         # a local path works too
 ```
 
-Prova fetches each plugin by its pinned ref, caches it, and makes `require("<name>")` resolve in every test file — identically on a laptop and in CI, which is the point of declaring them next to the tests. Sources, version pinning, caching, and the `[luals]` policy that controls the auto-synced editor annotations are all covered in [Using Plugins](/docs/plugins/using-plugins).
+Prova fetches each package by its pinned ref, caches it, and makes `require("<name>")` resolve in every test file — identically on a laptop and in CI, which is the point of declaring them next to the tests. Sources, version pinning, caching, and the `[luals]` policy that controls the auto-synced editor annotations are all covered in [Using Packages](/docs/packages/using-packages).
 
 ## Worked example: local containers vs. CI services
 

@@ -4,9 +4,9 @@ sidebar_position: 11
 
 # Building from Primitives
 
-Everything a [plugin](/docs/plugins/) recipe like `postgres.container` does is a few primitives you already have: [`docker.run`](../reference/modules/docker.md) (with its `wait` gates), `container:run` (drive the CLI already inside the image), [`prova.retry`](../reference/lua-api/prova.md#provaretry), and [`ctx:manage`](../reference/lua-api/context.md#ctxmanage). This page rebuilds the postgres recipe by hand so you can construct the same integration for anything: a technology with no plugin, a custom image, a dependency with unusual readiness semantics.
+Everything a [package](/docs/packages/) recipe like `postgres.container` does is a few primitives you already have: [`docker.run`](../reference/modules/docker.md) (with its `wait` gates), `container:run` (drive the CLI already inside the image), [`prova.retry`](../reference/lua-api/prova.md#provaretry), and [`ctx:manage`](../reference/lua-api/context.md#ctxmanage). This page rebuilds the postgres recipe by hand so you can construct the same integration for anything: a technology with no package, a custom image, a dependency with unusual readiness semantics.
 
-The vehicle is the primitives companion to the [Testing Real Systems](./testing-real-systems.md) capstone — the same gRPC-service-plus-Postgres integration, with the database built from scratch instead of via `require("postgres")`. It ships in the Prova repository as `examples/service_grpc_postgres_primitives_test.lua`; no plugin means no `prova.toml`, so it runs directly. Only the provisioning differs from the idiomatic version, so that is what we walk through here.
+The vehicle is the primitives companion to the [Testing Real Systems](./testing-real-systems.md) capstone — the same gRPC-service-plus-Postgres integration, with the database built from scratch instead of via `require("postgres")`. It ships in the Prova repository as `examples/service_grpc_postgres_primitives.prova.lua`; no package means no `prova.toml`, so it runs directly. Only the provisioning differs from the idiomatic version, so that is what we walk through here.
 
 ## 1. Start the container, tied to the scope
 
@@ -35,14 +35,14 @@ Three choices carry all the weight:
   local db_url = "postgres://dev:dev@127.0.0.1:" .. pg:host_port(5432) .. "/inventory_service"
 ```
 
-`pg:host_port(5432)` asks the [container handle](../reference/modules/docker.md#container) which host port Docker actually assigned. The URL you assemble from it plays the role of the plugin resource's `url` field: it is the one string the app under test needs — injected through its own configuration surface (an environment variable, a flag, a config file).
+`pg:host_port(5432)` asks the [container handle](../reference/modules/docker.md#container) which host port Docker actually assigned. The URL you assemble from it plays the role of the package resource's `url` field: it is the one string the app under test needs — injected through its own configuration surface (an environment variable, a flag, a config file).
 
 ## 3. A client from the CLI in the image: `container:run`
 
-The plugin's `client` is not a native database driver — it execs `psql` *inside the container*, where the CLI already ships. A hand-rolled version is a four-line helper:
+The package's `client` is not a native database driver — it execs `psql` *inside the container*, where the CLI already ships. A hand-rolled version is a four-line helper:
 
 ```lua
--- A tiny docker-exec psql helper — what the postgres plugin wraps. Runs a query inside the container
+-- A tiny docker-exec psql helper — what the postgres package wraps. Runs a query inside the container
 -- (no shell, no quoting) and returns the trimmed scalar.
 local function psql(container, sql)
   return (container:run({
@@ -80,7 +80,7 @@ From here the primitives file is identical to the idiomatic one: build with `she
 
 ## The recipe, generalized
 
-Wrap those steps in a local function and you have a recipe of your own. Match the shape the plugins return — `{ container, url, host, port }`, plus a client helper — and your home-grown provisioner is indistinguishable from an installed plugin:
+Wrap those steps in a local function and you have a recipe of your own. Match the shape the packages return — `{ container, url, host, port }`, plus a client helper — and your home-grown provisioner is indistinguishable from an installed package:
 
 ```lua
 local function widgetdb_container(ctx, opts)
@@ -107,11 +107,11 @@ The checklist, in order:
 3. **`prova.retry(function() ... end, {...})`** around a real client operation — via `container:run` on the CLI in the image — so readiness means *the dependency actually works*, not *a port is open*.
 4. **Return the standard resource shape** — `{ container, url, host, port }`, plus any helpers or extras callers need.
 
-When the wrapper stabilizes, promote it: a Prova plugin is exactly this function in a package, and [Authoring Plugins](/docs/plugins/authoring-plugins) shows how to publish it so the next project gets it as a one-line `[plugins]` entry.
+When the wrapper stabilizes, promote it: a Prova package is exactly this function made shareable, and [Authoring Packages](/docs/packages/authoring-packages) shows how to publish it so the next project gets it as a one-line `[dependencies]` entry.
 
 ### Real-world wrinkles
 
-The kitchen-sink primitives file (`examples/kitchen_sink_primitives_test.lua`) provisions three dependencies by hand precisely because each needs a *different* readiness shape:
+The kitchen-sink primitives file (`examples/kitchen_sink_primitives.prova.lua`) provisions three dependencies by hand precisely because each needs a *different* readiness shape:
 
 - **A longer horizon (MySQL).** Same shape as Postgres — socket gate, then retry a real query via the image's `mysql` CLI — but first-boot initialization takes tens of seconds and it also restarts, so only the retry horizon changes (`timeout = "90s"`). Readiness *shape* and readiness *budget* are independent knobs.
 - **Log-gated readiness (Pulsar).** Some containers announce readiness in their logs long before — or regardless of — any port semantics. `docker.run` supports `wait = { log = "..." }`: Pulsar standalone gates on `wait = { log = "messaging service is ready" }` because it opens its ports well before its broker can serve. Use a log gate when the image tells you it is ready in words — the log line *is* the readiness signal, no client probe needed.
@@ -119,12 +119,12 @@ The kitchen-sink primitives file (`examples/kitchen_sink_primitives_test.lua`) p
 
 ## Run it
 
-No plugin, so no manifest — point Prova at the file from the repo root:
+No package, so no manifest — point Prova at the file from the repo root:
 
 ```shell
-prova examples/service_grpc_postgres_primitives_test.lua
+prova examples/service_grpc_postgres_primitives.prova.lua
 ```
 
 The primitives groups are tagged `"primitives"`, so `prova --tags primitives` selects the hand-rolled variants as a group — and `prova --tags '!primitives'` excludes them.
 
-When a plugin exists for your dependency, prefer it — the one-liner in [Testing Real Systems](./testing-real-systems.md) is the idiomatic shape, and everything on this page is exactly what it expands to.
+When a package exists for your dependency, prefer it — the one-liner in [Testing Real Systems](./testing-real-systems.md) is the idiomatic shape, and everything on this page is exactly what it expands to.

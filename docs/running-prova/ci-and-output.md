@@ -91,7 +91,7 @@ The composite action `prova-rs/run-action` installs a released `prova` binary (n
 - uses: actions/checkout@v4
 - uses: prova-rs/run-action@v1
   with:
-    version: v0.14.0      # pin explicitly; see the note below
+    version: v0.17.0      # pin explicitly; see the note below
     profile: ci
 ```
 
@@ -115,16 +115,16 @@ Inputs:
 | `format` | `console` | `console` or `json` |
 | `working-directory` | `.` | Directory to run `prova` from |
 | `args` | — | Extra arguments appended to the invocation |
-| `plugins` | — | Ad-hoc plugins, one `name = source` per line, layered over the manifest |
-| `cache-plugins` | `true` | Cache fetched git plugins across runs (`false` to disable) |
+| `plugins` | — | Ad-hoc packages to register, one `name = source` per line, layered over the manifest |
+| `cache-plugins` | `true` | Cache fetched git packages across runs (`false` to disable) |
 
 The action also puts `prova` on `PATH`, so later steps in the same job can invoke it directly. Runners: Linux (x86_64/arm64) and macOS (arm64).
 
-### Plugins in CI
+### Packages in CI
 
-Nothing extra is needed for a suite that declares [plugins](/docs/plugins/using-plugins) in `prova.toml` — Prova fetches and pins them in CI exactly as it does locally. The action just makes that fast: by default it caches the plugin clone directory (`~/.cache/prova/plugins`), keyed on the manifest, so pinned plugins clone once and reuse across runs; a changed pin invalidates the key and only the changed plugins re-fetch. Disable with `cache-plugins: false`.
+Nothing extra is needed for a suite that declares [packages](/docs/packages/using-packages) in `prova.toml` — Prova fetches and pins them in CI exactly as it does locally. The action just makes that fast: by default it caches the package clone directory (`~/.cache/prova/plugins`), keyed on the manifest, so pinned packages clone once and reuse across runs; a changed pin invalidates the key and only the changed packages re-fetch. Disable with `cache-plugins: false`.
 
-The `plugins:` input is an escape hatch (it expands to [`--plugin` flags](./command-line.md#--plugin--p)), not a second place to declare dependencies. Even a CI-only capability usually belongs in the manifest — a [`[profiles.ci.plugins]` table](/docs/plugins/using-plugins#profile-scoped-plugins) keeps it pinned in-repo and resolved identically by `--profile ci` everywhere — so reach for the input only when the plugin is a fact about *this one job*:
+The `plugins:` input is an escape hatch for ad-hoc packages (it expands to [`-P, --package` flags](./command-line.md#--package--p)), not a second place to declare dependencies. Even a CI-only capability usually belongs in the manifest — a [`[profiles.ci.dependencies]` table](/docs/packages/using-packages#profile-scoped-dependencies) keeps it pinned in-repo and resolved identically by `--profile ci` everywhere — so reach for the input only when the package is a fact about *this one job*:
 
 ```yaml
 - uses: prova-rs/run-action@v1

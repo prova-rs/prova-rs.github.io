@@ -4,7 +4,7 @@ sidebar_position: 7
 
 # sqlite
 
-The one built-in database: **embedded SQLite**, no container, no daemon, nothing to provision — a file (or memory) is the database. It is the zero-infrastructure option for tests that need real SQL without Docker. Server databases (Postgres, MySQL) are [external plugins](../../plugins/official-plugins.md).
+The one built-in database: **embedded SQLite**, no container, no daemon, nothing to provision — a file (or memory) is the database. It is the zero-infrastructure option for tests that need real SQL without Docker. Server databases (Postgres, MySQL) are [external packages](../../packages/official-packages.md).
 
 There is no `sqlite.container` — there is nothing to provision.
 

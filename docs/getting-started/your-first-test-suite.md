@@ -14,27 +14,44 @@ From your repository root:
 prova init
 ```
 
-```text
-prova: wrote ./prova/prova.toml
-prova: wrote ./prova/annotations/ (core IDE annotations)
-prova: wrote .luarc.json — open this project in your editor for completion
-prova: plugin annotations are added automatically as you declare them and run `prova`
+`init` renders the `project` archetype from the catalog, which lays out:
 
-next: add a test at ./prova/example_test.lua and run `prova`
+```text
+.prova/prova.toml     the manifest, tucked in the .prova/ nook — discovery walks up to it
+.prova/config.lua     the runtime companion, where runtime.capability registrations live
+.prova/packages/lib/  the project's shared library package — require("lib") from any proof
+proofs/               the starter suite
+.github/workflows/    CI that installs prova and runs this same suite
+.luarc.json           editor completion — points workspace.library at the core annotations
+```
+
+The scaffolded manifest wires those pieces together:
+
+```toml
+[run]
+proofs   = ["proofs"]           # your proof suites live in the open, at the project root
+config   = ".prova/config.lua"  # the runtime companion
+packages = ".prova/packages"    # the project's own packages
+
+[profiles.ci]
+must_run = []                   # what CI guarantees — e.g. ["docker"]
+
+[requires]
+prova = ">= 0.16"
 ```
 
 One command does three things:
 
-- **`prova/prova.toml`** — the [manifest](../running-prova/manifest-and-profiles.md). Its default `proofs = ["."]` discovers any `*_test.lua` under `prova/`, so a plain `prova` from anywhere in the project runs the suite. (The layout — where the manifest lands, what the proof dir is called — is the archetype's choice; author your own [init catalog entry](../running-prova/scaffolding.md) to change it.)
-- **`prova/annotations/` + `.luarc.json`** — [IDE integration](../running-prova/ide-setup.md): open the project in an editor with lua-language-server and the whole `prova` API completes and type-checks immediately.
+- **`.prova/`** — the [manifest](../running-prova/manifest-and-profiles.md) and its companions live in the `.prova/` nook, so prova's own files tuck away while your proofs stay visible at the project root. Discovery walks up to the nook, so a plain `prova` from anywhere in the project runs the suite; the starter proofs in `proofs/` show the shape (a fixture shared through the `lib` package, and a capability-gated `requires = { "soak" }` proof whose capability `.prova/config.lua` registers). (The layout — where the manifest lands, what the proof dir is called — is the archetype's choice; author your own [init catalog entry](../running-prova/scaffolding.md) to change it.)
+- **`.luarc.json`** — [IDE integration](../running-prova/ide-setup.md): it points `workspace.library` at the core annotations under `~/.local/share/prova/lua/annotations`, so an editor with lua-language-server completes and type-checks the whole `prova` API immediately; package annotations are linked automatically as you declare them and run `prova`.
 - It **never clobbers** — `init` refuses to run if a manifest already exists.
 
 ## 2. Add a shared fixture
 
-Create `prova/workspace_test.lua`:
+Delete the starter proofs — they exist to show the shape, and this file replaces them — and create `proofs/workspace.prova.lua`:
 
 ```lua
--- workspace_test.lua
+-- workspace.prova.lua
 
 -- A scratch project, built ONCE for this file and shared by every test below.
 -- ctx:tempdir() is removed automatically when the file's tests finish.
@@ -95,7 +112,7 @@ prova --jobs 4
 
 `--jobs N` lets up to N units run concurrently — across files (each ungrouped file is its own isolated suite on its own worker) and, within a file, by overlapping I/O-bound tests cooperatively.
 
-(You can always bypass the manifest and point at one file directly — `prova prova/workspace_test.lua` — the two modes are covered in [The Command Line](../running-prova/command-line.md).)
+(You can always bypass the manifest and point at one file directly — `prova proofs/workspace.prova.lua` — the two modes are covered in [The Command Line](../running-prova/command-line.md).)
 
 ## 4. Why this is safe
 
@@ -114,5 +131,5 @@ Lazy construction matters: a fixture no test `use`s is never built. You can keep
 
 - Give fixtures dependencies, teardown, and broader scopes in [Fixtures](../writing-tests/fixtures.md).
 - Share one fixture across *multiple files* with a `suite.lua` — see [Suites and Shared State](../writing-tests/suites-and-shared-state.md).
-- Point Prova at real systems — containers, databases, HTTP services — in [Testing Real Systems](../writing-tests/testing-real-systems.md), and declare the infrastructure they need as [plugins](/docs/plugins/) in the manifest `init` just wrote.
+- Point Prova at real systems — containers, databases, HTTP services — in [Testing Real Systems](../writing-tests/testing-real-systems.md), and declare the infrastructure they need as [packages](/docs/packages/) in the manifest `init` just wrote.
 - Wire the suite into CI with the manifest in [Manifest and Profiles](../running-prova/manifest-and-profiles.md).

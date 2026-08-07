@@ -8,25 +8,25 @@ This is the test Prova was built for. In one Lua file we will render a gRPC serv
 
 The pattern generalizes far beyond archetypes: **bring a system into existence, gate on real readiness, probe it from the outside, and verify its effects where they actually land.**
 
-## Step 0 — Declare the infrastructure plugin
+## Step 0 — Declare the infrastructure package
 
-The database recipe is not built into the runtime — it is the external `postgres` [plugin](/docs/plugins/), declared once in the example directory's `prova.toml`:
+The database recipe is not built into the runtime — it is the external `postgres` [package](/docs/packages/), declared once in the example directory's `prova.toml`:
 
 ```toml
 [run]
 proofs = ["."]
 
-[plugins]
-postgres = "prova-rs/prova-postgres@main"
+[dependencies]
+postgres = "prova-rs/prova-postgres@v1"
 ```
 
-Prova fetches the plugin by ref, pins it, and caches it; pin a released tag (`@v1.0.0`) in production — `@main` tracks the latest for a demo. The test file then attaches it with an ordinary `require`:
+Prova fetches the package by its pinned ref and caches it; the official packages release `v1` tags, and `@v1` is the pin to use. The test file then attaches it with an ordinary `require`:
 
 ```lua
 local postgres = require("postgres")
 ```
 
-That one line is the entire integration surface — and your editor completes `postgres.*` too, because Prova [syncs each plugin's annotations automatically](../running-prova/ide-setup.md). See [Using Plugins](/docs/plugins/using-plugins) for sources, pinning, and caching.
+That one line is the entire integration surface — and your editor completes `postgres.*` too, because Prova [syncs each package's annotations automatically](../running-prova/ide-setup.md). See [Using Packages](/docs/packages/using-packages) for sources, pinning, and caching.
 
 ## Step 1 — Render the system under test
 
@@ -70,9 +70,9 @@ local service = prova.fixture("service", Scope.File, function(ctx)
 ```
 
 - **`ctx:use(project)`** — a fixture-to-fixture dependency. The service fixture doesn't know or care how the project came to exist; it just asks for it.
-- **`postgres.container`** is doing a lot in one line: it starts `postgres:16-alpine` published on a **random host port** (two suites can each run their own Postgres without colliding), gates readiness on a **real query that holds** — not just an open socket, which matters because Postgres restarts once during first-boot initialization — and ties both the client and the container to the fixture's scope, so teardown is automatic pass or fail. What comes back is the standard plugin resource shape `{ client, url, container, host, port }`: `pg.url` (or the `host`/`port` pair) is what we inject into the service under test, and `pg.client` is an already-managed handle on the very same database — it execs `psql` inside the container, so cross-checking needs no native driver at all.
+- **`postgres.container`** is doing a lot in one line: it starts `postgres:16-alpine` published on a **random host port** (two suites can each run their own Postgres without colliding), gates readiness on a **real query that holds** — not just an open socket, which matters because Postgres restarts once during first-boot initialization — and ties both the client and the container to the fixture's scope, so teardown is automatic pass or fail. What comes back is the standard package resource shape `{ client, url, container, host, port }`: `pg.url` (or the `host`/`port` pair) is what we inject into the service under test, and `pg.client` is an already-managed handle on the very same database — it execs `psql` inside the container, so cross-checking needs no native driver at all.
 
-That's the whole provisioning story — one line, no ceremony. Want to see exactly what that one line is doing — or need a dependency no plugin covers? → [Building from Primitives](./building-from-primitives.md).
+That's the whole provisioning story — one line, no ceremony. Want to see exactly what that one line is doing — or need a dependency no package covers? → [Building from Primitives](./building-from-primitives.md).
 
 ## Step 3 — Build and boot the service
 
@@ -100,7 +100,7 @@ end)
 - **`net.free_port()`** allocates a port the OS says is free, then passes it to the service through its *own* configuration surface (environment variables). No hardcoded ports means parallel runs don't fight.
 - **`shell.spawn` + `ctx:manage`** starts the binary in the background and guarantees it is killed at teardown. This is the boot-then-probe shape: spawn, gate, probe.
 - **[`grpc.wait_for`](../reference/modules/grpc.md)** is the final readiness gate — and it is doing double duty. This service connects to Postgres before it serves, so a gRPC endpoint that answers *proves* the whole chain: container up, database ready, migrations run, service configured correctly.
-- **The return value hands tests `pg.client` directly** as `db` — a ready-made client on the database the service is wired to, with its lifecycle already managed by the plugin.
+- **The return value hands tests `pg.client` directly** as `db` — a ready-made client on the database the service is wired to, with its lifecycle already managed by the package.
 
 ## Step 4 — Probe the API, cross-check the database
 
@@ -118,7 +118,7 @@ prova.group("inventory gRPC service (Postgres)", { requires = { "docker", "cargo
 
   g:test("ran its migrations against that same Postgres", function(t)
     local svc = t:use(service)
-    -- The plugin's docker-exec client execs `psql` inside the very container the service is wired to —
+    -- The package's docker-exec client execs `psql` inside the very container the service is wired to —
     -- cross-service state assertion with no extra connection ceremony.
     t:expect(svc.db:query_value("SELECT count(*) FROM _sqlx_migrations WHERE success")):gte(1)
   end)
@@ -127,7 +127,7 @@ end)
 
 - **`requires = { "docker", "cargo" }` on the group** gates every test at once: on a machine without a Docker daemon or a Rust toolchain, both tests skip with a reason — they never fail spuriously. See [Dependencies & Scheduling](./dependencies-and-scheduling.md).
 - **The first test probes from the outside**, exactly like a client would: [`grpc.client`](../reference/modules/grpc.md) builds a reflection-based client and calls a real method. The archetype under test is currently a scaffold whose methods return `Unimplemented` — and asserting that is the point: running the service exposed that "renders + compiles" was hiding a hollow service. As real CRUD lands, this assertion graduates to real persisted state.
-- **The second test verifies effects where they land.** `svc.db` is the plugin's managed client on the *same* database the service uses — it runs `psql` inside the container, so there is no second connection to open and nothing to tear down. One `query_value` asserts the migrations table shows a successful run. Probing the API and inspecting the store are two halves of one acceptance claim.
+- **The second test verifies effects where they land.** `svc.db` is the package's managed client on the *same* database the service uses — it runs `psql` inside the container, so there is no second connection to open and nothing to tear down. One `query_value` asserts the migrations table shows a successful run. Probing the API and inspecting the store are two halves of one acceptance claim.
 
 Note what the tests do *not* contain: no setup, no cleanup, no sleeps, no port numbers. Each test is two or three lines of intent; the fixture owns the machinery.
 
@@ -140,28 +140,28 @@ cd examples/service-grpc-postgres && prova
 ```
 
 ```text
-· service_grpc_postgres_test › inventory gRPC service (Postgres) › boots against real Postgres and serves its gRPC API
-· service_grpc_postgres_test › inventory gRPC service (Postgres) › ran its migrations against that same Postgres
+· service_grpc_postgres › inventory gRPC service (Postgres) › boots against real Postgres and serves its gRPC API
+· service_grpc_postgres › inventory gRPC service (Postgres) › ran its migrations against that same Postgres
 ```
 
-First run fetches the plugin, clones the archetype, and downloads crates, so give it time; teardown then stops the service, closes the clients, removes the container, and deletes the temp dirs — in exactly the reverse of the order they were created.
+First run fetches the package, clones the archetype, and downloads crates, so give it time; teardown then stops the service, closes the clients, removes the container, and deletes the temp dirs — in exactly the reverse of the order they were created.
 
 ## The pattern, portable
 
 Swap the pieces and the shape holds for any system:
 
 1. **Bring it into existence** — `archetect.render`, a `git clone`, or your checked-out repo; build with `shell.run` (pass `check = true` so a failed build aborts with its own stderr).
-2. **Provision dependencies** — the [official plugins](/docs/plugins/official-plugins) (`postgres.container`, `mysql.container`, `pulsar.container`, …), one line each; for anything without a plugin, [build it from primitives](./building-from-primitives.md).
+2. **Provision dependencies** — the [official packages](/docs/packages/official-packages) (`postgres.container`, `mysql.container`, `pulsar.container`, …), one line each; for anything without a package, [build it from primitives](./building-from-primitives.md).
 3. **Gate on real readiness** — `wait` options, `prova.retry`, [`http.wait_for`](../reference/modules/http.md) or `grpc.wait_for`; never `sleep`.
 4. **Boot on dynamic ports** — `net.free_port()` plus `shell.spawn` under `ctx:manage`. When a boot goes wrong, `proc:output()` hands you everything the process said — no blind failures.
 5. **Probe from the outside** — [`http`](../reference/modules/http.md), [`grpc`](../reference/modules/grpc.md), [`graphql`](../reference/modules/graphql.md), or the CLI itself via `shell.run`.
-6. **Cross-check state where it lands** — each plugin's `client` (`query_value`, `execute`) against the very store the service is wired to.
+6. **Cross-check state where it lands** — each package's `client` (`query_value`, `execute`) against the very store the service is wired to.
 
 When several files need the same expensive stack, promote the fixtures into a [suite](./suites-and-shared-state.md) and provision once for all of them.
 
 ## The pattern, in the wild
 
-Production suites read even quieter than the walkthrough. This fixture is from a real archetype acceptance suite (a .NET REST service, rendered per database variant and proven against Postgres *and* MySQL from one loop) — note `check = true` on the build instead of an assert dance, and the plugin resource's `host`/`port` wired straight into env as plain scalars, numbers included:
+Production suites read even quieter than the walkthrough. This fixture is from a real archetype acceptance suite (a .NET REST service, rendered per database variant and proven against Postgres *and* MySQL from one loop) — note `check = true` on the build instead of an assert dance, and the package resource's `host`/`port` wired straight into env as plain scalars, numbers included:
 
 ```lua
   local service = prova.fixture(label .. ":service", Scope.File, function(ctx)

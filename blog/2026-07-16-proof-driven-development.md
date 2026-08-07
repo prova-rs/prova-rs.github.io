@@ -74,10 +74,10 @@ binary bloat. The seam first-party plugins use is exactly the seam you get:
 a plugin is a Lua module that returns a namespace table, pinned by ref in
 your manifest, reviewable in your repo.
 
-Read more in [Plugins](/docs/plugins/), starting with
-[Using Plugins](/docs/plugins/using-plugins) and the
-[official plugin list](/docs/plugins/official-plugins), or write your own
-with [Authoring Plugins](/docs/plugins/authoring-plugins).
+Read more in [Plugins](/docs/packages/), starting with
+[Using Plugins](/docs/packages/using-packages) and the
+[official plugin list](/docs/packages/official-packages), or write your own
+with [Authoring Plugins](/docs/packages/authoring-packages).
 
 ## Quiet primitives
 
@@ -112,7 +112,7 @@ cargo.
 
 - [Introduction](/docs/intro) — Proof-Driven Development and the thinking behind Prova
 - [Quick Start](/docs/getting-started/quick-start) — write and run your first test in minutes
-- [Plugins](/docs/plugins/) — using and authoring docker-exec plugins
+- [Plugins](/docs/packages/) — using and authoring docker-exec plugins
 - [Testing Real Systems](/docs/writing-tests/testing-real-systems) — the full render → build → boot → probe workflow
 
 Feedback and issues are welcome on

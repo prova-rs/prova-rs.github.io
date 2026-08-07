@@ -11,6 +11,7 @@ the layout: where `prova.toml` lands, what the proof directory is called, what s
 ```shell
 prova init                 # choose an archetype interactively, then render it here
 prova init project         # render the built-in `project` archetype
+prova init package         # render the built-in `package` archetype
 prova init --list          # print the catalog without rendering anything
 ```
 
@@ -19,20 +20,31 @@ non-interactive context (CI, a pipe) that has nothing to prompt on, so pass a ke
 
 ## The catalog
 
-The catalog is the set of archetypes `prova init` can scaffold from. It always contains a built-in
-**`project`** (a standard proof-suite scaffold), so `prova init` works with zero configuration. You
-extend or override it in **`~/.config/prova/config.toml`** under `[init.*]`:
+The catalog is the set of archetypes `prova init` can scaffold from. Two entries are built in, so
+`prova init` works with zero configuration:
+
+- **`project`** — the full default package: a `.prova/` nook (the manifest, `config.lua`, and a
+  shared `lib` package under `.prova/packages/`) plus a `proofs/` starter suite, a CI workflow, and
+  `.luarc.json`.
+- **`package`** — a prova package that also exports a namespace others `require()`: an `init.lua`,
+  a `[package]` table, and a self-test. Run inside an existing package it scaffolds a **local**
+  package into the `packages` directory; outside one — or with `-s standalone` — it renders a
+  repo-ready standalone.
+
+Beyond the built-ins, any archetype a configured registry serves can be named directly — `prova
+init <name>` resolves the name against the registry. And you extend or override the catalog in
+**`~/.config/prova/config.toml`** under `[init.*]` — entries layer over the built-ins:
 
 ```toml
 # ~/.config/prova/config.toml
 
-[init.default]                       # a matching key REPLACES the built-in entry
+[init.project]                       # a matching key REPLACES the built-in entry
 description = "House proof-suite scaffold"
 source      = "https://github.com/acme/prova-init"
 switches    = ["ci"]                 # archetype switches always passed for this entry
 defaults    = false                  # take the archetype's default for any unanswered prompt
 
-[init.default.answers]               # baked answers — supplied to every render, never prompted
+[init.project.answers]               # baked answers — supplied to every render, never prompted
 proof_dir = "proofs"
 
 [init.service]                       # a new key ADDS an entry
@@ -49,10 +61,12 @@ source      = "/Users/me/archetypes/prova-service"   # a local path works too
 
 Archetypes ask questions. Each answer can come from four places, highest priority first:
 
-1. **`--answer key=value`** on the command line (repeatable).
+1. **`-a key=value` / `--answer key=value`** on the command line (repeatable).
 2. **`[init.<key>].answers`** baked into `config.toml`.
-3. An **interactive prompt** (skipped by `--headless`).
-4. The archetype's **own default**, taken without asking via `--defaults`.
+3. **Injected package state** — scaffolding inside an existing package, Prova supplies the answers
+   it already knows from that package without asking.
+4. An **interactive prompt** (skipped by `--headless`), or the archetype's **own default**, taken
+   without asking via `--defaults`.
 
 So a parameter like the proof-suite directory name can be **baked** (`answers.proof_dir = "proofs"`,
 never asked), **prompted** (omit it — the archetype asks each time), or supplied **ad hoc**
@@ -69,15 +83,16 @@ prova init project --headless                              # CI: never prompt (a
 | Flag | Effect |
 |---|---|
 | `--list` | Print the catalog (keys + descriptions) and exit; renders nothing. |
-| `--answer key=value` | Supply an answer (repeatable). Overrides a baked answer. |
-| `--switch name` | Pass an archetype switch (repeatable); unions with the entry's `switches`. |
+| `-a, --answer key=value` | Supply an answer (repeatable). Overrides a baked answer. |
+| `-s, --switch name` | Pass an archetype switch (repeatable); unions with the entry's `switches`. |
 | `--defaults` | Take each prompt's default instead of asking (prompts without a default still ask). |
 | `--headless` | Never prompt; an unanswered, undefaulted prompt is an error rather than a hang. |
 | `--no-ide` | Skip the IDE-wiring finishing step (alias: `--no-luals`). |
 
-`prova init` **refuses to run** if the project already has a manifest — it never clobbers an existing
-layout. Whether a scaffold may overwrite files is the archetype's and the config entry's concern, not
-a Prova flag.
+`prova init` **never overwrites an existing manifest**: rendering into a project that already has
+one is refused unless the entry declares `in_package = "allow"` — which is how the built-in
+`package` entry can scaffold a local package inside an existing project. Whether a scaffold may
+overwrite other files is the archetype's and the config entry's concern, not a Prova flag.
 
 ## After the render
 

@@ -54,13 +54,13 @@ const FeatureList: FeatureItem[] = [
     ),
   },
   {
-    title: 'Plugins, Zero Native Code',
+    title: 'Packages, Zero Native Code',
     icon: '🔌',
     description: (
       <>
-        Official plugins for Postgres, MySQL, Redis, Kafka, Pulsar, RabbitMQ,
-        and S3 — pure Lua over docker-exec, authored through{' '}
-        <code>prova.containerized</code>. Declare in <code>[plugins]</code>,{' '}
+        Official packages for Postgres, MySQL, Redis, Kafka, Pulsar, RabbitMQ,
+        S3, and more — pure Lua over docker-exec, authored through{' '}
+        <code>prova.containerized</code>. Declare in <code>[dependencies]</code>,{' '}
         <code>require</code>, done.
       </>
     ),

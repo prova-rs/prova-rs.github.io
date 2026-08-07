@@ -4,7 +4,7 @@ sidebar_position: 9
 
 # archetect
 
-The flagship plugin: test [Archetect](https://archetect.github.io) archetypes by rendering them **in-process** via archetect-core — no subprocess, no terminal. Answers pass as plain data, failures surface as real diagnostics, and rendering is always **headless**: every prompt resolves from a supplied answer or its default, or errors immediately (a render can never hang waiting for input).
+The flagship module: test [Archetect](https://archetect.github.io) archetypes by rendering them **in-process** via archetect-core — no subprocess, no terminal. Answers pass as plain data, failures surface as real diagnostics, and rendering is always **headless**: every prompt resolves from a supplied answer or its default, or errors immediately (a render can never hang waiting for input).
 
 `archetect.render` is the primitive — render once, get a tree handle, assert on it. `archetect.verify` is the declarative layer on top — one table describing the archetype's contract, expanded into the standard tests. See [Testing Real Systems](../../writing-tests/testing-real-systems.md) for the narrative walkthrough.
 

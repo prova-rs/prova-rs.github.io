@@ -30,7 +30,7 @@ local orders = prova.topology("orders", function(ctx)
 end)
 ```
 
-Nothing in the body knows which verb runs it. `ctx:manage` (inside the plugins' `.container`) declares *"I own this resource's lifecycle"*; **when** teardown happens belongs to the scope, and the scope's lifetime is set by the verb — test-end for a run, Ctrl-C or `prova down` for a held environment. Same code, one teardown path.
+Nothing in the body knows which verb runs it. `ctx:manage` (inside the packages' `.container`) declares *"I own this resource's lifecycle"*; **when** teardown happens belongs to the scope, and the scope's lifetime is set by the verb — test-end for a run, Ctrl-C or `prova down` for a held environment. Same code, one teardown path.
 
 ## Auto-networking and the two vantages
 
@@ -131,4 +131,4 @@ Standing up a topology that is already up is refused; stale records (the holder 
 
 ## Run it
 
-The full example ships in the Prova repository as [`examples/topology`](https://github.com/prova-rs/prova/tree/main/examples/topology) — the `orders` definition above, its tests, and a manifest declaring the postgres and redis plugins. The verb-by-verb flag reference lives in the [CLI reference](../reference/cli.md#topology-verbs-up-watch-start-down-ps).
+The full example ships in the Prova repository as [`examples/topology`](https://github.com/prova-rs/prova/tree/main/examples/topology) — the `orders` definition above, its tests, and a manifest declaring the postgres and redis packages. The verb-by-verb flag reference lives in the [CLI reference](../reference/cli.md#topology-verbs-up-watch-start-down-ps).

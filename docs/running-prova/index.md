@@ -11,8 +11,8 @@ Everything about *executing* your test suites — from ad-hoc runs against a sin
 
 - **[The Command Line](./command-line.md)** — paths vs. manifest-driven runs, selection (`-k`, `--tags`, `--last-failed`), `prova eval`, the topology verbs (`up`/`watch`/`start`/`down`/`ps`), every flag, discovery rules, and exit codes.
 - **[Scaffolding](./scaffolding.md)** — `prova init`: render a catalog archetype into your project (interactively or headless), and author your own init catalog entries in `~/.config/prova/config.toml`.
-- **[Manifest & Profiles](./manifest-and-profiles.md)** — `prova.toml`: declare what to run (and which plugins) once, then switch environments with `--profile`.
-- **[CI & Output](./ci-and-output.md)** — console, JSONL, TAP, and JUnit XML output, consuming the event stream, and the GitHub Action (with plugin caching).
+- **[Manifest & Profiles](./manifest-and-profiles.md)** — `prova.toml`: declare what to run (and which packages) once, then switch environments with `--profile`.
+- **[CI & Output](./ci-and-output.md)** — console, JSONL, TAP, and JUnit XML output, consuming the event stream, and the GitHub Action (with package caching).
 - **[IDE Setup](./ide-setup.md)** — autocomplete, hover docs, and type-checking for your test files via lua-language-server, via `prova ide setup` (also run automatically by `prova init`).
 
 ## The shape of a run
@@ -20,7 +20,7 @@ Everything about *executing* your test suites — from ad-hoc runs against a sin
 Prova has exactly one command with two modes:
 
 ```shell
-prova tests/orders_test.lua     # explicit paths — run these, ignore any manifest
+prova tests/orders.prova.lua    # explicit paths — run these, ignore any manifest
 prova                           # no paths — run what ./prova.toml declares
 prova --profile ci              # same, overlaying the `ci` profile from the manifest
 ```

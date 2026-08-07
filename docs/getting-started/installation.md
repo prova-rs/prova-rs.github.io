@@ -15,8 +15,8 @@ brew install prova-rs/tap/prova
 To pin a major line or an exact version:
 
 ```shell
-brew install prova-rs/tap/prova@0        # latest stable 0.x
-brew install prova-rs/tap/prova@0.9.1    # exactly 0.9.1
+brew install prova-rs/tap/prova@0         # latest stable 0.x
+brew install prova-rs/tap/prova@0.17.0    # exactly 0.17.0
 ```
 
 The tap's formulas are generated automatically from each release — see [prova-rs/homebrew-tap](https://github.com/prova-rs/homebrew-tap).
@@ -36,7 +36,7 @@ Download, extract, and put the binary on your `PATH`:
 
 ```shell
 # The one place to change — see https://github.com/prova-rs/prova/releases/latest
-VERSION=v0.14.0
+VERSION=v0.17.0
 
 curl -LO https://github.com/prova-rs/prova/releases/download/$VERSION/prova-$VERSION-linux-x86_64.tar.gz
 tar -xzf prova-$VERSION-linux-x86_64.tar.gz
@@ -70,11 +70,11 @@ Check the binary responds:
 prova --version
 ```
 
-Then verify discovery end to end. Prova finds test files named `*_test.lua` or `*.test.lua`; `--list` collects tests without running anything:
+Then verify discovery end to end. Prova finds test files matching `*.prova.lua` (`*_test.lua` and `*.test.lua` are also accepted); `--list` collects tests without running anything:
 
 ```shell
 mkdir -p prova-smoke
-cat > prova-smoke/smoke_test.lua <<'EOF'
+cat > prova-smoke/smoke.prova.lua <<'EOF'
 prova.test("prova discovers this test", function(t)
   t:expect(true):is_true()
 end)
@@ -95,13 +95,13 @@ Run it for real with `prova prova-smoke` — it should report one passing test a
 
 Prova itself has no runtime dependencies, but some modules drive external tools:
 
-- **Docker** — the container-backed primitives and [plugins](/docs/plugins/) (`docker.run`, `postgres.container`, and friends) talk to the Docker daemon directly. Install [Docker](https://docs.docker.com/get-docker/) and have the daemon running if your tests provision ephemeral containers.
+- **Docker** — the container-backed primitives and [packages](/docs/packages/) (`docker.run`, `postgres.container`, and friends) talk to the Docker daemon directly. Install [Docker](https://docs.docker.com/get-docker/) and have the daemon running if your tests provision ephemeral containers.
 - **Anything on your `PATH`** — tests that shell out to `cargo`, `git`, `kubectl`, etc. naturally need those tools present.
 
 You do not need any of these installed just to run Prova. Tests declare what they need with `requires = { "docker" }` (or any tool name), and when a capability is missing the test is **skipped with a reason — never failed** — so the same suite degrades gracefully across machines. See [Testing Real Systems](../writing-tests/testing-real-systems.md).
 
 :::tip
-Once installed, `prova init` scaffolds a project — a `prova.toml` manifest plus editor completion for the whole API — in one command. The [Quick Start](./quick-start.md) walks through it.
+Once installed, `prova init` scaffolds a project — a `prova.toml` manifest plus editor completion for the whole API — in one command. [Your First Test Suite](./your-first-test-suite.md) walks through it.
 :::
 
 ## Next

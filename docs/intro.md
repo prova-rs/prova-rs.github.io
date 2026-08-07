@@ -13,7 +13,7 @@ Concretely, Prova is a programmable, language-agnostic acceptance-test runner: a
 Here is a complete, runnable test file. `prova` and the `fs`/`shell`/`http` modules are injected globals — no `require` needed:
 
 ```lua
--- workspace_test.lua
+-- workspace.prova.lua
 
 -- Built once for this file, shared by every test below. The temp dir is
 -- removed automatically when the file's tests finish.
@@ -40,7 +40,7 @@ prova.test("shell commands report exit code and output", function(t)
 end)
 ```
 
-Run it with `prova workspace_test.lua`. That is the whole loop: a fixture that provisions state, tests that request it with `t:use`, and fluent `t:expect` assertions — with teardown guaranteed.
+Run it with `prova workspace.prova.lua`. That is the whole loop: a fixture that provisions state, tests that request it with `t:use`, and fluent `t:expect` assertions — with teardown guaranteed.
 
 ## Why Prova exists
 
@@ -58,7 +58,7 @@ Two arguments, one tool.
 - **Dependency-aware scheduling** — `depends_on` edges skip (never fail) dependents when an upstream fails; declared resources let the scheduler parallelize safely around shared ports, databases, and files.
 - **Graceful degradation** — `requires = { "docker" }` skips a test with a reason where a capability is missing, instead of turning CI red.
 - **Topologies you can test *or* inhabit** — declare a named environment once with `prova.topology`; tests `use` it, and `prova up`/`watch`/`start` stand the identical environment up live to develop against, so tests and dev environment cannot drift.
-- **Lean core, plugin ecosystem** — built-in modules for `fs`, `shell` (+`net`), `http`, `grpc`, `graphql`, `yaml`, `docker`, and `sqlite`, plus the bundled `archetect` plugin for in-process archetype rendering. Databases, caches, brokers, and object stores — `postgres`, `mysql`, `redis`, `kafka`, `pulsar`, `rabbitmq`, `s3` — are official [plugins](./plugins/index.md): pure Lua over docker-exec, declared in `prova.toml` `[plugins]` and attached with `require("postgres")`.
+- **Lean core, package ecosystem** — built-in modules for `fs`, `shell` (+`net`), `http`, `grpc`, `graphql`, `yaml`, `docker`, and `sqlite`, plus the bundled `archetect` package for in-process archetype rendering. Databases, caches, brokers, and object stores — `postgres`, `mysql`, `redis`, `kafka`, `pulsar`, `rabbitmq`, `s3` — are official [packages](./packages/index.md): pure Lua over docker-exec, declared in `prova.toml` `[dependencies]` and attached with `require("postgres")`.
 - **One static binary** — written in Rust; nothing to install on the target beyond `prova` itself.
 
 ## Where to go next
@@ -68,5 +68,5 @@ Two arguments, one tool.
 | [Getting Started](./getting-started/index.md) | What Prova is, how to install it, core concepts, and your first test suite |
 | [Writing Tests](./writing-tests/index.md) | Tests, fixtures, assertions, flows, scheduling, and testing real systems |
 | [Running Prova](./running-prova/index.md) | The command line, the `prova.toml` manifest, profiles, and CI |
-| [Plugins](./plugins/index.md) | Using official plugins, authoring your own, and the docker-exec architecture |
+| [Packages](./packages/index.md) | Using official packages, authoring your own, and the docker-exec architecture |
 | [Reference](./reference/index.md) | Exhaustive reference for the CLI, the Lua API, and every module |

@@ -132,7 +132,7 @@ local pg = ctx:manage(docker.run{ image = "postgres:16-alpine", ports = { 5432 }
 local app = ctx:manage(shell.spawn("./target/debug/app"))
 ```
 
-It is pure sugar over `defer`; a resource with neither method is an error, and `defer` remains for anything custom. ([Plugin](/docs/plugins/) recipes like `postgres.container(ctx, ...)` take the context precisely so they can `manage` their own container and client for you — one more reason the one-liner is the idiomatic shape.)
+It is pure sugar over `defer`; a resource with neither method is an error, and `defer` remains for anything custom. ([Package](/docs/packages/) recipes like `postgres.container(ctx, ...)` take the context precisely so they can `manage` their own container and client for you — one more reason the one-liner is the idiomatic shape.)
 
 ### `ctx:tempdir()` — scoped scratch space
 

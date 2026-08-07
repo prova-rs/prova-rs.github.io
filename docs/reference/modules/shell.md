@@ -25,6 +25,8 @@ Runs a command to completion and captures its output.
 | `env` | `table<string, string\|number\|boolean>?` | Extra environment variables. Scalar values **coerce to strings** — ports stay numbers, flags stay booleans, no `tostring()` ceremony (`8080` → `"8080"`, `true` → `"true"`; integral floats render without a trailing `.0`). Any other value type raises `env.<KEY>: expected string/number/boolean, got <type>`. |
 | `timeout` | `string?` | Deadline, e.g. `"120s"` — **raises** if exceeded |
 | `check` | `boolean?` | If `true`, a non-zero exit **raises**, carrying the tail of **both** streams (see below) |
+| `merge_stderr` | `boolean?` | Fold stderr into stdout — the portable replacement for `2>&1`; `stderr` is then empty |
+| `stdin` | `string?` | Feed the program's stdin — the portable replacement for `printf x \| cmd` |
 
 **Returns:** a `ShellResult`. Raises if the command cannot be spawned, times out, or exits non-zero with `check = true`.
 

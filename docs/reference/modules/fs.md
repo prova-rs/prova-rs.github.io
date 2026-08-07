@@ -62,6 +62,25 @@ Writes `contents` to `path`, **creating parent directories as needed**.
 fs.write(root .. "/config/app.toml", "[server]\nport = 8080\n")
 ```
 
+### `fs.mkdir(path)`
+
+```lua
+fs.mkdir(path)
+```
+
+Creates a directory and every missing parent (like `mkdir -p`) — the platform-agnostic replacement for shelling out to `mkdir -p`. Idempotent: an existing directory is a no-op, not an error.
+
+| Parameter | Type | Description |
+|---|---|---|
+| `path` | `string` | Directory to create |
+
+**Returns:** nothing. Raises on I/O failure.
+
+```lua
+fs.mkdir(dir .. "/nested/deep")
+t:expect(dir .. "/nested/deep"):is_dir()
+```
+
 ### `fs.exists(path)`
 
 ```lua

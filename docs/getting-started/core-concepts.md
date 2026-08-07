@@ -4,11 +4,11 @@ sidebar_position: 3
 
 # Core Concepts
 
-Prova has a small vocabulary: test files, tests, fixtures, groups, flows, suites, plugins, and a manifest. This page gives you each in one short section, with links to the deep dives.
+Prova has a small vocabulary: test files, tests, fixtures, groups, flows, suites, packages, and a manifest. This page gives you each in one short section, with links to the deep dives.
 
 ## Test files
 
-A test file is any Lua file named `*_test.lua` or `*.test.lua`. Point `prova` at a file or directory and it discovers them recursively. Inside a test file, `prova` and the module globals (`fs`, `shell`, `http`, and the rest) are **injected by the runtime — no `require` needed**. A test file is plain Lua 5.4: helper functions, loops, and computed values are all fair game.
+A test file is any Lua file matching `*.prova.lua` (`*_test.lua` and `*.test.lua` are also accepted). Point `prova` at a file or directory and it discovers them recursively. Inside a test file, `prova` and the module globals (`fs`, `shell`, `http`, and the rest) are **injected by the runtime — no `require` needed**. A test file is plain Lua 5.4: helper functions, loops, and computed values are all fair game.
 
 ## Tests
 
@@ -68,11 +68,11 @@ You read the container and you know the semantics. The presence of a `flow` is a
 
 ## Suites
 
-A **suite** is a named group of test files that share **one Lua state** — the unit of shared setup and of parallelism. Drop a `suite.lua` in a directory and its `*_test.lua` files become one suite; the `suite.lua` runs first and is where `Scope.Suite` fixtures live (one database container for every file, built once, torn down once). Test files consume suite fixtures by name: `t:use("pg")`. Any file not in a declared suite is its own singleton suite, so ungrouped files behave exactly as you'd expect. Deep dive: [Suites and Shared State](../writing-tests/suites-and-shared-state.md).
+A **suite** is a named group of test files that share **one Lua state** — the unit of shared setup and of parallelism. Drop a `suite.lua` in a directory and its `*.prova.lua` files become one suite; the `suite.lua` runs first and is where `Scope.Suite` fixtures live (one database container for every file, built once, torn down once). Test files consume suite fixtures by name: `t:use("pg")`. Any file not in a declared suite is its own singleton suite, so ungrouped files behave exactly as you'd expect. Deep dive: [Suites and Shared State](../writing-tests/suites-and-shared-state.md).
 
-## Plugins
+## Packages
 
-The core runtime ships the **primitives** — `shell`, `fs`, `net`, `docker`, `http`, `grpc`, and friends. Real infrastructure recipes (`postgres.container(ctx)`, `mysql.container(ctx)`, `pulsar.container(ctx)`, …) are **plugins**: Lua packages declared in the manifest's `[plugins]` table, fetched and pinned by ref, and attached in a test file with `require("postgres")`. A plugin resource comes back in a standard shape — `url`, `host`/`port`, a `client` for cross-checking, the `container` handle — so wiring a service to its database is a few plain assignments, and everything the plugin does can also be built by hand from the primitives when no plugin exists. Deep dive: [Plugins](/docs/plugins/).
+The core runtime ships the **primitives** — `shell`, `fs`, `net`, `docker`, `http`, `grpc`, and friends. Real infrastructure recipes (`postgres.container(ctx)`, `mysql.container(ctx)`, `pulsar.container(ctx)`, …) are **packages**: pure Lua, declared in the manifest's `[dependencies]` table, fetched and pinned by ref, and attached in a test file with `require("postgres")`. A package resource comes back in a standard shape — `url`, `host`/`port`, a `client` for cross-checking, the `container` handle — so wiring a service to its database is a few plain assignments, and everything the package does can also be built by hand from the primitives when no package exists. Deep dive: [Packages](/docs/packages/).
 
 ## Topologies
 
@@ -92,8 +92,8 @@ jobs   = 8
 [profiles.ci.env]
 CI = "true"
 
-[plugins]
-postgres = "prova-rs/prova-postgres@v0.2.0"
+[dependencies]
+postgres = "prova-rs/prova-postgres@v1"
 ```
 
 `prova --profile ci` overlays a profile on `[run]`; CLI flags override the manifest; explicit path arguments bypass it entirely. Deep dive: [Manifest and Profiles](../running-prova/manifest-and-profiles.md).

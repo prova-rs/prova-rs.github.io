@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Tests & Grouping
 
-A test file is plain Lua. The runtime injects the `prova` global (plus the [modules](../reference/modules/index.md) — `fs`, `shell`, `http`, and friends) into every file, so there is nothing to `require`. Any file matching `*_test.lua` or `*.test.lua` is discovered automatically.
+A test file is plain Lua. The runtime injects the `prova` global (plus the [modules](../reference/modules/index.md) — `fs`, `shell`, `http`, and friends) into every file, so there is nothing to `require`. Any file matching `*.prova.lua` (`*_test.lua` and `*.test.lua` are also accepted) is discovered automatically.
 
 ## Declaring a test
 
@@ -44,10 +44,6 @@ end)
 
 :::tip
 Run a subset from the command line with `prova -k <pattern>` (name filtering), `prova --tags a,b` (with `!tag` excludes), `--node` for an exact path, or `--last-failed`. See [The Command Line](../running-prova/command-line.md#run-a-subset).
-:::
-
-:::note Planned
-A `retries` option for automatically re-running flaky tests is on the [roadmap](../reference/roadmap.md). Today, wrap the flaky *operation* in `prova.retry(fn, { timeout = "30s" })` — retrying the unreliable call is usually the better fix anyway.
 :::
 
 ## Table-driven tests: `prova.test_each`
@@ -114,10 +110,6 @@ The `GroupBuilder` exposes `g:test`, `g:test_each`, `g:flow`, `g:group`, and `g:
 
 A group's contract is *independence*: children are isolated, unordered, and parallelizable. There is deliberately **no shared-state mechanism** on the builder — if you find yourself wanting ordered children that build up state, that is exactly what a [flow](./flows.md) is for. Do not rely on definition order within a group.
 
-:::note Planned
-`--shuffle`, which randomizes group-child order (printing a reproducible seed) to *prove* independence, is on the [roadmap](../reference/roadmap.md). Today the runner happens to iterate in a deterministic order — treat that as an implementation detail, not a contract.
-:::
-
 ## Setup and teardown
 
 Prova has no xUnit-style hook functions; setup and teardown live in [fixtures](./fixtures.md), which are lazier, composable, and scoped. A `Scope.Test` fixture is "before each + after each"; a `Scope.File` fixture is "before all + after all":
@@ -133,10 +125,6 @@ prova.test("starts from a clean slate", function(t)
   -- ...
 end)
 ```
-
-:::note Planned
-Convenience hooks (`before_each` / `after_each` / `before_all` / `after_all`) are on the [roadmap](../reference/roadmap.md) as sugar over fixtures. Today, declare a fixture at the matching scope and `use` it where needed.
-:::
 
 ## Next
 

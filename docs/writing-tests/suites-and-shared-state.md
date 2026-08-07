@@ -10,7 +10,7 @@ By default, nothing changes: **a file not assigned to any suite is its own one-f
 
 ## Declaring a suite: the `suite.lua` marker
 
-Drop a `suite.lua` into a directory and that directory becomes one suite owning every `*_test.lua` in its subtree. The marker file runs **once, first, in the suite's shared state** — it is where suite-scoped fixtures and suite config live, colocated with the files that use them:
+Drop a `suite.lua` into a directory and that directory becomes one suite owning every `*.prova.lua` in its subtree. The marker file runs **once, first, in the suite's shared state** — it is where suite-scoped fixtures and suite config live, colocated with the files that use them:
 
 ```lua
 -- examples/suite/suite.lua — runs once for the whole suite, before any test file
@@ -22,14 +22,14 @@ prova.fixture("db", Scope.Suite, function(ctx)
 end)
 ```
 
-The `postgres` here is a [plugin](/docs/plugins/), declared in the directory's own `prova.toml` and attached with `require`:
+The `postgres` here is a [package](/docs/packages/), declared in the directory's own `prova.toml` and attached with `require`:
 
 ```toml
 [run]
 proofs = ["."]
 
-[plugins]
-postgres = "prova-rs/prova-postgres@main"
+[dependencies]
+postgres = "prova-rs/prova-postgres@v1"
 ```
 
 `suite.config` takes two fields:
@@ -44,7 +44,7 @@ postgres = "prova-rs/prova-postgres@main"
 Fixture handles are per-state Lua values, so a handle defined in `suite.lua` cannot be imported across file boundaries — but a *name* can, and the value behind it is one shared instance in the suite state. Test files reference suite fixtures **by name**:
 
 ```lua
--- examples/suite/a_create_test.lua
+-- examples/suite/a_create.prova.lua
 prova.test("creates the schema and inserts a row", function(t)
   local c = t:use("db")            -- the suite's shared client (built once, reused)
   c:execute("CREATE TABLE IF NOT EXISTS orders (id BIGINT PRIMARY KEY, sku TEXT, qty INT)")
@@ -54,7 +54,7 @@ end)
 ```
 
 ```lua
--- examples/suite/b_read_test.lua — a DIFFERENT file, the SAME Postgres
+-- examples/suite/b_read.prova.lua — a DIFFERENT file, the SAME Postgres
 prova.test("reads the row inserted by the other file in the suite", function(t)
   local c = t:use("db")
   t:expect(c:query_value("SELECT sku FROM orders WHERE id = $1", { 1 })):equals("widget")

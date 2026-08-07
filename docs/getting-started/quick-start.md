@@ -8,10 +8,10 @@ Write one file, run it, read the output. Five minutes, no project setup.
 
 ## 1. Write a test file
 
-Create `hello_test.lua`. The name matters: Prova discovers files matching `*_test.lua` (or `*.test.lua`). Everything you need — `prova`, `shell`, `fs` — is already in scope:
+Create `hello.prova.lua`. The name matters: Prova discovers files matching `*.prova.lua` (`*_test.lua` and `*.test.lua` are also accepted). Everything you need — `prova`, `shell`, `fs` — is already in scope:
 
 ```lua
--- hello_test.lua
+-- hello.prova.lua
 
 prova.test("echo prints a greeting", function(t)
   local r = shell.run("echo hello prova")
@@ -34,7 +34,7 @@ Two things to notice:
 ## 2. Run it
 
 ```shell
-prova hello_test.lua
+prova hello.prova.lua
 ```
 
 You can also pass a directory (`prova .`) and Prova will discover every test file under it.
@@ -72,7 +72,7 @@ Not sure what `shell.run` returns, or what a module's output looks like? `prova 
 ```shell
 $ prova eval 'return shell.run("echo hello prova").stdout'
 hello prova
-$ prova eval 'return fs.exists("hello_test.lua")'
+$ prova eval 'return fs.exists("hello.prova.lua")'
 true
 ```
 

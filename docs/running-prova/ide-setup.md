@@ -4,12 +4,12 @@ sidebar_position: 5
 
 # IDE Setup
 
-Prova tests are plain Lua, which means the mature Lua tooling ecosystem works on them out of the box — most importantly [lua-language-server](https://luals.github.io/) (LuaLS). Prova ships LuaCATS annotations for its entire authoring surface — and **wires them up for you**: on a project with a manifest, editor support is automatic, plugins included.
+Prova tests are plain Lua, which means the mature Lua tooling ecosystem works on them out of the box — most importantly [lua-language-server](https://luals.github.io/) (LuaLS). Prova ships LuaCATS annotations for its entire authoring surface — and **wires them up for you**: on a project with a manifest, editor support is automatic, packages included.
 
 ## What you get
 
 - **Autocomplete** for `prova.*`, `expect(...)` matchers, the context methods (`ctx:use`, `ctx:defer`, `ctx:manage`, `ctx:tempdir`), and every built-in module (`http`, `shell`, `fs`, `net`, `docker`, `grpc`, ...).
-- **Completion for your plugins** — `require("postgres")` is fully typed, because each plugin ships its own `---@meta` stub and Prova syncs it into the project automatically.
+- **Completion for your packages** — `require("postgres")` is fully typed, because each package ships its own `---@meta` stub and Prova syncs it into the project automatically.
 - **Hover documentation** — each function's docs, parameters, and return types inline in the editor.
 - **Diagnostics** — typo'd function names, wrong argument shapes, and unknown globals flagged as you type.
 - **Typed fixture handles** — `prova.fixture` returns a typed handle, and `ctx:use(handle)` flows the fixture's value type through to the call site, so the object your test receives is fully typed and completable. (Passing a bare string name still works, but yields an untyped `any` — one more reason to prefer handles.)
@@ -22,12 +22,12 @@ On a project with a [manifest](./manifest-and-profiles.md), wiring is one step �
 prova ide setup   # wire this project; also runs automatically at the end of `prova init`
 ```
 
-Every subsequent `prova` run keeps things current, so declaring a new plugin and running the suite is enough to pick up its completions.
+Every subsequent `prova` run keeps things current, so declaring a new package and running the suite is enough to pick up its completions.
 
-- **The core stubs** (`prova.lua`, `modules.lua`) are written once to a shared folder under Prova's data directory (`~/.local/share/prova/lua/annotations/`) — the same copy for every project on the machine, refreshed when you upgrade Prova. **Each plugin's** `---@meta` stub is read straight from that plugin's cached checkout. Nothing is copied into your project.
-- **`.luarc.json`** at the project root — the one project-local file — points LuaLS (`workspace.library`) at the shared core stubs plus each declared plugin's stub directory, and declares Lua 5.4. It's re-derived when your plugin set changes. Because it holds **machine-local absolute paths**, it isn't shareable — **add it to `.gitignore`** rather than committing it.
+- **The core stubs** (`prova.lua`, `modules.lua`) are written once to a shared folder under Prova's data directory (`~/.local/share/prova/lua/annotations/`) — the same copy for every project on the machine, refreshed when you upgrade Prova. **Each package's** `---@meta` stub is read straight from that package's cached checkout. Nothing is copied into your project.
+- **`.luarc.json`** at the project root — the one project-local file — points LuaLS (`workspace.library`) at the shared core stubs plus each declared package's stub directory, and declares Lua 5.4. It's re-derived when your package set changes. Because it holds **machine-local absolute paths**, it isn't shareable — **add it to `.gitignore`** rather than committing it.
 
-Open the project in an editor running LuaLS and completion, hover, and diagnostics are live — including for `require("<plugin>")`.
+Open the project in an editor running LuaLS and completion, hover, and diagnostics are live — including for `require("<package>")`.
 
 ### The `.luarc.json` policy: `[luals] manage`
 
@@ -73,6 +73,6 @@ Running Prova purely ad hoc, with no manifest anywhere? There is nothing to sync
 }
 ```
 
-The moment the project grows a manifest, delete the vendored stubs and let `prova ide setup` take over — the automatic path also keeps plugin annotations current, which the manual one cannot.
+The moment the project grows a manifest, delete the vendored stubs and let `prova ide setup` take over — the automatic path also keeps package annotations current, which the manual one cannot.
 
 For the full annotated API surface the stubs describe, see the [Lua API reference](../reference/lua-api/index.md).

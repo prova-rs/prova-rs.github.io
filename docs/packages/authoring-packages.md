@@ -2,13 +2,72 @@
 sidebar_position: 2
 ---
 
-# Authoring Plugins
+# Authoring Packages
 
-A Prova plugin is a Lua file that builds a resource namespace and `return`s it. There is no native code, no FFI, no build step: the plugin provisions an ephemeral container through `prova.containerized`, and its "client" is a thin wrapper that drives the **CLI already inside the image** via `container:run`, parsing the output with `prova.parse.*`. This page covers the full authoring surface, then walks the real [prova-postgres](https://github.com/prova-rs/prova-postgres) plugin end to end.
+A Prova package is a Lua module that builds a namespace and `return`s it. There is no native code, no FFI, no build step: a resource package provisions an ephemeral container through `prova.containerized`, and its "client" is a thin wrapper that drives the **CLI already inside the image** via `container:run`, parsing the output with `prova.parse.*`. This page covers the full authoring surface, then walks the real [prova-postgres](https://github.com/prova-rs/prova-postgres) package end to end.
+
+## Scaffold it: `prova init package`
+
+Don't start from a blank file — render the package archetype:
+
+```bash
+prova init package --headless -a name=redis
+```
+
+One archetype, two shapes, decided by **where** you run it:
+
+- **Inside an existing package** it scaffolds a *local* package into the project's `packages` directory (core files only) — `require("redis")` works with zero declaration.
+- **Outside a package** — or with `-s standalone` anywhere — it scaffolds a repo-ready *standalone* package (core plus LICENSE and CI) that consumers pin as a git dependency.
+
+The core is the same either way, so graduating local → standalone is a directory move.
+
+## Package anatomy — one manifest, two hats
+
+Every package is itself a prova package: its manifest is a `prova.toml` with a `[package]` section, and it self-tests with its own proofs.
+
+```
+prova-<name>/
+├── prova.toml            # dual-role: run manifest + package declaration
+├── init.lua              # the namespace table (entry point)
+├── library/<name>.lua    # LuaCATS ---@meta stub — what makes your API visible to editors and prova.help()
+├── proofs/
+│   └── <name>.prova.lua  # the package's own acceptance proofs, run with `prova`
+├── README.md
+└── LICENSE
+```
+
+```toml
+[package]
+name        = "postgres"                 # canonical name — namespaces intra-package require()s
+entry       = "init.lua"                 # resolution: consumer module= → entry → init.lua → <name>.lua
+description = "PostgreSQL — docker-exec over psql, zero native code"
+license     = "MIT"
+
+# The range of prova versions this package is built against; consumers are checked at resolve time.
+[requires]
+prova = ">= 0.17"
+
+# Resolve THIS package from its own directory, so the self-tests `require("postgres")` exactly as
+# a consumer would. A consumer instead pins it by source — a released tag.
+[dependencies]
+postgres = { path = "." }
+```
+
+- `entry` decouples resolution from the consumer's alias: `mq = "acme/prova-rabbitmq@v1"` still finds the right file. Without it, resolution falls back to `init.lua`, then `<alias>.lua` — which breaks under any other alias.
+- A package may advertise **topologies** by name — `[[package.topologies]]` with `name`, `factory`, and the `requires` the environment needs — so a consumer's `[topologies]` table (and `prova up`) can address them. See [Topologies](../writing-tests/topologies.md).
+- **Private dependencies:** a `[dependencies]` table in the package's own `prova.toml` is isolated from consumers — packages compose without a resolver and without version bleed.
+
+## The contract
+
+- Return **one namespace table**. Calls are context-first: `postgres.container(ctx, opts)`.
+- Resource packages follow the **facet grammar** — `client` / `container` / `wait_for` / `mock` — so consumers already know your shape before reading your README.
+- Lifecycle goes through the context: `ctx:manage(handle)` for anything with `:stop()`/`:close()`; never leak a process or container past the scope.
+- A verb that changes provisioned state returns only when the change is observable **through the seam the consumer will use** — the provisioner's exit code is not that seam. `prova.retry` the consumer-visible check; a CLI that "completed" may have handed off to a store that syncs later.
+- Ship `library/<name>.lua` (`---@meta <name>`) — it is what makes your API answerable in editors and to `prova.help()`; `prova package lint` warns without it.
 
 ## `prova.containerized`
 
-The keystone. `prova.containerized(spec)` turns a compact spec into a grammar-conformant namespace — first-party recipes and third-party plugins are authored the same way and come out the same shape:
+The keystone. `prova.containerized(spec)` turns a compact spec into a grammar-conformant namespace — first-party recipes and third-party packages are authored the same way and come out the same shape:
 
 ```lua
 local myresource = prova.containerized{
@@ -75,61 +134,22 @@ Prefer the **argv table** form — arguments pass verbatim with no shell interpo
 
 ### `prova.parse.*`
 
-A CLI gives you text back; these turn the common shapes into Lua values so plugins never hand-roll parsing:
+A CLI gives you text back; these turn the common shapes into Lua values so packages never hand-roll parsing:
 
 | Function | Returns |
 |---|---|
 | `prova.parse.lines(s)` | Non-empty, trimmed lines — line-oriented CLIs. |
 | `prova.parse.rows(s, sep?)` | A list of rows, each a list of columns split on `sep` (default tab) — TSV, psql's `\|`, CSV. |
 | `prova.parse.table(s, sep?)` | First non-empty line is a header row; each remaining row becomes a map keyed by header name (e.g. `rabbitmqadmin`'s TSV). |
-| `prova.parse.json(s)` | A real JSON parse to Lua values (`null` → `nil`). Combine with `lines` for the one-object-per-line `--json` streams many CLIs emit. |
 
-## `prova-plugin.toml` — the plugin manifest
+For the one-object-per-line `--json` streams many CLIs emit, combine `prova.parse.lines` with `json.decode`.
 
-The analogue of Archetect's `archetype.yaml`, at the plugin repo root. All fields are optional (a manifest-less plugin falls back to filename conventions), but a published plugin should declare at least `entry`:
+## Self-testing
 
-```toml
-[plugin]
-name        = "postgres"                                        # canonical name — namespaces intra-plugin require()s
-entry       = "postgres.lua"                                    # entry file, relative to the plugin root
-description = "PostgreSQL — docker-exec over psql, zero native code"
-license     = "MIT"
-
-[requires]
-prova = ">=0.2, <0.3"                                           # semver range the running prova must satisfy
-```
-
-- `entry` decouples resolution from the consumer's alias: `mq = "acme/prova-rabbitmq@v1"` still finds `rabbitmq.lua`. Without it, resolution falls back to `init.lua`, then `<alias>.lua` — which breaks under any other alias.
-- `requires.prova` is a compatibility gate checked at resolve time. On 0.x the minor is the breaking axis, so `>=0.2, <0.3` means "any prova 0.2".
-- Plugins are self-contained: they depend on Prova and its primitives, nothing else. There is no dependency resolver.
-
-## Plugin repo anatomy
-
-```
-prova-<name>/
-├── <name>.lua              # the plugin module — prova.containerized spec + docker-exec client
-├── prova-plugin.toml       # manifest: name, entry, requires.prova, metadata
-├── prova.toml              # self-test manifest (below)
-├── tests/
-│   └── <name>_test.lua     # the plugin's own acceptance tests, run with prova
-├── library/                # optional but advised for a published plugin:
-│   └── <name>.lua          #   LuaCATS ---@meta stub — synced into consumers' annotations/ for IDE completion
-├── README.md
-└── LICENSE
-```
-
-**Plugins are self-testing.** The repo's own `prova.toml` resolves the plugin from its directory and runs `tests/` against it — CI for a plugin is just `prova`:
-
-```toml
-[run]
-proofs = ["tests"]
-
-[plugins]
-postgres = { path = "." }        # a consumer would write "prova-rs/prova-postgres@v1" instead
-```
+**Packages are self-testing.** The self-pin in the manifest above resolves the package from its own directory, and `proofs/` runs against it — CI for a package is just `prova`:
 
 ```lua
--- tests/postgres_test.lua — provision, then round-trip through the docker-exec client
+-- proofs/postgres.prova.lua — provision, then round-trip through the docker-exec client
 local db = prova.fixture("postgres", Scope.File, function(ctx)
   return require("postgres").container(ctx, { database = "orders" })
 end)
@@ -144,28 +164,14 @@ prova.group("postgres", { requires = { "docker" } }, function(g)
 end)
 ```
 
-Two more pieces round out a published plugin:
+(A *local* package under a project's `packages` directory is a nested-package boundary — its proofs stay out of the owning project's suite; run them from inside its directory.)
 
-- **`prova plugin lint <file>`** checks the module against the namespacing grammar (is it a resource with `client`/`container` facets, or a helper library?) and advises when a `library/` LuaCATS stub is missing.
-- **The `library/<name>.lua` stub** (a `---@meta` file describing the namespace) is what Prova [syncs into consumers' `annotations/` folder](./using-plugins.md#ide-annotations), so `require("postgres")` autocompletes in their editors.
+Two more pieces round out a published package:
 
-## Quickstart: `prova-plugin-archetype`
+- **`prova package lint <file>`** checks the module against the namespacing grammar (is it a resource with `client`/`container` facets, or a helper library?) and advises when a `library/` LuaCATS stub is missing.
+- **Releases.** Tag versions so consumers can pin (`@v1`); once released, the [package registry](https://github.com/prova-rs/package-registry) can index it for `prova packages` discovery.
 
-Don't start from a blank file — generate the whole repo:
-
-```bash
-archetect render https://github.com/prova-rs/prova-plugin-archetype.git
-```
-
-You'll be prompted for the plugin name, description, Docker image/tag, port, URL scheme, and the client CLI in the image. The result is a ready-to-author `prova-<name>/` with the module skeleton (a `prova.containerized` spec), manifest, self-test, starter test, license, and CI workflows to **test** (self-test + `prova plugin lint` on every push) and **release** (tag a version so consumers can pin `@vX.Y.Z`). Implement the client methods, then publish:
-
-```bash
-cd prova-<name>
-git init && git add -A && git commit -m "Initial plugin"
-gh repo create <org>/prova-<name> --public --source=. --push
-```
-
-## Worked example: the Postgres plugin
+## Worked example: the Postgres package
 
 [prova-postgres](https://github.com/prova-rs/prova-postgres) is about a hundred lines and exercises every part of the surface. The "database" container shape has one signature quirk: Postgres restarts once during first-boot init, so an open port is a **false positive** — the readiness gate must retry a real query.
 
@@ -234,7 +240,7 @@ local postgres = prova.containerized{
 return postgres
 ```
 
-Note what the plugin **didn't** have to write: no `docker.run` call, no port mapping, no retry loop, no teardown registration, no URL plumbing — `prova.containerized` supplies all of it. The plugin contributes exactly the domain knowledge: the image, the env contract, the URL format, the client verbs, and the one readiness quirk.
+Note what the package **didn't** have to write: no `docker.run` call, no port mapping, no retry loop, no teardown registration, no URL plumbing — `prova.containerized` supplies all of it. The package contributes exactly the domain knowledge: the image, the env contract, the URL format, the client verbs, and the one readiness quirk.
 
 Consumers then write:
 
@@ -245,4 +251,4 @@ db.client:query_value("SELECT count(*) FROM t")     -- 0
 -- db.url / db.host / db.port → the app under test's environment
 ```
 
-For more shapes, read the other [official plugins](./official-plugins.md): Kafka (stdin-piped console producer, tools not on PATH), Pulsar (log-line readiness is also a false positive — retry a real produce), RabbitMQ (`prova.parse.table` over `rabbitmqadmin` TSV), and S3/MinIO (multi-step client config, `--json` output, `extra` fields for credentials).
+For more shapes, read the other [official packages](./official-packages.md): Kafka (stdin-piped console producer, tools not on PATH), Pulsar (log-line readiness is also a false positive — retry a real produce), RabbitMQ (`prova.parse.table` over `rabbitmqadmin` TSV), S3/MinIO (multi-step client config, `--json` output, `extra` fields for credentials), and kind/Parallels (packages that advertise **topologies**).

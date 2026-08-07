@@ -21,11 +21,20 @@ by every unit inside it.
 | Key | Type | Description |
 |---|---|---|
 | `tags` | `string[]` | Free-form selection tags — what `prova --tags` selects (or, with `!tag`, excludes) from the command line. Tags on a **group** are inherited by every unit inside it. See [Selection semantics](../cli.md#selection-semantics). |
-| `requires` | `string[]` | Capabilities this unit needs. An unavailable capability **skips** the unit (with a reason), never fails it. `"docker"` probes the daemon (`docker info`), `"github"` checks `GITHUB_TOKEN`, `"network"` is assumed present; a native-capability name (`"http"`, `"sqlite"`, `"grpc"`, `"graphql"`, `"yaml"`) is available iff that feature was compiled into the build; any other name checks for a tool of that name on `PATH` (so `requires = { "cargo" }` just works). Gating is **name-only** — versioned requirements like `"dotnet>=9"` are not yet supported (see the [Roadmap](../roadmap.md)). |
+| `requires` | `string[]` | Capabilities this unit needs. An unavailable capability **skips** the unit (with a reason), never fails it. `"docker"` probes the daemon (`docker info`), `"github"` checks `GITHUB_TOKEN`, `"network"` is assumed present; a native-capability name (`"http"`, `"sqlite"`, `"grpc"`, `"graphql"`, `"yaml"`) is available iff that feature was compiled into the build; any other name checks for a tool of that name on `PATH` (so `requires = { "cargo" }` just works), optionally with a version constraint (`"dotnet >= 9"`, `"node ^20"`). See [capability gating](../../writing-tests/dependencies-and-scheduling.md#capability-gating-requires) for the full expression grammar. |
 | `depends_on` | unit handles | Handles returned by `prova.test`/`flow`/`group`. This unit runs only after every dependency **passed**; if any failed or was skipped, this unit is skipped (transitively), not failed. A cycle is a collection-time error. |
 | `resources` | resource refs | Resources this unit holds while running — [`prova.port`](#provaport)/[`prova.resource`](#provaresource)/[`prova.shared`](#provashared) refs, or bare string tokens (exclusive by default). The scheduler never co-schedules two units whose holds conflict. Inert at `--jobs 1`. |
 | `serial` | `boolean` | Process-wide exclusive: never runs concurrently with anything. Default `false`. |
 | `timeout` | `string` | Time budget as a duration string (e.g. `"30s"`, `"500ms"`). Enforced per **test** and per flow **step**; teardown still runs after a timeout. A timeout set on a flow or group itself is not currently enforced — set it on the steps. |
+
+**Test- and flow-level only** (a validation error on a group or in `suite.config`):
+
+| Key | Type | Description |
+|---|---|---|
+| `promises` | `string` | A proof authored ahead of its implementation, with the reason as the value (mandatory). Red reports as the distinct `PROMISED` outcome; green **fails**, demanding graduation to `proves`. See [Promises & Burndown](../../writing-tests/promises-and-burndown.md). |
+| `proves` | `string` | The kept promise's context — runtime-inert (pass is pass, fail is fail); must be a non-empty string. Never shares a test with `promises`. |
+| `covers` | `string` | Binds this proof to a prose claim: `"docs/design.md#claim-id"`, optionally text-pinned with `@<hash>` (written by `prova owed --pin`). Reconciled by `prova owed` / `prova evidence` / `prova attest`. |
+| `falsified_by` | `fun(t)` | A mutation the body must catch. Applied only under `prova falsify`, which **inverts the verdict** — a body that survives its falsifier is reported vacuous and fails. Test-level only. |
 
 ## `prova.fixture`
 
@@ -334,7 +343,7 @@ Both are absolute paths, resolved against the project a run (or an MCP [`project
 
 The exec-CLI output-parsing toolkit: turn the text a CLI prints (typically via
 [`Container:run`](../modules/docker.md#containerruncommand-opts) or
-[`shell.run`](../modules/shell.md)) into Lua values, so plugins and tests never
+[`shell.run`](../modules/shell.md)) into Lua values, so packages and tests never
 hand-roll parsing. All four raise nothing except `json` (which raises on
 malformed JSON).
 
@@ -364,7 +373,7 @@ prova.containerized(spec)   -- → { client?, container }
 ```
 
 Build a grammar-conformant resource namespace from a compact spec — the
-scaffolding every containerized recipe/plugin is authored through, so
+scaffolding every containerized recipe/package is authored through, so
 first-party and third-party resources come out the same shape. The generated
 `container(ctx, opts?)` provisions via [`docker.run`](../modules/docker.md),
 waits for readiness, ties teardown to the scope with `ctx:manage`, and returns
@@ -402,12 +411,12 @@ local redis = prova.containerized{
     return { get = function(_, k) return c:run({ "redis-cli", "GET", k }) end }
   end,
 }
-return redis   -- a plugin: consumers write require("redis").container(ctx)
+return redis   -- a package: consumers write require("redis").container(ctx)
 ```
 
-This is the plugin author's entry point — the full authoring guide (facets,
-namespacing grammar, `prova plugin lint`, publishing) lives in
-[Authoring plugins](../../plugins/authoring-plugins.md).
+This is the package author's entry point — the full authoring guide (facets,
+namespacing grammar, `prova package lint`, publishing) lives in
+[Authoring packages](../../packages/authoring-packages.md).
 
 ## `suite.config`
 

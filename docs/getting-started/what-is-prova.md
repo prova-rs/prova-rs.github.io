@@ -41,9 +41,9 @@ Prova's wedge is that it refuses the trade-off: a **real programming language** 
 - **Real fixtures.** `prova.fixture` gives you named factories with four scopes (`Test`, `Flow`, `File`, `Suite`), lazy construction, per-scope caching, fixture-to-fixture dependencies, and guaranteed LIFO teardown — even when a test fails.
 - **Real scheduling.** Independent tests parallelize; ordered flows stay serial; `depends_on` edges skip dependents when an upstream fails; declared resources keep parallel tests from colliding over shared ports and databases.
 
-## A lean core and a plugin ecosystem
+## A lean core and a package ecosystem
 
-The binary ships the primitives and the network-drive clients: `fs`, `shell` (+`net`), `http`, `grpc`, `graphql`, `yaml`, `docker`, `sqlite`, and the bundled `archetect` plugin. Everything containerized — `postgres`, `mysql`, `redis`, `kafka`, `pulsar`, `rabbitmq`, `s3` — is an official external [plugin](../plugins/index.md) (`prova-rs/prova-<name>`): pure Lua over docker-exec, authored through `prova.containerized`, with zero native code. You declare them in `prova.toml` under `[plugins]` and attach with `require("postgres")`. The same authoring seam is open to you — see [Authoring Plugins](/docs/plugins/authoring-plugins).
+The binary ships the primitives and the network-drive clients: `fs`, `shell` (+`net`), `http`, `grpc`, `graphql`, `yaml`, `docker`, `sqlite`, and the bundled `archetect` package. Everything containerized — `postgres`, `mysql`, `redis`, `kafka`, `pulsar`, `rabbitmq`, `s3` — is an official external [package](../packages/index.md) (`prova-rs/prova-<name>`): pure Lua over docker-exec, authored through `prova.containerized`, with zero native code. You declare them in `prova.toml` under `[dependencies]` and attach with `require("postgres")`. The same authoring seam is open to you — see [Authoring Packages](/docs/packages/authoring-packages).
 
 ## Prova teaches your agent
 
@@ -54,7 +54,7 @@ prova skill              # print it (an agent session ingests it with `! prova s
 prova skill --install    # write .claude/skills/prova/SKILL.md so the repo carries it
 ```
 
-Prova also ships an **MCP mode**: `prova mcp` is a server whose tools mirror the CLI one-to-one (`run`, `list`, `eval`), serving this same skill as its instructions — plus **warm topology tools** (`up`/`down`/`status`) that hold a [topology](../writing-tests/topologies.md) live inside the server, so an agent's `run { topology }` re-run takes milliseconds instead of re-provisioning. The contract holds either way: if Prova is an MCP server, call tools; if it is a CLI, run commands; everything else is identical. See the [CLI reference](../reference/cli.md#prova-mcp).
+Prova also ships an **MCP mode**: `prova mcp` is a server whose tools mirror the CLI one-to-one (`run`, `list`, `eval`, `attest`, `evidence`, `owed`), serving this same skill as its instructions — plus **warm topology tools** (`up`/`down`/`status`) that hold a [topology](../writing-tests/topologies.md) live inside the server, so an agent's `run { topology }` re-run takes milliseconds instead of re-provisioning. The contract holds either way: if Prova is an MCP server, call tools; if it is a CLI, run commands; everything else is identical. See the [CLI reference](../reference/cli.md#prova-mcp).
 
 ## What Prova deliberately is not
 
@@ -68,7 +68,7 @@ Being good at the acceptance layer means being honest about the boundary:
 
 Prova is a sibling project to [Archetect](https://archetect.github.io), the code generator — they share the same Lua runtime and the same philosophy: real scripting with first-class editor tooling, shipped as a single native binary.
 
-The core runner is fully **domain-agnostic**; archetype rendering is the one plugin bundled into the `prova` binary. `archetect.render{...}` renders an archetype in-process (no subprocess) so you can generate a project, assert on its layout, and build it — all inside one test. Testing archetypes is both the justifying use case that shaped Prova and its ongoing dogfooding target — the nine-archetype proving ground above is exactly this loop — but it sits behind the same plugin boundary any other module would.
+The core runner is fully **domain-agnostic**; archetype rendering is the one package bundled into the `prova` binary. `archetect.render{...}` renders an archetype in-process (no subprocess) so you can generate a project, assert on its layout, and build it — all inside one test. Testing archetypes is both the justifying use case that shaped Prova and its ongoing dogfooding target — the nine-archetype proving ground above is exactly this loop — but it sits behind the same package boundary any other module would.
 
 ## Where to next
 

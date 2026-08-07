@@ -35,6 +35,12 @@ local TRACKS_LATEST = {
   { file = ".github/workflows/deploy.yml",
     pattern = "version: (v%d+%.%d+%.%d+)",
     why = "this site's own gate should run the release its docs describe" },
+  { file = "static/agents.md",
+    pattern = "such as `prova (%d+%.%d+%.%d+)`", strip_v = true,
+    why = "the agent setup doc names the version a fresh install should report" },
+  { file = "docs/getting-started/installation.md",
+    pattern = "prova@(%d+%.%d+%.%d+)", strip_v = true,
+    why = "the Homebrew pin example names a specific formula a reader would install" },
 }
 
 prova.test("every version the docs present as current is the current release",
@@ -45,9 +51,12 @@ prova.test("every version the docs present as current is the current release",
     for _, site in ipairs(TRACKS_LATEST) do
       local body = fs.read(root .. "/" .. site.file)
       local found = body:match(site.pattern)
+      -- Some strings spell the version without the tag's leading `v` (a Homebrew formula,
+      -- a --version report); compare them against the tag with it stripped.
+      local expect = site.strip_v and want:gsub("^v", "") or want
       t:expect(found, site.file .. " — " .. site.why):never():is_nil()
       if found then
-        t:expect(found, site.file .. " tracks the latest release"):equals(want)
+        t:expect(found, site.file .. " tracks the latest release"):equals(expect)
       end
     end
   end)
