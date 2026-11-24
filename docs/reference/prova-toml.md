@@ -24,7 +24,7 @@ or `prova` exits `2`.
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `proofs` | array of strings | `[]` | Directory-name patterns holding the proof suites to discover (`*.prova.lua`; `*_test.lua` / `*.test.lua` also accepted). This is the key `prova init` writes. |
-| `config` | string | — | The runtime companion (`prova.lua` / `.prova/config.lua`) where [custom capabilities](../writing-tests/dependencies-and-scheduling.md#custom-capabilities-the-provalua-companion) are registered. |
+| `config` | string | — | **Deprecated.** The runtime companion (`prova.lua` / `.prova/config.lua`) for `runtime.capability` registrations; declare [capabilities](../running-prova/capabilities.md) in `[capabilities]` instead. Retires at 1.0. |
 | `packages` | string | — | **The** directory of this package's own local packages; each child directory is reachable as `require("<dir>")` with no declaration. No default — undeclared means none scanned. |
 | `jobs` | integer | `1` | Maximum units run concurrently. Throughput only — never changes test semantics. |
 | `format` | string | `"console"` | Output format: `"console"`, `"json"`, or `"tap"`. Any other value is an error (exit `2`). |
@@ -52,7 +52,7 @@ must_run = ["docker", "dotnet >= 9"]   # unmet → FAIL, never skip
 - **Same grammar as `requires`** — a name, optionally with a semver constraint (`"dotnet >= 9"`, `"unix"`), resolved by the same probes. No capability is privileged; `must_run = ["kubectl"]` means kubectl on `PATH`.
 - **Checked as a precondition** (fail-fast), reporting the probe's own answer, e.g. `profile 'ci' guarantees capability 'docker', which is unavailable`.
 - **Additive across `[run]` and the selected profile** — the sets are **unioned**, so a laxer profile can never silence a stricter guarantee. A `must_run` naming an unregistered/typo'd capability still fails (a guarantee that can't be honored).
-- Custom capabilities registered in [the runtime companion](../writing-tests/dependencies-and-scheduling.md#custom-capabilities-the-provalua-companion) work here too.
+- Custom capabilities registered in [the runtime companion](../running-prova/capabilities.md) work here too.
 
 :::note Empty selection is also a failure
 Related to the same "silent green" hazard: a selection that matches nothing (`-k thisdoesnotexist`) exits non-zero rather than reporting `0 passed`. Opt out with `--allow-empty`.

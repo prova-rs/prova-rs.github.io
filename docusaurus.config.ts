@@ -18,6 +18,8 @@ const config: Config = {
   projectName: 'prova-rs.github.io',
 
   onBrokenLinks: 'throw',
+  // An anchor renamed by a heading edit is a broken link the reader hits just the same.
+  onBrokenAnchors: 'throw',
 
   // Swaps the favicon between the passing and failing marks when the reader
   // toggles the theme; favicon.svg handles the OS-preference case on its own.

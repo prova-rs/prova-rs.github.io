@@ -138,6 +138,21 @@ prova --package greet=./packages/greet.lua --package mq=acme:prova-rabbitmq@v1
 
 `-P name=source` is repeatable and accepts every source form the manifest does. Ad-hoc packages **layer over** the manifest's `[dependencies]`: a CLI entry with the same name overrides the declared one (useful for testing a local checkout of a package your suite normally pins from git). Local paths given on the CLI resolve relative to the current directory.
 
+## `--dep` — judge against another version, for one run
+
+```shell
+prova --dep postgres=v2.1.0           # a tag: same git URL and module, different pin
+prova --dep postgres=rev:3f9c2ab      # a revision
+prova --dep postgres=../prova-postgres # a local checkout replaces the source
+```
+
+`--dep name=<tag|rev|path>` changes a **declared** dependency's pin for this run only. No file is
+touched; the override is printed and written into the run record. A bare value reads as a path
+(`./x`, `/x`, an existing directory), a revision (7 to 40 hex characters) or a tag; the `tag:`,
+`rev:` and `path:` prefixes settle doubt. `PROVA_DEP_<NAME>` does the same from the environment,
+with the name uppercased and `-` written as `_`. The typical use is a release gate running a
+consumer suite under the old tag and the new one.
+
 ## Caching and freshness
 
 Git sources are fetched into Prova's package cache, keyed by URL **and** ref. A checkout that already exists is reused — a repeat run never re-clones.

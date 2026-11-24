@@ -213,8 +213,8 @@ prova.test("the backlog tier and reminders are taught", {
 end)
 
 prova.test("running at scale is taught", {
-  promises = "phase 4: locks, flakes, resume/reuse, dependency overrides and the capabilities "
-    .. "table shipped after v0.16",
+  proves = "phase 4 (2026-11-24): locks, flakes, resume/reuse, dependency overrides and the "
+    .. "capabilities table had shipped after v0.16 with no page",
 }, function(t)
   expect_taught(t, {
     { needle = "prova.writes(", what = "locks" },

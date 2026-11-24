@@ -132,20 +132,13 @@ must_run = ["docker", "dotnet >= 9"]   # CI guarantees these; an unmet one FAILS
 
 It is the **other direction** of the exact same vocabulary — same expression grammar, same probes. Where `requires` skips, `must_run` **fails**, and it fails **fast**: as a precondition, before any test runs, with the probe's own answer in the message. `[run] must_run` and a profile's `must_run` are additive (a guarantee can't be relaxed by a laxer profile). The point is to stop "0 failed" from hiding "everything skipped" — the most dangerous green there is.
 
-### Custom capabilities: the `prova.lua` companion
+### Custom capabilities: `[capabilities]`
 
-The built-ins cover OS, Docker, and anything on `PATH` with a `--version`. For a capability no name-and-version can express — a GPU, a `kind` cluster, a licence file — register your own in an optional **`prova.lua`** file beside `prova.toml`:
-
-```lua
--- prova.lua — loaded WITH the manifest, project-wide
-runtime.capability("gpu", function() return probe_cuda() end)          -- true / false
-runtime.capability("kind-cluster", function() return #kind_clusters() > 0 end)
-runtime.capability("gpu-driver", function() return driver_version() end)  -- a version string → "gpu-driver >= 2" works
-```
-
-The predicate returns `true` (available), a **version string** (comparable, so `requires = { "gpu-driver >= 2" }` works), or `false`/`nil` (unavailable). It is evaluated **once per run** at load. Once registered, the name works in **both directions** — `requires = { "gpu" }` to skip, `must_run = ["gpu"]` to fail.
-
-The rules that keep it honest: `prova.lua` lives next to `prova.toml` (found by the same home-anchoring as the manifest, not the cwd); a broken one is a **config error**, not a silent skip; and you cannot shadow a built-in like `docker`. The division of labor mirrors Archetect's `archetype.yaml` + `archetype.lua`: **TOML declares, Lua computes.** The `runtime.*` namespace is available *only* in this companion — calling it from a test raises, because it configures the environment tests run *in*.
+The built-ins cover the OS, Docker, and anything on `PATH` with a `--version`. For anything else,
+declare it in the manifest's `[capabilities]` table: a `command` with its own version arguments and
+pattern, or a `package` predicate for a fact no name and version can express (a GPU, a `kind`
+cluster, a licence file). Once declared, the name works in both directions: `requires` to skip,
+`must_run` to fail. The full grammar is on [Capabilities](../running-prova/capabilities.md).
 
 ## `--jobs` changes throughput, never meaning
 
@@ -163,7 +156,7 @@ One nuance worth knowing: `--jobs` counts concurrent [suites](./suites-and-share
 | "This test must own the whole machine" | `serial = true` |
 | "Skip cleanly where Docker/cargo is absent" | `requires` |
 | "This environment must have Docker/.NET — fail if not" | [`must_run`](../reference/prova-toml.md#must_run) in `prova.toml` |
-| "A capability no version string can express (GPU, kind)" | [`runtime.capability`](#custom-capabilities-the-provalua-companion) in `prova.lua` |
+| "A capability no version string can express (GPU, kind)" | a [`[capabilities]`](../running-prova/capabilities.md) entry backed by a package predicate |
 | Passing a value between units | a [fixture](./fixtures.md) — never a dependency |
 
 ## Next

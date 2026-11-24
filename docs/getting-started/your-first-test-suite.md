@@ -18,7 +18,7 @@ prova init
 
 ```text
 .prova/prova.toml     the manifest, tucked in the .prova/ nook — discovery walks up to it
-.prova/config.lua     the runtime companion, where runtime.capability registrations live
+.prova/config.lua     the runtime companion (deprecated: declare capabilities in [capabilities])
 .prova/packages/lib/  the project's shared library package — require("lib") from any proof
 proofs/               the starter suite
 .github/workflows/    CI that installs prova and runs this same suite
