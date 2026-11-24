@@ -252,3 +252,7 @@ db.client:query_value("SELECT count(*) FROM t")     -- 0
 ```
 
 For more shapes, read the other [official packages](./official-packages.md): Kafka (stdin-piped console producer, tools not on PATH), Pulsar (log-line readiness is also a false positive — retry a real produce), RabbitMQ (`prova.parse.table` over `rabbitmqadmin` TSV), S3/MinIO (multi-step client config, `--json` output, `extra` fields for credentials), and kind/Parallels (packages that advertise **topologies**).
+
+:::tip[In the binary]
+`prova learn package-authoring` carries this page's material in one screen, with your own package's facts filled in. It always matches the binary you are running.
+:::

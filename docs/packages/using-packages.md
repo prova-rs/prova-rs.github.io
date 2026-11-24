@@ -208,3 +208,7 @@ end)
 ```
 
 Each resource's `url` is handed to the app under test's environment (`DATABASE_URL = env.pg.url`), and each `client` cross-checks state at that tier — see [Multi-Service Systems](../writing-tests/multi-service-systems.md) for the full walkthrough.
+
+:::tip[In the binary]
+`prova learn packages` carries this page's material in one screen, with your own package's facts filled in. It always matches the binary you are running.
+:::

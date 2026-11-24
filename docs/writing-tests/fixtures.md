@@ -158,3 +158,7 @@ Parametrized fixtures (`opts.params` with `ctx:param()`, multiplying every depen
 ## Next
 
 Fixtures carry state *within* a scope; when you need ordered steps that build state across a scenario, read [Flows](./flows.md). For sharing one live fixture across many files, read [Suites & Shared State](./suites-and-shared-state.md). The full context API is in the [reference](../reference/lua-api/context.md).
+
+:::tip[In the binary]
+`prova learn fixtures` carries this page's material in one screen, with your own package's facts filled in. It always matches the binary you are running.
+:::

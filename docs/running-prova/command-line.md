@@ -278,3 +278,7 @@ This is the contract CI relies on: gate on the exit code, parse the output only 
 `prova package lint <file>...` checks package files against the namespacing grammar and nudges you to ship the `---@meta` stub that gives consumers editor completion. It belongs to the package-authoring workflow — see [Authoring Packages](/docs/packages/authoring-packages).
 
 The full flag-by-flag reference lives at [CLI Reference](../reference/cli.md).
+
+:::tip[In the binary]
+`prova learn running` carries this page's material in one screen, with your own package's facts filled in. It always matches the binary you are running.
+:::

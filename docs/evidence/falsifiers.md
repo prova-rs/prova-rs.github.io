@@ -101,3 +101,7 @@ proof can *discriminate*. Together they close the two vacuity holes a green tall
 the proof that never ran, and the proof that ran but asserts nothing. Teams typically run
 `prova tests falsify` as an occasional lane (a nightly, a pre-release check) rather than in the merge
 gate — the mutations are real work, and the property they check drifts slowly.
+
+:::tip[In the binary]
+`prova learn falsify` carries this page's material in one screen, with your own package's facts filled in. It always matches the binary you are running.
+:::

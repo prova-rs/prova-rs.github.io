@@ -121,3 +121,7 @@ concept.
 
 The authoring side of the spine's right half lives in
 [Promises & Burndown](../writing-tests/promises-and-burndown.md).
+
+:::tip[In the binary]
+`prova learn evidence` carries this page's material in one screen, with your own package's facts filled in. It always matches the binary you are running.
+:::

@@ -15,6 +15,7 @@ Everything about *executing* your test suites — from ad-hoc runs against a sin
 - **[Capabilities](./capabilities.md)** — what the host must provide: `requires` and `must_run`, the built-ins, and declaring your own in `[capabilities]`.
 - **[CI & Output](./ci-and-output.md)** — console, JSONL, TAP, and JUnit XML output, consuming the event stream, and the GitHub Action (with package caching).
 - **[Locks, Flakes & Reruns](./locks-and-scale.md)** — house rules held across every prova instance, the FLAKY verdict and `prova stress`, `--resume` and `--reuse`, and time bounds.
+- **[Agents & MCP](./agents-and-mcp.md)** — the binary that teaches itself, `prova mcp`, and warm topologies for an agent's iterate loop.
 - **[IDE Setup](./ide-setup.md)** — autocomplete, hover docs, and type-checking for your test files via lua-language-server, via `prova ide setup` (also run automatically by `prova init`).
 
 ## The shape of a run

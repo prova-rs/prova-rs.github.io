@@ -88,3 +88,7 @@ owed — safe on any machine, exit `0` always.
   taxes the ordinary path is machinery people switch off.
 - **Not a coverage metric.** It says what executed, not what was worth executing. Pair it with
   [falsifiers](./falsifiers.md) — a proof that ran and cannot fail is its own kind of nothing.
+
+:::tip[In the binary]
+`prova learn record` carries this page's material in one screen, with your own package's facts filled in. It always matches the binary you are running.
+:::

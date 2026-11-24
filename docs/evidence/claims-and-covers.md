@@ -110,3 +110,7 @@ Claims are the **intake** side of the [lifecycle](./index.md): prose → obligat
 evidence that the covering proof actually ran. In between sits the ordinary authoring loop —
 [promises](../writing-tests/promises-and-burndown.md) while the work is open, `proves` once it
 lands.
+
+:::tip[In the binary]
+`prova learn claims` and `prova learn spec` carry this page's material in one screen, with your own package's facts filled in. It always matches the binary you are running.
+:::

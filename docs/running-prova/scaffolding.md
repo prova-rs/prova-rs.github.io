@@ -100,3 +100,7 @@ Once the archetype is rendered, `prova init` runs the same wiring as [`prova ide
 over whatever manifest was produced, so your editor has completion immediately (unless `--no-ide`).
 IDE wiring is also available on its own — run `prova ide setup` any time to (re)create `.luarc.json`,
 for instance after cloning a project someone else scaffolded.
+
+:::tip[In the binary]
+`prova learn init` carries this page's material in one screen, with your own package's facts filled in. It always matches the binary you are running.
+:::

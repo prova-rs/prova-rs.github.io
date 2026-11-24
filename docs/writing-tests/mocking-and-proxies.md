@@ -280,3 +280,7 @@ By default a `:reply` handler that **raises** answers `500`, journals the error,
 - [`http.mock`](../reference/modules/http.md#the-mock-facet-httpmock) and [`grpc.mock`](../reference/modules/grpc.md#the-mock-facet-grpcmock) — the full API.
 - [Testing Real Systems](./testing-real-systems.md) — when to run the real dependency instead.
 - [Topologies](./topologies.md) — holding a whole environment across runs.
+
+:::tip[In the binary]
+`prova learn doubles` and `prova learn proxies` carry this page's material in one screen, with your own package's facts filled in. It always matches the binary you are running.
+:::

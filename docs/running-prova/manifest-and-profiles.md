@@ -141,3 +141,7 @@ Keep the manifest boring: proofs, jobs, format, env. Behavior — which fixtures
 :::
 
 For the complete schema — every table, field, and default — see the [prova.toml reference](../reference/prova-toml.md).
+
+:::tip[In the binary]
+`prova learn project` carries this page's material in one screen, with your own package's facts filled in. It always matches the binary you are running.
+:::

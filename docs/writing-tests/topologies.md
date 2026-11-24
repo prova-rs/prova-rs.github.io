@@ -167,3 +167,7 @@ Standing up a topology that is already up is refused; stale records (the holder 
 ## Run it
 
 The full example ships in the Prova repository as [`examples/topology`](https://github.com/prova-rs/prova/tree/main/examples/topology) — the `orders` definition above, its tests, and a manifest declaring the postgres and redis packages. The verb-by-verb flag reference lives in the [CLI reference](../reference/cli.md#topology-verbs-up-start-down-ps).
+
+:::tip[In the binary]
+`prova learn topologies` carries this page's material in one screen, with your own package's facts filled in. It always matches the binary you are running.
+:::

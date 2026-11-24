@@ -16,8 +16,12 @@ To pin a major line or an exact version:
 
 ```shell
 brew install prova-rs/tap/prova@0         # latest stable 0.x
-brew install prova-rs/tap/prova@0.17.0    # exactly 0.17.0
+brew install prova-rs/tap/prova@0.26.1    # exactly 0.26.1
 ```
+
+The tap can lag the newest release. If `prova --version` reports something older than the
+[latest release](https://github.com/prova-rs/prova/releases/latest), install from the release
+archives below.
 
 The tap's formulas are generated automatically from each release — see [prova-rs/homebrew-tap](https://github.com/prova-rs/homebrew-tap).
 

@@ -129,3 +129,7 @@ end)
 ## Next
 
 Fixtures are the mechanism behind almost everything on this page — continue with [Fixtures](./fixtures.md), or jump to the full [`prova` API reference](../reference/lua-api/prova.md).
+
+:::tip[In the binary]
+`prova learn authoring` carries this page's material in one screen, with your own package's facts filled in. It always matches the binary you are running.
+:::

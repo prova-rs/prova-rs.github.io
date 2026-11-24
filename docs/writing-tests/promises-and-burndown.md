@@ -100,3 +100,7 @@ Whenever you can state a contract the system does not honor yet:
 
 Prova nudges agents toward this by default; a package that is not run this way can opt out with
 [`[agent] spec_first = false`](../reference/prova-toml.md#agent--how-prova-learn-addresses-an-agent).
+
+:::tip[In the binary]
+`prova learn promises` carries this page's material in one screen, with your own package's facts filled in. It always matches the binary you are running.
+:::

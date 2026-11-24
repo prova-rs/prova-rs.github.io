@@ -279,8 +279,8 @@ local TOPIC_HOMES = {
 }
 
 prova.test("every prova learn topic has a home page that names it", {
-  promises = "phase 6: the guard that keeps the docs from falling a release behind again — a "
-    .. "new topic in the binary is a page the docs owe",
+  proves = "phase 6 (2026-11-24): the guard that keeps the docs from falling a release behind "
+    .. "again — a new topic in the binary is a page the docs owe",
 }, function(t)
   local r = shell.run({ "prova", "learn" }, { check = true })
   local topics = {}
