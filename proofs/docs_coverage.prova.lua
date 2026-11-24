@@ -301,3 +301,79 @@ prova.test("every prova learn topic has a home page that names it", {
     end
   end)
 end)
+
+-- ── Phase 7: the Reference tier (2026-11-24) ─────────────────────────────────────────────────
+--
+-- The guides caught up with v0.30 in phases 0–6; the Reference did not. These hold the reference
+-- to the API surface the binary itself reports.
+
+--- The concatenated text of every page under docs/reference.
+local function reference_text()
+  local out = {}
+  for _, f in ipairs(fs.glob(root .. "/docs/reference", "**/*.md")) do out[#out + 1] = fs.read(f) end
+  return table.concat(out, "\n")
+end
+
+prova.test("every function and method prova introspect reports is in the reference", {
+  promises = "phase 7a: str, path, socket, websocket, terminal, stdio, report and dozens of "
+    .. "methods have no reference entry",
+}, function(t)
+  local r = shell.run({ "prova", "introspect" }, { check = true })
+  local ref = reference_text()
+  local missing = {}
+  for line in r.stdout:gmatch("[^\n]+") do
+    -- "  ns.fn(" is a namespace function; "  Class:method(" is a method. Types ("prova.Foo{") are
+    -- documented by the functions that take them, so they are not entries of their own.
+    local ns, fn = line:match("^  ([a-z_]+)%.([a-z_][%w_]*)%(")
+    local cls, m = line:match("^  ([A-Z][%w]*):([a-z_][%w_]*)%(")
+    if ns and not ref:find(ns .. "." .. fn, 1, true) then
+      missing[#missing + 1] = ns .. "." .. fn
+    elseif cls and not ref:find(":" .. m, 1, true) then
+      missing[#missing + 1] = cls .. ":" .. m
+    end
+  end
+  t:expect(#missing, "not in the reference: " .. table.concat(missing, ", ")):equals(0)
+end)
+
+prova.test("the reference covers the namespaces the stubs do not describe", {
+  promises = "phase 7a: sarif, measure and date are live in the binary but absent from "
+    .. "`prova introspect`, so the guard above cannot see them",
+}, function(t)
+  local ref = reference_text()
+  t:expect_all(function()
+    for _, needle in ipairs({ "sarif.verify", "sarif.load", "measure.ratchet", "measure.record",
+      "date.past", "date.days_since", "junit.ingest", "report.publish" }) do
+      t:expect(ref:find(needle, 1, true), "the reference does not document " .. needle):never():is_nil()
+    end
+  end)
+end)
+
+prova.test("the prova.toml reference covers every manifest key", {
+  promises = "phase 7b: topology startup/scope, switches, [stress] and [runner] are missing "
+    .. "from the manifest reference",
+}, function(t)
+  local toml = fs.read(root .. "/docs/reference/prova-toml.md")
+  t:expect_all(function()
+    for _, needle in ipairs({ "## `[capabilities]`", "## `[topologies]`", 'startup = "',
+      'scope = "run"', "switches", "heed", "## `[stress]`", "## `[runner]`", "## `[specs]`" }) do
+      t:expect(toml:find(needle, 1, true), "prova-toml.md omits " .. needle):never():is_nil()
+    end
+  end)
+end)
+
+prova.test("the smaller features are taught where they belong", {
+  promises = "phase 7c: barrier, advise, infra, run-scoped identity, TLS options and the run "
+    .. "record verbs have no guide coverage",
+}, function(t)
+  expect_taught(t, {
+    { needle = "prova.barrier", what = "the concurrency assertion" },
+    { needle = ":advise", what = "advisory measures" },
+    { needle = "prova.infra", what = "infrastructure failures" },
+    { needle = "Scope.Run", what = "run-scoped fixtures" },
+    { needle = "fs.digest", what = "conduct identity" },
+    { needle = "insecure = true", what = "TLS without verification" },
+    { needle = "ca_cert", what = "a private CA" },
+    { needle = "prova run show", what = "reading a past run" },
+    { needle = "--uncached", what = "the audit run" },
+  })
+end)
