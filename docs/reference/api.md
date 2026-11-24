@@ -8,11 +8,11 @@ sidebar_label: "API Index"
 Every function, method and type the `prova` binary reports, with its signature and summary.
 This page is generated from `prova introspect` by `scripts/reference_from_introspect.py`;
 do not edit it by hand. The module pages ([Modules](./modules/index.md)) and the
-[Lua API](./lua-api/index.md) explain the important ones in depth; namespaces the stubs do
-not describe yet are on [Verifiers & Measurements](./modules/verifiers.md). Where a stub lags
-the runtime, the [Lua API](./lua-api/prova.md) page is authoritative.
+[Lua API](./lua-api/index.md) explain the important ones in depth, and
+[Verifiers & Measurements](./modules/verifiers.md) covers the deputed-evidence namespaces.
+The stubs this page is generated from are held to the runtime by prova's own tests.
 
-Generated for prova v0.30.12 (`prova introspect` in your own shell always
+Generated for prova v0.30.13 (`prova introspect` in your own shell always
 matches the binary you run).
 
 ## Namespaces
@@ -59,6 +59,50 @@ csv.encode(rows: table<string, any>[], opts?: prova.CsvOpts) -> string
 
 Encode a list of header-keyed row maps as CSV text with a header line. Quoting is automatic (RFC 4180).
 
+### `date`
+
+```lua
+date.days_since(v: string|integer) -> integer
+```
+
+Whole days from `v` until now, floored.
+
+```lua
+date.days_until(v: string|integer) -> integer
+```
+
+Whole days from now until `v`, floored.
+
+```lua
+date.diff_days(a: string|integer, b: string|integer) -> integer
+```
+
+Whole days from `a` to `b`, floored.
+
+```lua
+date.format(ts?: integer, fmt?: string) -> string
+```
+
+`os.date` formatting, "%Y-%m-%d" by default.
+
+```lua
+date.now() -> integer
+```
+
+The current time, unix seconds.
+
+```lua
+date.parse(s: string) -> integer
+```
+
+Unix seconds for a date string.
+
+```lua
+date.past(v: string|integer) -> boolean
+```
+
+True once `v` is in the past.
+
 ### `docker`
 
 ```lua
@@ -66,6 +110,12 @@ docker.build(opts: prova.DockerBuildOpts) -> string image
 ```
 
 Build a local image from a Dockerfile and return its ref, ready for `docker.run&#123; image = … &#125;`. Honors `.dockerignore`, BuildKit cache mounts, and BuildKit secrets. Raises with the builder's log if the build fails. A production Dockerfile that reads a private registry token via `RUN --mount=type=secret,id=npm` is built by naming that id in `secrets`: `secrets = &#123; npm = &#123; env = "NPM_TOKEN" &#125; &#125;`. Prefer this over `buildargs` for anything sensitive — build args are recorded in image history, which is what BuildKit secrets exist to avoid.
+
+```lua
+docker.diagnostics() -> { port_bind_recoveries: integer, port_bind_failures: integer }
+```
+
+What the container runtime got wrong that prova papered over: recoveries are silent, and a silent recovery is indistinguishable from nothing having gone wrong. Process-wide and monotonic, so read it before and after and take the delta (a soak comparing runtimes).
 
 ```lua
 docker.network(opts?: prova.DockerNetworkOpts) -> prova.Network
@@ -280,10 +330,42 @@ junit.load(pattern: string, opts?: prova.JunitLoadOpts) -> prova.JunitReport
 Parse JUnit XML result files (a path or glob) into a structured report — the primitive. Tolerant of dialect drift; consumes the stable core (names, outcomes, messages, timings).
 
 ```lua
+junit.merge(prior: string, rerun?: string, opts: { reused_from: string, out: string }) -> string
+```
+
+A deputy's full account after a resumed run re-ran only its failures: every case of `prior` the rerun did not re-run is carried forward and MARKED with the run it came from; a re-run case replaces its prior verdict. A re-run pass over a prior red is `flaky`, never a pass. Writes the merged XML to `opts.out` and returns that path.
+
+```lua
+junit.select(path: string, opts: { suites: string[], out: string }) -> integer
+```
+
+The part of one account whose suites are named: a suite `s` takes `s` itself and every `s::…` (nextest names a binary `&lt;package>::&lt;binary>`), so one batched conduct splits into per-module accounts. Every case keeps its verdict and origin. Writes to `opts.out`.
+
+```lua
+junit.union(paths: string[], opts: { out: string }) -> string
+```
+
+Disjoint accounts made one: the slices of one partitioned conduct (`nextest --partition`). A case in two of them is REFUSED — slices never overlap, so a duplicate is a broken partition, never a re-run (that is `merge`). Writes to `opts.out`.
+
+```lua
 junit.verify(t: prova.TestContext, opts: prova.JunitVerifyOpts) -> prova.JunitReport
 ```
 
 The verifier facet: run the deputy (optional), load its FRESH results, ingest them, and adopt the verdict — any failed/errored case fails the proof with the deputed cases' own names and messages, and zero parsed cases fails too (a glob matching nothing must never read as green). Returns the report. ```lua prova.test("the service's own suite holds", &#123; tags = &#123; "unit" &#125; &#125;, function(t) junit.verify(t, &#123; run = "mvn -q test", results = "target/surefire-reports/*.xml" &#125;) end) ```
+
+### `measure`
+
+```lua
+measure.ratchet(t: prova.TestContext, name: string, value: number, opts?: prova.MeasureOpts)
+```
+
+Record `value` and assert it against the committed baseline: red on a regression past the floor (and its `tolerance`), on a missing baseline, on a reached `goal`, and on a missed `deadline`. Only `prova --update-baseline` moves a baseline, and only tighter.
+
+```lua
+measure.record(name: string, value: number, opts?: prova.MeasureOpts) -> number
+```
+
+File `value` into the run's measurements without asserting (a no-op outside a run).
 
 ### `net`
 
@@ -293,50 +375,6 @@ net.free_port() -> integer
 
 An OS-assigned free TCP port on 127.0.0.1 — for a locally `shell.spawn`ed app that needs a dynamic port (a container gets its random host port from `docker.run` instead).
 
-### `path`
-
-```lua
-path.basename(p: string) -> string
-```
-
-The last component (`""` for a bare root, which has none).
-
-```lua
-path.dirname(p: string) -> string
-```
-
-Everything before the last component — `"."` for a bare name, the root for a first-level entry (`"/a"` → `"/"`, `"C:/a"` → `"C:/"`). A trailing slash does not make a component.
-
-```lua
-path.ext(p: string) -> string
-```
-
-The extension of the last component WITHOUT the dot (`"txt"`, not `".txt"`); `""` when there is none. A dotfile (`".gitignore"`) is all stem, no extension.
-
-```lua
-path.is_absolute(p: string) -> boolean
-```
-
-Whether `p` is absolute — unix (`"/…"`), drive (`"C:/…"` or `"C:\…"`), or UNC (`"//server/…"`).
-
-```lua
-path.join(...: string) -> string
-```
-
-Join segments with `/`; empty segments contribute nothing, and an absolute later segment resets the join (`path.join("a", "/etc", "b")` → `"/etc/b"`).
-
-```lua
-path.normalize(p: string) -> string
-```
-
-Collapse `.`/`..`/duplicate separators, strip any trailing slash, emit `/`. Purely lexical: leading `..` in a relative path survives; `..` cannot climb above a root; `""` → `"."`.
-
-```lua
-path.stem(p: string) -> string
-```
-
-The last component minus its extension (`"b.tar.gz"` → `"b.tar"`).
-
 ### `prova`
 
 ```lua
@@ -344,13 +382,17 @@ prova.archetect{}
 ```
 
 ```lua
-prova.barrier(token: string, parties: integer, opts?: { timeout?: string }) -> integer position
+prova.barrier(token: string, parties: integer, opts?: prova.BarrierOpts) -> integer position
 ```
 
 Wait until `parties` participants have arrived at `token`, then release them together. The concurrency assertion: reaching the far side IS the proof the participants were in flight at once, so there is no window to have been lucky in. `prova.sleep` measures timing luck in both directions — it fails on a loaded host and passes when a serialized system happens to overlap. Bounded: `timeout` defaults to 30s and reaching it FAILS the test, naming how many of how many arrived. Participants become one atomic selection unit — `-k`, `--node` and `--last-failed` that pick some of them leave the rest waiting — so reach for it when concurrency is the property under proof, not as a general coordination tool.
 
 ```lua
 prova.base64{}
+```
+
+```lua
+prova.cargo{}
 ```
 
 ```lua
@@ -361,6 +403,10 @@ Build a grammar-conformant resource namespace (`&#123; client?, container &#125;
 
 ```lua
 prova.csv{}
+```
+
+```lua
+prova.date{}
 ```
 
 ```lua
@@ -418,6 +464,12 @@ prova.http{}
 ```
 
 ```lua
+prova.infra(msg: string)
+```
+
+Fail this node for a cause in the environment, not the code under proof: a build tool that cannot read the workspace, a toolchain that cannot run. The node is `failed` as ever, and its JSON event also says `cause = "infra"` with `msg`'s first line as `cause_line`, so a gate can tell an infra red from a real one by value. Herald gives no verdict for it and rides again. The cause is the error's TYPE, never its text: a proof's own `error()` that quotes infra's words is a plain red. A proof that catches this error with `pcall` and re-raises the SAME value (`error(e, 0)`) still says infra, deliberately: it passes the cause on. Re-raising its text (`error(tostring(e))`) does not.
+
+```lua
 prova.json{ null: lightuserdata  -- explicit-null sentinel: emit null from encode, assert null in shapes }
 ```
 
@@ -426,26 +478,12 @@ prova.junit{}
 ```
 
 ```lua
+prova.measure{}
+```
+
+```lua
 prova.net{}
 ```
-
-```lua
-prova.parse.lines(s: string) -> string[]
-```
-
-Split into non-empty, trimmed lines.
-
-```lua
-prova.parse.rows(s: string, sep?: string) -> string[][]
-```
-
-Split each non-empty line on `sep` (default tab) into a list of columns.
-
-```lua
-prova.parse.table(s: string, sep?: string) -> table<string, string>[]
-```
-
-Treat the first non-empty line as a header row; return each remaining row as a map keyed by header.
 
 ```lua
 prova.parse{}
@@ -492,6 +530,10 @@ prova.runtime{}
 ```
 
 `runtime.*` — the Lua-shaped configuration DSL for the whole runtime. Available ONLY in the optional `prova.lua` companion beside `prova.toml`; calling it from a test raises (it configures the environment tests run *in*, and only the companion loads early enough to do that).
+
+```lua
+prova.sarif{}
+```
 
 ```lua
 prova.shell{}
@@ -581,6 +623,286 @@ A **writer** hold on a resource — exclusive: while this unit runs, nothing els
 prova.yaml{}
 ```
 
+### `prova.cargo`
+
+```lua
+prova.cargo.account(t: prova.TestContext, name?: string) -> string
+```
+
+The account of module `name` (default: this proof's module) — a junit path, for `junit.load` readers that bind claims to named cases.
+
+```lua
+prova.cargo.configure(opts: prova.CargoConfigureOpts)
+```
+
+Set the conduct's nextest profile, junit file name and extra arguments, once, where the package's proofs share setup: every state that may conduct must agree, since whichever asks first conducts for the run.
+
+```lua
+prova.cargo.verify(t: prova.TestContext, opts?: { module?: string }) -> prova.JunitReport
+```
+
+Adopt a module's account: every case ingested, red on any failed one, red on an empty one. A leaf that may conduct holds the cargo lock: `locks = &#123; prova.writes("cargo") &#125;`. ```lua local cargo = require("prova.cargo") prova.test("billing's unit cases pass", &#123; locks = &#123; prova.writes("cargo") &#125; &#125;, function(t) cargo.verify(t) end) ```
+
+### `prova.parse`
+
+```lua
+prova.parse.lines(s: string) -> string[]
+```
+
+Split into non-empty, trimmed lines.
+
+```lua
+prova.parse.rows(s: string, sep?: string) -> string[][]
+```
+
+Split each non-empty line on `sep` (default tab) into a list of columns.
+
+```lua
+prova.parse.table(s: string, sep?: string) -> table<string, string>[]
+```
+
+Treat the first non-empty line as a header row; return each remaining row as a map keyed by header.
+
+### `prova.path`
+
+```lua
+prova.path.basename(p: string) -> string
+```
+
+The last component (`""` for a bare root, which has none).
+
+```lua
+prova.path.dirname(p: string) -> string
+```
+
+Everything before the last component — `"."` for a bare name, the root for a first-level entry (`"/a"` → `"/"`, `"C:/a"` → `"C:/"`). A trailing slash does not make a component.
+
+```lua
+prova.path.ext(p: string) -> string
+```
+
+The extension of the last component WITHOUT the dot (`"txt"`, not `".txt"`); `""` when there is none. A dotfile (`".gitignore"`) is all stem, no extension.
+
+```lua
+prova.path.is_absolute(p: string) -> boolean
+```
+
+Whether `p` is absolute — unix (`"/…"`), drive (`"C:/…"` or `"C:\…"`), or UNC (`"//server/…"`).
+
+```lua
+prova.path.join(...: string) -> string
+```
+
+Join segments with `/`; empty segments contribute nothing, and an absolute later segment resets the join (`path.join("a", "/etc", "b")` → `"/etc/b"`).
+
+```lua
+prova.path.normalize(p: string) -> string
+```
+
+Collapse `.`/`..`/duplicate separators, strip any trailing slash, emit `/`. Purely lexical: leading `..` in a relative path survives; `..` cannot climb above a root; `""` → `"."`.
+
+```lua
+prova.path.stem(p: string) -> string
+```
+
+The last component minus its extension (`"b.tar.gz"` → `"b.tar"`).
+
+### `prova.str`
+
+```lua
+prova.str.camel_case(s: string) -> string
+```
+
+`helloWorld` (archetect's `camel_case` filter)
+
+```lua
+prova.str.class_case(s: string) -> string
+```
+
+`FooBar`, singularized (`"foo_bars"` → `"FooBar"`) — archetect's `class_case`
+
+```lua
+prova.str.cobol_case(s: string) -> string
+```
+
+`HELLO-WORLD` (archetect's `cobol_case`)
+
+```lua
+prova.str.constant_case(s: string) -> string
+```
+
+`HELLO_WORLD` — archetect's name for screaming-snake
+
+```lua
+prova.str.deordinalize(s: string) -> string
+```
+
+`"1st"` → `"1"` (archetect's `deordinalize`)
+
+```lua
+prova.str.directory_case(s: string) -> string
+```
+
+`foo/bar` (archetect's `directory_case`)
+
+```lua
+prova.str.is_camel_case(s: string) -> boolean
+```
+
+Whether `s` is already camelCase.
+
+```lua
+prova.str.is_class_case(s: string) -> boolean
+```
+
+Whether `s` is already ClassCase (pascal, singular).
+
+```lua
+prova.str.is_cobol_case(s: string) -> boolean
+```
+
+Whether `s` is already COBOL-CASE.
+
+```lua
+prova.str.is_constant_case(s: string) -> boolean
+```
+
+Whether `s` is already CONSTANT_CASE.
+
+```lua
+prova.str.is_directory_case(s: string) -> boolean
+```
+
+Whether `s` is already directory/case.
+
+```lua
+prova.str.is_kebab_case(s: string) -> boolean
+```
+
+Whether `s` is already kebab-case.
+
+```lua
+prova.str.is_package_case(s: string) -> boolean
+```
+
+Whether `s` is already package.case.
+
+```lua
+prova.str.is_pascal_case(s: string) -> boolean
+```
+
+Whether `s` is already PascalCase.
+
+```lua
+prova.str.is_sentence_case(s: string) -> boolean
+```
+
+Whether `s` is already Sentence case.
+
+```lua
+prova.str.is_snake_case(s: string) -> boolean
+```
+
+Whether `s` is already snake_case.
+
+```lua
+prova.str.is_title_case(s: string) -> boolean
+```
+
+Whether `s` is already Title Case.
+
+```lua
+prova.str.is_train_case(s: string) -> boolean
+```
+
+Whether `s` is already Train-Case.
+
+```lua
+prova.str.kebab_case(s: string) -> string
+```
+
+`hello-world` (archetect's `kebab_case`)
+
+```lua
+prova.str.lines(s: string) -> string[]
+```
+
+The portable line reader: split on `\n`, absorbing a preceding `\r`; a trailing newline yields no phantom empty line. Same result whether the text came from a unix or a Windows program.
+
+```lua
+prova.str.ordinalize(s: string) -> string
+```
+
+`"1"` → `"1st"`, `"22"` → `"22nd"` (archetect's `ordinalize`)
+
+```lua
+prova.str.package_case(s: string) -> string
+```
+
+`foo.bar` (archetect's `package_case`)
+
+```lua
+prova.str.pascal_case(s: string) -> string
+```
+
+`HelloWorld` (archetect's `pascal_case`)
+
+```lua
+prova.str.pluralize(s: string) -> string
+```
+
+`"user"` → `"users"` (archetect's `pluralize`)
+
+```lua
+prova.str.sentence_case(s: string) -> string
+```
+
+`Hello world` (archetect's `sentence_case`)
+
+```lua
+prova.str.singularize(s: string) -> string
+```
+
+`"users"` → `"user"` (archetect's `singularize`)
+
+```lua
+prova.str.snake_case(s: string) -> string
+```
+
+`hello_world` (archetect's `snake_case`)
+
+```lua
+prova.str.split(s: string, sep: string) -> string[]
+```
+
+Split on a plain (non-pattern) separator, KEEPING empty fields — `"a,,c"` has three fields. The separator must be non-empty.
+
+```lua
+prova.str.title_case(s: string) -> string
+```
+
+`Hello World` (archetect's `title_case`)
+
+```lua
+prova.str.train_case(s: string) -> string
+```
+
+`Hello-World` (archetect's `train_case`)
+
+```lua
+prova.str.trim(s: string) -> string
+```
+
+Strip surrounding whitespace from both ends.
+
+### `prova.workspace`
+
+```lua
+prova.workspace.create(ctx: prova.Context, opts?: table) -> prova.Workspace
+```
+
+Create a scratch directory whose lifetime is tied to `ctx` — removed on scope teardown.
+
 ### `report`
 
 ```lua
@@ -597,10 +919,30 @@ runtime.capability(name: string, predicate: fun(): boolean|string|nil)
 
 DEPRECATED — declare capabilities in `prova.toml`'s `[capabilities]` instead: [capabilities] gpu = &#123; package = "env", capability = "gpu" &#125; and move this predicate into that package as an exported `capabilities.gpu` function, where a proof can call it directly. The companion file, this function, the `runtime` global, `[run] config`, `--config`, and `PROVA_CONFIG` retire together (docs/design/deprecations.md#retire-capability-companion). Registers a project-wide capability — a fact about what THIS system, as configured, can test: its OS, hardware, and software. A property of the environment, not the code. The name (not the closure) is what lets a skip say what was missing; the predicate is only how it is detected. The name works in both directions: `requires = &#123; "gpu" &#125;` (skip if unmet) and `must_run = ["gpu"]` (fail if unmet). See docs/design/capabilities.md.
 
+### `sarif`
+
+```lua
+sarif.ingest(report: prova.SarifReport)
+```
+
+File a loaded report's findings into the run's deputed account (a no-op outside a run).
+
+```lua
+sarif.load(pattern: string, opts?: { cwd?: string }) -> prova.SarifReport
+```
+
+Parse SARIF files (a path or glob) into a report without recording anything.
+
+```lua
+sarif.verify(t: prova.TestContext, opts: prova.SarifVerifyOpts) -> prova.SarifReport
+```
+
+Conduct a linter and adopt its verdict: run it tolerantly, load and ingest its FRESH SARIF, and fail when more than `max` findings sit at or above `level`. Unlike junit, zero findings is a clean pass. ```lua sarif.verify(t, &#123; run = "npx eslint . -f @microsoft/eslint-formatter-sarif -o e.sarif", results = "e.sarif", level = "warning" &#125;) ```
+
 ### `shell`
 
 ```lua
-shell.proxy(ctx: any, opts: { as: string, upstream?: string, cassette?: string, mode?: string, redact?: string[] }) -> prova.ShellShim
+shell.proxy(ctx: any, opts: prova.ShellProxyOpts) -> prova.ShellShim
 ```
 
 Shadow a command NAME on PATH and interpose on every invocation the SUT makes: pass through to `upstream` and journal (spy), stub selected argv prefixes (stubs always win), or — with no upstream — terminate synthetically, where an unstubbed call fails LOUD (exit 127). Shadow the name the SUT execs, never a shell builtin (`sh` answers those itself, PATH unconsulted). With a `cassette` + `mode` it records a real CLI once and replays it forever: `record` captures argv+stdin → stdout+exit (flushed at `:stop()`, into a file OUTSIDE the shim dir), `replay` answers from the recording with no upstream and no real binary, `auto` records-then-replays. A replay miss exits non-zero and is journaled as a miss.
@@ -620,25 +962,25 @@ Start a long-running command in the background (a booted app, a mock server) and
 ### `socket`
 
 ```lua
-socket.connect(ctx: any, opts: { addr: string, framing?: prova.SocketFraming, codec?: prova.Codec }) -> prova.SocketConn
+socket.connect(ctx: any, opts: prova.SocketConnectOpts) -> prova.SocketConn
 ```
 
 Connect (originate): dial a `tcp://`/`unix://` address. Async. Closed with the scope.
 
 ```lua
-socket.listen(ctx: any, opts: { addr?: string, framing?: prova.SocketFraming, codec?: prova.Codec }) -> prova.SocketListener
+socket.listen(ctx: any, opts: prova.SocketListenOpts) -> prova.SocketListener
 ```
 
 Listen (originate, server side): bind `tcp://host:port` (`:0` = ephemeral, resolved into `.addr`) or `unix:///path`, accept raw or framed connections. Torn down with the scope.
 
 ```lua
-socket.mock(ctx: any, opts: { addr?: string, framing: prova.SocketFraming, codec?: prova.Codec }) -> prova.SocketMock
+socket.mock(ctx: any, opts: prova.SocketMockOpts) -> prova.SocketMock
 ```
 
 Terminate: a mock that answers framed turns synthetically. Framing is REQUIRED — matching needs turns; raw exchanges are scripted with `socket.listen`/`accept` instead.
 
 ```lua
-socket.proxy(ctx: any, opts: { upstream?: string, addr?: string, framing?: prova.SocketFraming, cassette?: string, mode?: string, redact?: string[] }) -> prova.SocketProxy
+socket.proxy(ctx: any, opts: prova.SocketProxyOpts) -> prova.SocketProxy
 ```
 
 Interpose: the universal wiretap. Put it in front of ANY tcp/unix dependency for transcripts and fault injection (latency/drop/corrupt/throttle/after) with zero protocol knowledge. With a `cassette` + `mode` it becomes a framed-turn recorder: `record` captures request→response turns (flushed on `:close()`), `replay` answers from the cassette with the upstream gone, `auto` records when the file is absent and replays when present. A replay miss severs the connection loud. Cassettes require `framing` (a raw byte stream has no turn to key on).
@@ -654,210 +996,22 @@ Open a SQLite database by URL (`sqlite://&lt;path>?mode=rwc`, or `sqlite::memory
 ### `stdio`
 
 ```lua
-stdio.mock(ctx: any, opts: { as: string, framing: prova.SocketFraming, codec?: prova.Codec }) -> prova.StdioMock
+stdio.mock(ctx: any, opts: prova.StdioMockOpts) -> prova.StdioMock
 ```
 
 Terminate: shadow a command NAME on PATH with a framed responder the SUT SPAWNS. This is `socket.mock` reached by spawn instead of dial — the shim on PATH is two lines (`exec &lt;prova> relay --to unix://…`) and carries no behavior, so stubs, journal and matching stay in-process. That is what lets `:on` take a SHAPE; a shim that was itself the matcher could only ever match bytes.
 
 ```lua
-stdio.proxy(ctx: any, opts: { as: string, upstream?: string|string[], framing: prova.SocketFraming, cassette?: string, mode?: string, redact?: string[] }) -> prova.StdioProxy
+stdio.proxy(ctx: any, opts: prova.StdioProxyOpts) -> prova.StdioProxy
 ```
 
 Interpose: shadow a command NAME, spawn the REAL server behind it, and pair every request with its response — the turn-by-turn session wiretap `shell.proxy` cannot be (its turn is one whole invocation, so a conversation collapses into a single blob). With `cassette` + `mode` it records a real session once and replays it credential-free forever: `record` captures pairs (flushed on `:close()`), `replay` answers with no upstream at all, `auto` records when the file is absent and replays when present. A replay miss ends the session loud. The recording is byte-turn shaped — the same format `socket.proxy` writes, and portable between them.
 
 ```lua
-stdio.spawn(ctx: any, opts: { cmd: string|string[], framing?: prova.SocketFraming, codec?: prova.Codec, cwd?: string, env?: table<string,string|number|boolean> }) -> prova.Session
+stdio.spawn(ctx: any, opts: prova.StdioSpawnOpts) -> prova.Session
 ```
 
 Drive (originate): spawn a program with its stdin, stdout and stderr piped, and converse. Takes a shell string or an argv table, exactly like `shell.run` — there is no `args` option, because the arguments are part of the command. `framing` turns the byte stream into turns (`"line"` is newline-delimited JSON, as MCP over stdio speaks; `"content_length"` is the LSP/DAP envelope) and `codec = "json"` decodes them, so `recv&#123; where = &#123; id = 3 &#125; &#125;` picks the reply out of an interleaved stream.
-
-### `str`
-
-```lua
-str.camel_case(s: string) -> string
-```
-
-`helloWorld` (archetect's `camel_case` filter)
-
-```lua
-str.class_case(s: string) -> string
-```
-
-`FooBar`, singularized (`"foo_bars"` → `"FooBar"`) — archetect's `class_case`
-
-```lua
-str.cobol_case(s: string) -> string
-```
-
-`HELLO-WORLD` (archetect's `cobol_case`)
-
-```lua
-str.constant_case(s: string) -> string
-```
-
-`HELLO_WORLD` — archetect's name for screaming-snake
-
-```lua
-str.deordinalize(s: string) -> string
-```
-
-`"1st"` → `"1"` (archetect's `deordinalize`)
-
-```lua
-str.directory_case(s: string) -> string
-```
-
-`foo/bar` (archetect's `directory_case`)
-
-```lua
-str.is_camel_case(s: string) -> boolean
-```
-
-Whether `s` is already camelCase.
-
-```lua
-str.is_class_case(s: string) -> boolean
-```
-
-Whether `s` is already ClassCase (pascal, singular).
-
-```lua
-str.is_cobol_case(s: string) -> boolean
-```
-
-Whether `s` is already COBOL-CASE.
-
-```lua
-str.is_constant_case(s: string) -> boolean
-```
-
-Whether `s` is already CONSTANT_CASE.
-
-```lua
-str.is_directory_case(s: string) -> boolean
-```
-
-Whether `s` is already directory/case.
-
-```lua
-str.is_kebab_case(s: string) -> boolean
-```
-
-Whether `s` is already kebab-case.
-
-```lua
-str.is_package_case(s: string) -> boolean
-```
-
-Whether `s` is already package.case.
-
-```lua
-str.is_pascal_case(s: string) -> boolean
-```
-
-Whether `s` is already PascalCase.
-
-```lua
-str.is_sentence_case(s: string) -> boolean
-```
-
-Whether `s` is already Sentence case.
-
-```lua
-str.is_snake_case(s: string) -> boolean
-```
-
-Whether `s` is already snake_case.
-
-```lua
-str.is_title_case(s: string) -> boolean
-```
-
-Whether `s` is already Title Case.
-
-```lua
-str.is_train_case(s: string) -> boolean
-```
-
-Whether `s` is already Train-Case.
-
-```lua
-str.kebab_case(s: string) -> string
-```
-
-`hello-world` (archetect's `kebab_case`)
-
-```lua
-str.lines(s: string) -> string[]
-```
-
-The portable line reader: split on `\n`, absorbing a preceding `\r`; a trailing newline yields no phantom empty line. Same result whether the text came from a unix or a Windows program.
-
-```lua
-str.ordinalize(s: string) -> string
-```
-
-`"1"` → `"1st"`, `"22"` → `"22nd"` (archetect's `ordinalize`)
-
-```lua
-str.package_case(s: string) -> string
-```
-
-`foo.bar` (archetect's `package_case`)
-
-```lua
-str.pascal_case(s: string) -> string
-```
-
-`HelloWorld` (archetect's `pascal_case`)
-
-```lua
-str.pluralize(s: string) -> string
-```
-
-`"user"` → `"users"` (archetect's `pluralize`)
-
-```lua
-str.sentence_case(s: string) -> string
-```
-
-`Hello world` (archetect's `sentence_case`)
-
-```lua
-str.singularize(s: string) -> string
-```
-
-`"users"` → `"user"` (archetect's `singularize`)
-
-```lua
-str.snake_case(s: string) -> string
-```
-
-`hello_world` (archetect's `snake_case`)
-
-```lua
-str.split(s: string, sep: string) -> string[]
-```
-
-Split on a plain (non-pattern) separator, KEEPING empty fields — `"a,,c"` has three fields. The separator must be non-empty.
-
-```lua
-str.title_case(s: string) -> string
-```
-
-`Hello World` (archetect's `title_case`)
-
-```lua
-str.train_case(s: string) -> string
-```
-
-`Hello-World` (archetect's `train_case`)
-
-```lua
-str.trim(s: string) -> string
-```
-
-Strip surrounding whitespace from both ends.
 
 ### `suite`
 
@@ -870,19 +1024,19 @@ Declare this suite's configuration (see `prova.SuiteConfig`). Call once, at the 
 ### `terminal`
 
 ```lua
-terminal.mock(ctx: any, opts: { as: string }) -> prova.TerminalMock
+terminal.mock(ctx: any, opts: prova.TerminalMockOpts) -> prova.TerminalMock
 ```
 
 Shadow an interactive CLI on PATH with a scripted responder — the SUT shells out to `ssh` (or an installer), and you script the other side.
 
 ```lua
-terminal.proxy(ctx: any, opts: { as: string, upstream?: string, cassette?: string, mode?: string }) -> prova.TerminalProxy
+terminal.proxy(ctx: any, opts: prova.TerminalProxyOpts) -> prova.TerminalProxy
 ```
 
 Interpose on an interactive CLI the SUT shells out to (the last cell in the transport matrix): shadow a command NAME on PATH, forward to the REAL program on the pty the SUT already allocated, and record the session — or replay a recorded one with no real program. The terminal cassette is the full-duplex, asciinema-shaped kind: the raw terminal stream with VT sequences intact, so a session recorded once (a ConPTY session on Windows) replays deterministically on every platform. Modes: passthrough (default) \| record \| replay \| auto.
 
 ```lua
-terminal.spawn(ctx: any, opts: { cmd: string[], cols?: integer, rows?: integer, cwd?: string, env?: table<string,string> }) -> prova.Term
+terminal.spawn(ctx: any, opts: prova.TerminalSpawnOpts) -> prova.Term
 ```
 
 Spawn a program on a real pty (openpty/ConPTY behind one API) and drive it interactively.
@@ -932,30 +1086,22 @@ A random (v4) RFC 4122 UUID, hyphenated lowercase.
 ### `websocket`
 
 ```lua
-websocket.connect(ctx: any, opts: { url: string, codec?: prova.Codec, insecure?: boolean, ca_cert?: string }) -> prova.WsConn
+websocket.connect(ctx: any, opts: prova.WebsocketConnectOpts) -> prova.WsConn
 ```
 
 Connect (originate): dial a `ws://` or `wss://` url. Async. Closed with the scope. `insecure`/`ca_cert` mean exactly what they mean on `http` — one policy, one spelling (architecture.md#tls-everywhere).
 
 ```lua
-websocket.mock(ctx: any, opts?: table) -> prova.WsMock
+websocket.mock(ctx: any, opts?: prova.WebsocketMockOpts) -> prova.WsMock
 ```
 
 Terminate (and push): a real ws server in this process, stubbed and asserted on.
 
 ```lua
-websocket.proxy(ctx: any, opts: { upstream: string, insecure?: boolean, ca_cert?: string }) -> prova.WsProxy
+websocket.proxy(ctx: any, opts: prova.WebsocketProxyOpts) -> prova.WsProxy
 ```
 
 Interpose on a real ws dependency: forward message turns, record a direction-tagged transcript, and apply the fault vocabulary (the last cell in the transport matrix). `insecure`/`ca_cert` apply to the UPSTREAM leg (which may be `wss://`). The tap itself always listens plaintext on loopback: a proxy exists to be read, and terminating TLS on the side your proof connects to would mean generating a certificate for a hop that never leaves the machine.
-
-### `workspace`
-
-```lua
-workspace.create(ctx: prova.Context, opts?: table) -> prova.Workspace
-```
-
-Create a scratch directory whose lifetime is tied to `ctx` — removed on scope teardown.
 
 ### `yaml`
 
@@ -984,6 +1130,32 @@ yaml.encode_all(docs: any[]) -> string
 Emit a list of values as one `---`-separated multi-document stream (the Kubernetes manifest shape) — the exact inverse of `yaml.decode_all`.
 
 ## Types and methods
+
+### `479 entries in the core API surface`
+
+```lua
+479 entries in the core API surface
+```
+
+### `BarrierOpts`
+
+```lua
+prova.BarrierOpts{ timeout?: string  -- how long to wait for every party (default "30s"); reaching it FAILS the test }
+```
+
+### `CargoConfigureOpts`
+
+```lua
+prova.CargoConfigureOpts{ profile?: string  -- the nextest profile; its junit must be enabled (default "default"), junit?: string  -- that profile's junit file name, under <target>/nextest/<profile>/, args?: string[]  -- extra `cargo nextest run` arguments (features, --test-threads, …), run?: table  -- extra `shell.run` options for the conduct: `env`, `sample`, `idle_timeout` }
+```
+
+### `ConductIdentity`
+
+```lua
+prova.ConductIdentity{ command: string  -- the conduct's command line — the question it answers, inputs: string[]  -- package-relative paths or globs whose contents change the answer }
+```
+
+What a run-scoped conduct IS, so two differently-named fixtures asking the same question share one execution: the command it runs and the files its answer depends on (`fs.digest` keys it).
 
 ### `Connection`
 
@@ -1239,6 +1411,14 @@ prova.DoubleStub{}
 
 A stub handle from `Double:on`. `:reply(…)` sets its answer.
 
+### `ExpectOpts`
+
+```lua
+prova.ExpectOpts{ timeout?: string }
+```
+
+Options for `expect` on a stdio session.
+
 ### `FileHandle`
 
 ```lua
@@ -1264,10 +1444,10 @@ A fixture handle returned by `prova.fixture`. Generic over the fixture's value t
 ### `FixtureOpts`
 
 ```lua
-prova.FixtureOpts{ autouse?: boolean  -- run even when no test names it }
+prova.FixtureOpts{ identity?: prova.ConductIdentity  -- `Scope.Run` only: two fixtures with the same identity are ONE conduct }
 ```
 
-Reserved for future fixture options. Scope is a `Scope` value, not an option. (Parametrized fixtures were considered and deliberately dropped — parametrization stays explicit: `test_each` for data-driven tests, separate suites for divergent variants, profiles for env.)
+A fixture's options. Scope is a `Scope` value, not an option. (Parametrized fixtures were considered and deliberately dropped — parametrization stays explicit: `test_each` for data-driven tests, separate suites for divergent variants, profiles for env.)
 
 ### `Flow`
 
@@ -1294,7 +1474,7 @@ The flow builder: the *sequence* strategy. Declares ordered steps that share the
 ### `FlowOpts`
 
 ```lua
-prova.FlowOpts{ timeout?: string  -- whole-flow timeout, promises?: string  -- a proof authored AHEAD of its implementation — see prova.TestOpts.promises / `prova learn promises`, proves?: string  -- graduated context behind a finished proof — see prova.TestOpts.proves / `prova learn promises` }
+prova.FlowOpts{ promises?: string  -- an open flow — see prova.TestOpts.promises, proves?: string  -- a kept flow's context — see prova.TestOpts.proves }
 ```
 
 ### `GraphqlClient`
@@ -1378,10 +1558,10 @@ The group builder: the *independent* strategy. Declares child units (tests, flow
 ### `GroupOpts`
 
 ```lua
-prova.GroupOpts{ order?: "any"|"declared"  -- default "any" — do not rely on order; use `flow` if you need it, parallel?: boolean  -- default true — set false to serialize the group's children }
+prova.GroupOpts{}
 ```
 
-A group is the *independent* strategy: children are isolated, unordered, parallelizable.
+A group is the *independent* strategy: children are isolated, unordered, parallelizable. It carries only the shared options; `promises`/`proves` are refused on a group (flag each test).
 
 ### `GrpcClient`
 
@@ -1504,7 +1684,7 @@ prova.GrpcMockStub{}
 ### `GrpcProxyOpts`
 
 ```lua
-prova.GrpcProxyOpts{ upstream?: string  -- the real gRPC server (host:port), needed by passthrough/record/auto, cassette?: string  -- the recording file, needed by record/replay/auto, mode?: string  -- "passthrough" (default) | "record" | "replay" | "auto", redact?: string[]  -- literal strings scrubbed from the cassette at record time }
+prova.GrpcProxyOpts{ upstream?: string  -- the real gRPC server (host:port), needed by passthrough/record/auto, cassette?: string  -- the recording file, needed by record/replay/auto, mode?: string  -- "passthrough" (default) | "record" | "replay" | "auto", redact?: string[]  -- literal strings scrubbed from the cassette at record time, network?: boolean|string  -- a `.network` host-gateway vantage for a containerized SUT; see http.mock }
 ```
 
 ### `GrpcStatus`
@@ -1634,7 +1814,7 @@ prova.JunitLoadOpts{ cwd?: string  -- base for a relative `results` pattern }
 ### `JunitReport`
 
 ```lua
-prova.JunitReport{ total: integer, passed: integer, failed: integer, errors: integer, skipped: integer, files: { path: string, mtime: integer }[], cases: prova.JunitCase[] }
+prova.JunitReport{ total: integer, passed: integer, failed: integer, errors: integer, skipped: integer, flaky: integer  -- cases that failed and passed on the same tree, files: { path: string, mtime: integer }[], cases: prova.JunitCase[] }
 ```
 
 ### `JunitVerifyOpts`
@@ -1789,6 +1969,12 @@ prova.Matcher{}
 
 Fluent assertion matcher returned by `expect(subject)`. Matchers validate the subject's type at call time, so filesystem/shell/http subjects get domain-specific checks.
 
+### `MeasureOpts`
+
+```lua
+prova.MeasureOpts{ set?: string  -- the baseline file, .prova/baselines/<set>.json (default "default"), direction?: "lower_is_better"|"higher_is_better"  -- default "lower_is_better" }
+```
+
 ### `MockMatch`
 
 ```lua
@@ -1921,6 +2107,14 @@ prova.Process{ pid: integer|nil  -- OS process id (nil if it could not be determ
 
 A long-running process from `shell.spawn`. Prefer `ctx:defer(function() proc:stop() end)` so it is stopped during teardown; `stop`/`wait` are async.
 
+### `RecvOpts`
+
+```lua
+prova.RecvOpts{ timeout?: string, where?: prova.Where  -- read on until the turn that MATCHES (structural subset match) }
+```
+
+Options for reading one turn from a stream session (stdio, socket, websocket).
+
 ### `RemindOpts`
 
 ```lua
@@ -1967,6 +2161,24 @@ An opaque, typed resource reference from `prova.writes`/`prova.reads`/`prova.por
 
 ```lua
 prova.RetryOpts{ timeout?: string  -- overall deadline (default "30s"), every?: string  -- interval between attempts (default "500ms"), message?: string  -- error message on timeout }
+```
+
+### `SarifFinding`
+
+```lua
+prova.SarifFinding{ tool: string, rule: string, level: "error"|"warning"|"note"|"none"  -- a result with no level reads as "warning", message: string, uri: string  -- the first physical location, line?: integer, file: string  -- the SARIF artifact it was read from — the provenance }
+```
+
+### `SarifReport`
+
+```lua
+prova.SarifReport{ total: integer, errors: integer, warnings: integer, notes: integer, files: { path: string, mtime: integer }[], cases: prova.SarifFinding[] }
+```
+
+### `SarifVerifyOpts`
+
+```lua
+prova.SarifVerifyOpts{ results: string  -- REQUIRED: where the linter writes its SARIF (a path or glob), run?: string  -- the linter's command, run tolerantly, with freshness enforced, cwd?: string  -- working directory for `run` and base for a relative `results`, level?: "error"|"warning"|"note"  -- the threshold; findings at or above it count (default "error"), max?: integer  -- findings tolerated at or above `level` (default 0) }
 ```
 
 ### `Scope`
@@ -2038,13 +2250,13 @@ Session:eof()
 Half-close stdin — "the client went away". A distinct act from `:stop()`, and the way to prove a server shuts down cleanly: `sess:eof()` then `sess:wait()`.
 
 ```lua
-Session:expect(pattern: string, opts?: { timeout?: string })
+Session:expect(pattern: string, opts?: prova.ExpectOpts)
 ```
 
 Observe-until-match: block until the stream shows `pattern` (a plain substring). The unframed sibling of `recv&#123; where &#125;` — use it to wait for a readiness line before the first request.
 
 ```lua
-Session:recv(opts?: { timeout?: string, where?: prova.Where }) -> any
+Session:recv(opts?: prova.RecvOpts) -> any
 ```
 
 Read the next turn — or with `where`, the next turn that MATCHES, skipping (but still transcribing) the ones that do not. Bounded: 10s by default, loud on timeout or EOF, and the failure carries the stderr tail plus the child's state.
@@ -2088,7 +2300,13 @@ A live conversation with a spawned process. `shell.spawn` boots a thing and prob
 ### `ShellOpts`
 
 ```lua
-prova.ShellOpts{ cwd?: string, env?: table<string, string|number|boolean>  -- scalars coerce — ports stay numbers, timeout?: string  -- wall-clock outer bound, e.g. "120s" — prices the whole task, idle_timeout?: string  -- liveness bound, e.g. "90s": kill only when a window passes with NO bytes on either stream AND no CPU progress (native readers; bytes-only where none exists) — bounds death, never work (composes with `timeout`), first_byte?: string  -- start-up bound, e.g. "30s": kill if NOTHING arrives on either stream within this long of spawn — the "it never answered" clock (a wedged daemon), disarmed for good by the first byte; "0s" disables, check?: boolean  -- non-zero exit raises, carrying the tail of BOTH stdout and stderr, merge_stderr?: boolean  -- fold stderr into stdout (the portable replacement for `2>&1`); stderr is then empty, stdin?: string  -- feed the program's stdin (the portable replacement for `printf x | cmd`) }
+prova.ShellOpts{ cwd?: string, env?: table<string, string|number|boolean>  -- scalars coerce — ports stay numbers, timeout?: string  -- wall-clock outer bound, e.g. "120s" — prices the whole task, idle_timeout?: string  -- liveness bound, e.g. "90s": kill only when a window passes with NO bytes on either stream AND no CPU progress (native readers; bytes-only where none exists) — bounds death, never work (composes with `timeout`), first_byte?: string  -- start-up bound, e.g. "30s": kill if NOTHING arrives on either stream within this long of spawn — the "it never answered" clock (a wedged daemon), disarmed for good by the first byte; "0s" disables, check?: boolean  -- non-zero exit raises, carrying the tail of BOTH stdout and stderr, merge_stderr?: boolean  -- fold stderr into stdout (the portable replacement for `2>&1`); stderr is then empty, stdin?: string  -- feed the program's stdin (the portable replacement for `printf x | cmd`), sample?: prova.ShellSample  -- capture a CPU profile of a matching child once it has run this long (diagnosing a slow conduct) }
+```
+
+### `ShellProxyOpts`
+
+```lua
+prova.ShellProxyOpts{ as: string, upstream?: string, cassette?: string, mode?: string, redact?: string[] }
 ```
 
 ### `ShellResult`
@@ -2102,6 +2320,14 @@ Whether the command succeeded (`code == 0`). Sugar for the common check — `she
 ```lua
 prova.ShellResult{ code: integer, stdout: string, stderr: string, duration: number  -- seconds }
 ```
+
+### `ShellSample`
+
+```lua
+prova.ShellSample{ after: string  -- how long into the run to sample, e.g. "60s", matching: string  -- a substring of the command line to sample, into: string  -- the directory the sample is written to }
+```
+
+`shell.run`'s `sample`: every key required, none other taken.
 
 ### `ShellShim`
 
@@ -2154,7 +2380,7 @@ SocketConn:close()
 Close the connection (also what `ctx:manage` calls at scope end).
 
 ```lua
-SocketConn:recv(n_or_opts?: integer|{ timeout?: string, where?: prova.Where }, opts?: { timeout?: string, where?: prova.Where }) -> any
+SocketConn:recv(n_or_opts?: integer|{ timeout?: string, where?: prova.Where }, opts?: prova.RecvOpts) -> any
 ```
 
 Framed: read one whole turn — `recv(opts?)`. Raw: read exactly n bytes — `recv(n, opts?)`. Errors loud on timeout (default 10s) or a closed connection; never hangs. `where` reads on until a turn MATCHES — the reply to request 3, skipping the notifications that arrive first. Skipped turns are counted in the timeout message, so "nothing arrived" and "nothing matched" read differently.
@@ -2167,6 +2393,18 @@ Write one turn (framed) or raw bytes (no framing). A table when `codec = "json"`
 
 ```lua
 prova.SocketConn{}
+```
+
+### `SocketConnectOpts`
+
+```lua
+prova.SocketConnectOpts{ addr: string, framing?: prova.SocketFraming, codec?: prova.Codec }
+```
+
+### `SocketListenOpts`
+
+```lua
+prova.SocketListenOpts{ addr?: string, framing?: prova.SocketFraming, codec?: prova.Codec }
 ```
 
 ### `SocketListener`
@@ -2209,6 +2447,12 @@ Stop the mock (what `ctx:manage` calls).
 
 ```lua
 prova.SocketMock{ addr: string  -- endpoint symmetry: the same string a driver's connect takes, endpoint: string  -- the driver-target alias == addr }
+```
+
+### `SocketMockOpts`
+
+```lua
+prova.SocketMockOpts{ addr?: string, framing: prova.SocketFraming, codec?: prova.Codec }
 ```
 
 ### `SocketProxy`
@@ -2265,6 +2509,12 @@ The direction-tagged transcript: `&#123; seq, dir ("up"\|"down"), data &#125;[]`
 prova.SocketProxy{ addr: string  -- dial this instead of the upstream — the wiretap is transparent }
 ```
 
+### `SocketProxyOpts`
+
+```lua
+prova.SocketProxyOpts{ upstream?: string, addr?: string, framing?: prova.SocketFraming, cassette?: string, mode?: string, redact?: string[] }
+```
+
 ### `SocketStub`
 
 ```lua
@@ -2313,6 +2563,12 @@ Stop the mock and remove the shim (what `ctx:manage` calls).
 prova.StdioMock{ env: table<string,string>  -- PATH-prefixed env — hand to whatever spawns the SUT, path: string  -- the shim's absolute path }
 ```
 
+### `StdioMockOpts`
+
+```lua
+prova.StdioMockOpts{ as: string, framing: prova.SocketFraming, codec?: prova.Codec }
+```
+
 ### `StdioProxy`
 
 ```lua
@@ -2349,6 +2605,18 @@ The direction-tagged record: `&#123; seq, dir = "up"\|"down", data &#125;[]`.
 prova.StdioProxy{ env: table<string,string>  -- PATH-prefixed env — hand to whatever spawns the SUT, path: string  -- the shim's absolute path }
 ```
 
+### `StdioProxyOpts`
+
+```lua
+prova.StdioProxyOpts{ as: string, upstream?: string|string[], framing: prova.SocketFraming, cassette?: string, mode?: string, redact?: string[] }
+```
+
+### `StdioSpawnOpts`
+
+```lua
+prova.StdioSpawnOpts{ cmd: string|string[], framing?: prova.SocketFraming, codec?: prova.Codec, cwd?: string, env?: table<string,string|number|boolean> }
+```
+
 ### `StdioStub`
 
 ```lua
@@ -2364,7 +2632,7 @@ prova.StdioStub{}
 ### `SuiteConfig`
 
 ```lua
-prova.SuiteConfig{ name?: string  -- display name for the suite (default: the directory name), requires?: string[]  -- capabilities gating the whole suite — unmet → every file skips }
+prova.SuiteConfig{ name?: string  -- display name for the suite (default: the directory name), requires?: string[]  -- capabilities gating the whole suite — unmet → every file skips, switch?: string  -- an opt-in class for every file in the suite: off unless thrown }
 ```
 
 ### `Term`
@@ -2439,6 +2707,12 @@ Remove the shim (what `ctx:manage` calls).
 prova.TerminalMock{ env: table<string,string>  -- PATH-prefixed env — hand to whatever spawns the SUT, path: string  -- the shim's absolute path }
 ```
 
+### `TerminalMockOpts`
+
+```lua
+prova.TerminalMockOpts{ as: string }
+```
+
 ### `TerminalMockStep`
 
 ```lua
@@ -2469,6 +2743,18 @@ Stop the proxy (what `ctx:manage` calls). In record mode, flushes the cassette (
 prova.TerminalProxy{ env: table<string,string>  -- PATH-prefixed env — hand to whatever spawns the SUT, path: string  -- the shim's absolute path }
 ```
 
+### `TerminalProxyOpts`
+
+```lua
+prova.TerminalProxyOpts{ as: string, upstream?: string, cassette?: string, mode?: string }
+```
+
+### `TerminalSpawnOpts`
+
+```lua
+prova.TerminalSpawnOpts{ cmd: string[], cols?: integer, rows?: integer, cwd?: string, env?: table<string,string> }
+```
+
 ### `Test`
 
 ```lua
@@ -2478,6 +2764,12 @@ prova.Test{}
 A test handle returned by `prova.test`/`prova.test_each`. Pass to `depends_on`.
 
 ### `TestContext`
+
+```lua
+TestContext:advise(entry: { family: string, was: integer, now: integer })
+```
+
+Report an advisory measure that moved: `family` went from `was` to `now`. It returns, and it changes no verdict and no tally, so a test may advise several families and then pass or skip as before. Each is sent as an `advice` event (`&#123;type, path, family, was, now&#125;`) just before the test's `node_finished`, so a reader (a gate, a bot) acts on it by kind, never by a skip's words. For a census ruled advisory: say what grew here, then skip with the human sentence.
 
 ```lua
 TestContext:expect(subject: any, label?: string) -> prova.Matcher
@@ -2506,7 +2798,7 @@ Context passed to test bodies. Extends `prova.Context` with assertions and contr
 ### `TestOpts`
 
 ```lua
-prova.TestOpts{ timeout?: string  -- e.g. "30s" — the WALL-CLOCK bound: prices the whole test, idle_timeout?: string  -- e.g. "60s" — the LIVENESS bound, spelled as `shell.run` spells it: fail only when a window passes with no sign of life (no assertion lands), never merely because the work is slow. Bounds death, never work — so it can be generous where a wall clock has to be a guess. Progress at test scope is ASSERTIONS (prova captures no test output), so a body doing real work without asserting looks wedged from here: that is why it is opt-in. Defaults ON under `prova tests falsify`, where a mutant that stops answering is the expected failure (`prova learn falsify`)., retries?: integer, promises?: string  -- a proof authored AHEAD of its implementation (value = the mandatory reason/ticket — context from day one). Open promise (red body) reports as its own outcome, CI green; once the body passes, the run fails until the flag graduates — converted to `proves` (preferred) or removed, in the same commit as the implementation. Test/flow-level only. See `prova learn promises`., proves?: string  -- graduated context: the why behind a FINISHED proof, living in the test itself (usually a promise's reason carried over; retrofitting onto existing tests is welcome). Runtime-inert; non-empty string; never together with `promises`. See `prova learn promises`. }
+prova.TestOpts{ promises?: string  -- a proof authored AHEAD of its implementation; the value is the mandatory reason. Red reports PROMISED (CI green); green FAILS until it graduates to `proves` in the same commit (`prova learn promises`), proves?: string  -- the kept promise's context — runtime-inert; a non-empty string; never together with `promises`, covers?: string  -- the prose claim this proof discharges: "docs/design.md#claim-id", optionally pinned "@<hash>" (`prova learn claims`), falsified_by?: fun(t: prova.TestContext)  -- a mutation the body must catch; applied only by `prova tests falsify`, which inverts the verdict (`prova learn falsify`), inputs?: string[]  -- package-relative paths or globs; `--reuse` carries a prior pass forward while they are byte-identical, idle_timeout?: string  -- e.g. "60s" — the LIVENESS bound, spelled as `shell.run` spells it: fail only when a window passes with no sign of life (no assertion lands), never merely because the work is slow. Bounds death, never work — so it can be generous where a wall clock has to be a guess. Progress at test scope is ASSERTIONS (prova captures no test output), so a body doing real work without asserting looks wedged from here: that is why it is opt-in. Defaults ON under `prova tests falsify`, where a mutant that stops answering is the expected failure (`prova learn falsify`). }
 ```
 
 ### `Tree`
@@ -2538,10 +2830,10 @@ A tree handle rooted at a directory (e.g. a render destination).
 ### `UnitOpts`
 
 ```lua
-prova.UnitOpts{ tags?: string[]  -- selection tags (select with `--tags a,b`; `!tag` excludes), free-form, requires?: prova.Capability[]  -- skip (not fail) if a capability is unavailable, depends_on?: prova.Unit[]  -- skip this unit if any upstream failed/was skipped, resources?: prova.Resource[]  -- resources this unit needs (concurrency gating), serial?: boolean  -- never run concurrently with anything (process-wide exclusive) }
+prova.UnitOpts{ tags?: string[]  -- selection tags (select with `--tags a,b`; `!tag` excludes), free-form, requires?: prova.Capability[]  -- skip (not fail) if a capability is unavailable, depends_on?: prova.Unit[]  -- skip this unit if any upstream failed/was skipped, locks?: prova.ResourceRef[]  -- locks held while running: `prova.writes`/`prova.reads`/`prova.port` — bound across every prova instance (`prova learn locks`), resources?: prova.ResourceRef[]  -- DEPRECATED spelling of `locks`: still honored, with a warning; retires at 1.0, serial?: boolean  -- never run concurrently with anything else in THIS run (a rule binding other instances is a lock), switch?: string  -- an opt-in class: off unless a lane's `switches` or `-s` throws it, timeout?: string  -- e.g. "30s" — the WALL-CLOCK bound (enforced per test and per flow step) }
 ```
 
-Options shared by any schedulable unit (test/flow/group).
+Options shared by any schedulable unit (test/flow/group). These classes ARE the accepted set: build.rs generates the runtime's closed option table from them, so a field missing here is an option the runtime refuses.
 
 ### `UrlParts`
 
@@ -2572,6 +2864,24 @@ prova.WaitOpts{ status?: integer  -- expected status (default 200), headers?: ta
 ```
 
 Deliberately NOT an extension of `prova.HttpOpts`: the polling verbs honor these keys and nothing else, and since an option prova cannot honor is refused rather than dropped (docs/design/agent-ergonomics.md#module-opts-silently-ignored), advertising `json` or `redirects` here would hand an author a call that fails. The TLS pair IS here: readiness is the first thing to touch a service prova just booted, so a poll that could not accept a self-signed certificate would make boot-then-probe the one place TLS stops (architecture.md#tls-everywhere).
+
+### `WebsocketConnectOpts`
+
+```lua
+prova.WebsocketConnectOpts{ url: string, codec?: prova.Codec, insecure?: boolean, ca_cert?: string }
+```
+
+### `WebsocketMockOpts`
+
+```lua
+prova.WebsocketMockOpts{}
+```
+
+### `WebsocketProxyOpts`
+
+```lua
+prova.WebsocketProxyOpts{ upstream: string, insecure?: boolean, ca_cert?: string }
+```
 
 ### `Workspace`
 
@@ -2620,7 +2930,7 @@ WsConn:close()
 Close the connection (the ws close handshake).
 
 ```lua
-WsConn:recv(opts?: { timeout?: string, where?: prova.Where }) -> any
+WsConn:recv(opts?: prova.RecvOpts) -> any
 ```
 
 Receive the next message turn (async, timeout'd — default 10s; loud on close). `where` reads on until a turn matches, exactly as on a socket.

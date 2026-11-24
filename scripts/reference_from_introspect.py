@@ -25,6 +25,10 @@ def entries(text):
     return out
 
 def key(sig):
+    # A module served under prova (`prova.str.trim`, `prova.workspace.create`) is its own namespace.
+    m = re.match(r"(prova\.[a-z_][\w]*)\.([a-z_][\w]*)\(", sig)
+    if m:
+        return (m.group(1), ".", m.group(2))
     m = re.match(r"([A-Za-z_][\w]*)([.:])([A-Za-z_][\w]*)", sig)
     return (m.group(1), m.group(2), m.group(3)) if m else (sig.split("(")[0], "", "")
 
@@ -44,7 +48,8 @@ def main():
     ap.add_argument("--release", help="the release the stubs belong to, e.g. v0.30.12")
     args = ap.parse_args()
     raw = subprocess.run(["prova", "introspect"], capture_output=True, text=True, check=True).stdout
-    items = entries(raw)
+    # The `prova` table's own class lists every namespace as a field; the namespaces have sections.
+    items = [i for i in entries(raw) if not i["sig"].startswith("prova{")]
     if args.release_stubs:
         stubs = "\n".join(p.read_text() for p in pathlib.Path(args.release_stubs).rglob("*.lua"))
         dropped = [i["sig"] for i in items if not in_release(i["sig"], stubs)]

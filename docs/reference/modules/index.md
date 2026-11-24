@@ -58,8 +58,8 @@ The network-facing clients speak TLS through two shared options, `insecure = tru
 | `websocket` | WebSocket: connect, a real in-process server (including unprompted push), or a direction-tagged proxy | — | [doubles](../../writing-tests/mocking-and-proxies.md#websockets) |
 | `terminal` | Drive a program on a real pty, or shadow an interactive CLI on `PATH` | — | [doubles](../../writing-tests/mocking-and-proxies.md#terminals) |
 | `stdio` | Drive a stdio conversation (MCP, LSP), or shadow a spawned command on `PATH` with a mock or proxy | — | [drivers](../../writing-tests/testing-real-systems.md#choosing-a-driver), [doubles](../../writing-tests/mocking-and-proxies.md#spawned-dependencies-stdio) |
-| `str` | Case conversion (`snake_case`, `camel_case`, `train_case`, …) and the matching `is_*` predicates | — | [API Index](../api.md#str) |
-| `path` | Join, normalize and split paths (`join`, `dirname`, `basename`, `stem`, …) | — | [API Index](../api.md#path) |
+| `prova.str` | Case conversion (`snake_case`, `camel_case`, `train_case`, …) and the matching `is_*` predicates | — | [API Index](../api.md#provastr) |
+| `prova.path` | Join, normalize and split paths (`join`, `dirname`, `basename`, `stem`, …) | — | [API Index](../api.md#provapath) |
 | `junit`, `sarif` | Adopt a test framework's or linter's verdicts | — | [verifiers](verifiers.md) |
 | `measure`, `report` | Ratchet a measurement; keep a deputy's artifact | — | [verifiers](verifiers.md#measure) |
 | `date` | Date arithmetic for reminders and backlog policies | — | [verifiers](verifiers.md#date) |
