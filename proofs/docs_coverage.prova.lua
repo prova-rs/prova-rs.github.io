@@ -62,6 +62,7 @@ prova.test("no page teaches retired vocabulary", {
     { needle = "prova falsify",     was = "`prova tests falsify`" },
     { needle = "prova list ",       was = "`prova tests`" },
     { needle = "prova watch",       was = "a verb removed in 2026-08" },
+    { needle = "`watch`",           was = "the removed verb, in a list of verbs" },
     -- `[claims]` became `[specs]`, and `docs = [...]` became `[[specs.source]]` (prova learn spec).
     { needle = "[claims]\ndocs",    was = "the `[[specs.source]]` table" },
   }
@@ -349,8 +350,9 @@ prova.test("the reference covers the namespaces the stubs do not describe", {
 end)
 
 prova.test("the prova.toml reference covers every manifest key", {
-  promises = "phase 7b: topology startup/scope, switches, [stress] and [runner] are missing "
-    .. "from the manifest reference",
+  proves = "phase 7b (2026-11-24): topology startup/scope, switches, heed, budget, and the "
+    .. "[capabilities], [modules], [stress], [resume], [runner] and [placement] tables were "
+    .. "missing from the manifest reference",
 }, function(t)
   local toml = fs.read(root .. "/docs/reference/prova-toml.md")
   t:expect_all(function()

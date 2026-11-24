@@ -11,7 +11,8 @@ nook) and `prova` with no arguments runs the configured suite — CI is just `pr
 `prova run <name>`), `[requires]` (the prova version this package needs), `[specs]` (the prose
 side of the obligation ledger), `[suites.<name>]` (explicitly-declared suites), `[dependencies]`
 (+ `[sources]`) for external packages, `[package]` (when this package exports a namespace),
-`[topologies]`, `[globals]`, `[updates]`, `[luals]` for IDE integration, and `[agent]`.
+`[topologies]`, `[capabilities]`, `[modules]`, `[stress]`, `[resume]`, `[runner]`, `[placement]`,
+`[globals]`, `[updates]`, `[luals]` for IDE integration, and `[agent]`.
 
 One file, whichever hats it declares — there is no separate package manifest. A package that also
 exports a namespace adds `[package]`; see [Authoring Packages](../packages/authoring-packages.md).
@@ -35,7 +36,9 @@ or `prova` exits `2`.
 | `junit` | string | — | Also write a JUnit XML report to this home-relative path — the manifest form of `--junit`, so a CI profile needs no extra flag. |
 | `env` | table of string → string | `{}` | Environment variables set for the whole run, applied to the process before any test executes. Written as a `[run.env]` sub-table. |
 | `must_run` | array of strings | `[]` | Capabilities this run **guarantees**; an unmet one **fails** the run up front. See [below](#must_run). |
-| `heed_reminders` | boolean | `false` | Fail the run when any reminder is DUE. Like `must_run` it is a guarantee: `[run]`'s or the selected profile's, whichever promises attention, wins — a laxer profile can never silence it. `--heed` promotes a single invocation the same way. |
+| `heed` | boolean or array of strings | `false` | Fail the run when a [reminder](../quality/reminders.md) is DUE: `true` heeds all, `["deps", "currency"]` heeds those matching a reminder name or tag. A guarantee like `must_run`: unioned across `[run]` and the profile, so a laxer profile can never silence it. `--heed` / `--heed=<selector>` promotes one invocation. (`heed_reminders` is the older spelling and still accepted.) |
+| `switches` | array of strings | `[]` | Opt-in classes this context throws: tests marked `switch = "<class>"` are off unless their class appears here or in `-s`. Unioned across `[run]`, the profile and the CLI. See [Lanes](../quality/lanes.md#switches-keep-expensive-work-out-of-the-inner-loop). |
+| `budget` | duration string | — | The lane's time budget, such as `"30s"`: the run fails when its wall time exceeds it, even when every test passed, so a heavy proof landing in the wrong lane is caught. Never inherited: `[run] budget` binds only the bare run, a profile's only that profile. |
 
 ### `must_run`
 
@@ -61,7 +64,7 @@ Related to the same "silent green" hazard: a selection that matches nothing (`-k
 ## `[profiles.<name>]` — overlays, worn as lanes
 
 Each profile accepts the same keys as `[run]` (`proofs`, `jobs`, `format`, `color`, `progress`,
-`quiet`, `github`, `junit`, `env`, `must_run`, `heed_reminders`), plus its own `dependencies`
+`quiet`, `github`, `junit`, `env`, `must_run`, `heed`, `switches`), plus its own `dependencies`
 table and two lane-shaping keys of its own:
 
 | Key | Type | Description |
@@ -209,11 +212,12 @@ still layers over the fully resolved (base + profile) set.
 
 Names an environment a package can stand up, so `prova up <name>` (and any proof) can reach it.
 Sugar for `prova.topology(<name>, require(<package>).<factory>)` — a property of the package, not
-a profile. The inhabited verbs (`up`/`start`/`watch`/`ps`) resolve **registered** topologies only.
+a profile. The inhabited verbs (`up`/`start`/`down`/`ps`) resolve **registered** topologies only.
 
 ```toml
 [topologies]
-vm = { package = "parallels", topology = "vm", options = { image = "ubuntu-24.04" } }
+vm      = { package = "parallels", topology = "vm", options = { image = "ubuntu-24.04" } }
+cluster = { package = "kind", topology = "cluster", startup = "15m", scope = "run" }
 ```
 
 | Key | Type | Default | Description |
@@ -222,11 +226,91 @@ vm = { package = "parallels", topology = "vm", options = { image = "ubuntu-24.04
 | `topology` | string | — | The package's **advertised** topology name (`[[package.topologies]]`). Mutually exclusive with `factory`. |
 | `factory` | string | — | A dotted path to a factory inside the package's namespace, when it advertises none. Mutually exclusive with `topology`. |
 | `requires` | array of strings | `[]` | Capabilities the environment needs, added to whatever the package's advertisement declares. Unmet blocks `prova up` **before** provisioning. |
+| `startup` | duration string | `"300s"` | How long the topology needs to come up. `prova start` waits this long while relaying progress; `prova start --timeout` overrides it once. When it expires, the holder stops gracefully and releases what it created. |
+| `scope` | string | `"file"` | `"file"` builds the topology once per declaring file. `"run"` provisions it once per run and shares it with every declaring file; state accumulates across files, and each file sees the topology as data (urls, hosts, ports). Write it as `scope = "run"`. |
 | `options` | table | `{}` | Passed to the factory as its second argument — what the factory needs and the caller cannot otherwise supply. Absent → registered bare. |
 
 Exactly one of `topology` / `factory` must be present. Because `requires` is checked before
 anything is provisioned, a machine without the capability **skips cleanly** rather than failing
 half-way through a stand-up.
+
+## `[capabilities]` — what the host must provide
+
+```toml
+[capabilities]
+java    = { command = "java", version = ["-version"], stream = "stderr" }
+gpu     = { package = "env", capability = "gpu" }
+dockerd = { intrinsic = "docker" }
+"*"     = "warn"                   # probe (default) | warn | error
+```
+
+Each entry is a name and exactly one factory: `command` (with `probe`, `expect`, `version`,
+`stream`, `pattern`), `package` (with `capability` or `factory`, and `options`), or `intrinsic`.
+`"*"` decides what an undeclared name means. Only the root manifest governs. The full grammar is on
+[Capabilities](../running-prova/capabilities.md).
+
+## `[modules]` — module proofs for a build tool's units
+
+```toml
+[modules]
+from  = ["cargo"]                               # adapters: a bundled prova.<name> or a [dependencies] package
+reads = { "billing" = ["fixtures/rates/**"] }   # paths only a module's TESTS read at run time
+```
+
+Turns each workspace member with its own `proofs/` directory into a module whose deputed account is
+cached by the digest of its build closure. `reads` names run-time inputs a build tool cannot see; they
+are never propagated to dependents. See [module proofs](../quality/deputed-verifiers.md#module-proofs-run-only-what-a-change-can-reach).
+
+## `[stress]` — how `prova stress` builds
+
+```toml
+[stress]
+nextest = ["--workspace", "--features", "orders/test-daemon", "--profile", "prova"]
+```
+
+The arguments `prova stress` hands `cargo nextest list` when the command line gives none after `--`.
+Use the gate's own build flags, so the binaries a stress run copies are the ones the gate tests. See
+[Locks, Flakes & Reruns](../running-prova/locks-and-scale.md#flaky-is-a-verdict-not-green).
+
+## `[resume]` — inputs outside this repository
+
+```toml
+[resume]
+roots = ["../shared-protocols"]
+```
+
+Directories outside this package's repository that its runs read, home-relative: a sibling checkout
+a build links by path, for example. `--resume` fingerprints each root's tracked tree too, so editing
+one refuses the resume instead of carrying passes across bytes that changed.
+
+## `[runner]` — the binary under test
+
+```toml
+[runner]
+build   = "cargo build -p my-cli"
+bin     = "target/debug/my-cli"
+sources = ["crates", "Cargo.lock"]
+locks   = ["cargo"]
+```
+
+For a package whose subject is a binary built from this tree. A run provisions the subject just in
+time and exposes its path to proofs as `prova.bin`. `build` is optional (omit it when something else
+builds `bin`); a failed build is a failed provision (exit 2), never a verdict. With `sources`
+declared, the build is skipped while nothing under them is newer than the last provision.
+`locks` names the lock tokens the build holds, so it never races a proof holding
+`prova.writes("cargo")` in another instance. `--reprovision` rebuilds even when the subject is fresh.
+
+## `[placement]` — the placement broker
+
+```toml
+[placement]
+broker = "unix:///tmp/prova-broker.sock"
+```
+
+The broker Prova dials at run start to answer capability and contention questions across machines.
+This is design-stage scaffolding (see the [Roadmap](./roadmap.md)): a configured but unreachable
+broker is a loud error, and `PROVA_PLACEMENT_BROKER` overrides it per invocation. Most packages
+never set it.
 
 ## `[package]` — exporting a namespace
 

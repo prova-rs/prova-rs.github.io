@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # The Command Line
 
-The `prova` binary is one run command plus a small family of verbs: `init` to scaffold a package, `run` to enter a lane, `eval` for one-shot snippets, `learn` and `skill` for discovery, the ledger verbs (`promises`, `burndown`, `owed`, `evidence`, `attest`, `reminders`, `falsify`), the topology verbs (`up`, `watch`, `start`, `down`, `ps`), `mcp` to serve an agent over MCP, and `packages` / `package lint` for the package ecosystem. Give the run command paths and it runs them; give it nothing and it runs the suite declared in `prova.toml`. Every flag composes with either mode, and command-line flags always win over manifest values.
+The `prova` binary is one run command plus a small family of verbs: `init` to scaffold a package, `run` to enter a lane, `eval` for one-shot snippets, `learn` and `skill` for discovery, the lanes of obligations (`tests`, `specs`) and the ledger verbs (`owed`, `evidence`, `attest`, `reminders`), the topology verbs (`up`, `start`, `down`, `ps`), `mcp` to serve an agent over MCP, and `packages` / `package lint` for the package ecosystem. Give the run command paths and it runs them; give it nothing and it runs the suite declared in `prova.toml`. Every flag composes with either mode, and command-line flags always win over manifest values.
 
 ```text
 usage:

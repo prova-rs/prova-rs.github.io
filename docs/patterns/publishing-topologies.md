@@ -60,7 +60,7 @@ the versions are a fact about the topology, not something every consumer restate
 
 ## Two doors, one factory
 
-The registration serves the inhabited verbs — `prova up orders`, `start`, `watch`, `ps` — which
+The registration serves the inhabited verbs — `prova up orders`, `start`, `down`, `ps` — which
 resolve topologies **only** from `[topologies]` and never scan proof files. A proof, meanwhile,
 builds the *same exported factory* as a fixture:
 
