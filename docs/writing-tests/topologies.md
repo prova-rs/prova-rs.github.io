@@ -4,7 +4,7 @@ sidebar_position: 10
 
 # Topologies
 
-A **topology** is a named, wired bundle of resources — a seeded database, a cache, the app that connects them — declared once and consumed by *multiple verbs*. Your tests `use` it like any fixture; `prova up <name>` stands the identical environment up for you to develop against; `prova watch` re-applies it as you edit; `prova start`/`down`/`ps` manage it detached; and it is the same topology an [MCP client holds warm](../reference/cli.md#warm-topology-tools-mcp-only) so an agent's re-runs land in milliseconds. **One definition powers your tests, your dev environment, and warm MCP re-runs, so they cannot drift.**
+A **topology** is a named, wired bundle of resources — a seeded database, a cache, the app that connects them — declared once and consumed by *multiple verbs*. Your tests `use` it like any fixture; `prova up <name>` stands the identical environment up for you to develop against; `prova start`/`down`/`ps` manage it detached; and it is the same topology an [MCP client holds warm](../reference/cli.md#warm-topology-tools-mcp-only) so an agent's re-runs land in milliseconds. **One definition powers your tests, your dev environment, and warm MCP re-runs, so they cannot drift.**
 
 That is the problem topologies exist to kill: today a compose file, a testcontainers setup, and your test fixtures are separate descriptions of "the same" environment that silently diverge. Prova collapses them to one.
 
@@ -85,7 +85,6 @@ From the project directory (the topology is discovered in the manifest's test fi
 ```shell
 prova                  # run the assertions against it (provision → assert → tear down)
 prova up orders        # stand it up, print endpoints, hold until Ctrl-C
-prova watch orders     # stand it up and re-apply on every edit to the definition
 prova start orders     # stand it up detached; `prova ps` to list, `prova down orders` to stop
 ```
 
@@ -104,11 +103,11 @@ prova start orders     # stand it up detached; `prova ps` to list, `prova down o
 The definition is written once; the **verb** picks the port strategy:
 
 - **Tests** and plain `prova up` use **random host ports** — parallel-safe, so suites and several held topologies coexist on one machine without collisions.
-- **`--fixed`** (on `up`, `watch`, and `start`) pins each resource to its **canonical container port** on the host — postgres on `5432`, redis on `6379` — a predictable address for external tools, at the cost that only one fixed instance of a port runs at a time.
+- **`--fixed`** (on `up` and `start`) pins each resource to its **canonical container port** on the host — postgres on `5432`, redis on `6379` — a predictable address for external tools, at the cost that only one fixed instance of a port runs at a time.
 
 ```shell
 prova up orders --fixed      # postgres on 5432, redis on 6379
-prova watch orders --fixed   # endpoints stay put across re-applies
+prova start orders --fixed   # the same, detached
 ```
 
 ## The detached lifecycle
@@ -125,10 +124,6 @@ prova down orders      # SIGTERM the holder — the same in-process teardown as 
 
 Standing up a topology that is already up is refused; stale records (the holder died) are cleaned up automatically by `ps`, `up`, and `down`.
 
-## `prova watch` — the live dev loop
-
-`prova watch orders` stands the topology up and **re-provisions it whenever its definition files change** — edit the seed data, save, and the environment re-applies. A broken edit is reported and the loop waits for the fix rather than exiting. It is attached-only; pair it with `--fixed` so your app's connection strings survive re-applies.
-
 ## Run it
 
-The full example ships in the Prova repository as [`examples/topology`](https://github.com/prova-rs/prova/tree/main/examples/topology) — the `orders` definition above, its tests, and a manifest declaring the postgres and redis packages. The verb-by-verb flag reference lives in the [CLI reference](../reference/cli.md#topology-verbs-up-watch-start-down-ps).
+The full example ships in the Prova repository as [`examples/topology`](https://github.com/prova-rs/prova/tree/main/examples/topology) — the `orders` definition above, its tests, and a manifest declaring the postgres and redis packages. The verb-by-verb flag reference lives in the [CLI reference](../reference/cli.md#topology-verbs-up-start-down-ps).

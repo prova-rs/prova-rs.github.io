@@ -18,7 +18,7 @@ This section teaches you the full authoring surface of Prova: declaring tests, b
 7. **[Testing Real Systems](./testing-real-systems.md)** — the capstone: render a service, build it, provision Postgres with the [postgres package](/docs/packages/official-packages), boot it, and drive its gRPC API while cross-checking the database.
 8. **[Multi-Service Systems](./multi-service-systems.md)** — the capstone, scaled up: a Rust gRPC producer and a Python REST consumer joined by Pulsar, each with its own database, driven end to end by one test with assertions at every tier boundary.
 9. **[Mocking & Proxying](./mocking-and-proxies.md)** — standing in for what the system under test needs: stub-and-journal mocks, partial mocking and record/replay, and the transport matrix (HTTP, gRPC, sockets, WebSocket, terminal).
-10. **[Topologies](./topologies.md)** — one named environment definition consumed by multiple verbs: your tests `use` it, `prova up` holds it live for you to develop against, `prova watch` re-applies it as you edit.
+10. **[Topologies](./topologies.md)** — one named environment definition consumed by multiple verbs: your tests `use` it, and `prova up` holds it live for you to develop against.
 11. **[Building from Primitives](./building-from-primitives.md)** — the roll-up-your-sleeves track: rebuild a package's container recipe by hand from `docker.run`, `container:run`, `prova.retry`, and `ctx:manage`, so you can wrap any dependency that has no package.
 12. **[Promises & Burndown](./promises-and-burndown.md)** — proofs authored ahead of implementation: the `promises` flag, the open surface, and graduation to `proves`.
 

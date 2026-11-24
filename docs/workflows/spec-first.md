@@ -34,11 +34,11 @@ why a promise that *starts passing* fails the run — are in
 ## The spec you cannot lose
 
 ```shell
-prova promises     # enumerate the open surface; nothing runs
+prova tests --promises   # enumerate the open surface; nothing runs
 ```
 
 This is the executable spec — and it cannot go stale. `git grep TODO` lies — comments rot, move, and describe work
-nobody scoped — but `prova promises` cannot: every line on it is a real contract, stated as
+nobody scoped — but `prova tests --promises` cannot: every line on it is a real contract, stated as
 assertions, carrying its own reason, and checked by the same binary that runs the suite. When
 the list is empty, the work is *done*, in the only sense that survives contact with a reviewer.
 
@@ -50,15 +50,15 @@ on a list the runner re-presents until someone does.
 ## The implementing loop
 
 ```shell
-prova burndown     # promises fall due: open ones fail LOUD, with full detail
+prova tests burndown     # promises fall due: open ones fail LOUD, with full detail
   # ...implement...
-prova burndown     # each promise you satisfy now fails as "promise kept" — graduate it
-prova promises     # empty ⇒ burndown complete
+prova tests burndown     # each promise you satisfy now fails as "promise kept" — graduate it
+prova tests --promises   # empty ⇒ burndown complete
 ```
 
-`prova burndown` inverts the CI-friendly behavior: open promises report as real failures with
+`prova tests burndown` inverts the CI-friendly behavior: open promises report as real failures with
 their full error, which is exactly what you want while driving them green. It composes with
-[selection](../running-prova/command-line.md#run-a-subset), so `prova burndown -k encode`
+[selection](../running-prova/command-line.md#run-a-subset), so `prova tests burndown -k encode`
 narrows to one area.
 
 Graduation is a tense change, and it happens **in the same commit as the implementation**: a
@@ -80,10 +80,10 @@ behavior you can't state as a promise is a behavior you haven't actually designe
 ## The hand-off shape
 
 This is also how work changes hands cleanly — between teammates, and especially from a team to
-an implementing agent. The promises **are** the assignment: the agent runs `prova promises` to
-see what is owed, `prova burndown` to drive it, and graduates each flag in the commit that
+an implementing agent. The promises **are** the assignment: the agent runs `prova tests --promises` to
+see what is owed, `prova tests burndown` to drive it, and graduates each flag in the commit that
 keeps it. Nothing about the intent travels out-of-band — the reasons are in the flags, the
-contracts are in the assertions, and "finished" is a fact (`prova promises` prints nothing)
+contracts are in the assertions, and "finished" is a fact (`prova tests --promises` prints nothing)
 rather than a report. The same suite, flags graduated, then holds the line in CI via the
 [run-action](../running-prova/ci-and-output.md#the-github-action) — the bar the designer set is
 the bar the reviewer checks, verbatim.

@@ -22,7 +22,7 @@ end)
 ```
 
 ```bash
-prova falsify      # select only tests declaring a mutation; apply it; INVERT the verdict
+prova tests falsify      # select only tests declaring a mutation; apply it; INVERT the verdict
 ```
 
 Red under mutation is the passing result — what is being proven is the body's **capacity to
@@ -37,9 +37,9 @@ FAIL  two plus two
 ## The semantics
 
 - **The verb is the selection**, exactly like `burndown`: a proof without a falsifier is not a
-  failure (most never declare one) — it is simply not what this pass is about. `prova falsify`
+  failure (most never declare one) — it is simply not what this pass is about. `prova tests falsify`
   is `--falsify --allow-empty`, and the flag composes with any selection
-  (`prova falsify -k rendering`).
+  (`prova tests falsify -k rendering`).
 - **A declared falsifier costs nothing on the ordinary path.** The mutation runs only under the
   verb that asks for it — because if a bare `prova` started perturbing systems, nobody would
   ever declare one.
@@ -70,5 +70,5 @@ test already owns. It documents, executably, what "this proof is about" means.
 The [run record](./record-and-attest.md) tells you a proof executed; a falsifier tells you the
 proof can *discriminate*. Together they close the two vacuity holes a green tally leaves open:
 the proof that never ran, and the proof that ran but asserts nothing. Teams typically run
-`prova falsify` as an occasional lane (a nightly, a pre-release check) rather than in the merge
+`prova tests falsify` as an occasional lane (a nightly, a pre-release check) rather than in the merge
 gate — the mutations are real work, and the property they check drifts slowly.

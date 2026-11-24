@@ -8,7 +8,7 @@ A **promise** is a proof written before the behavior exists. In proof-driven voc
 not yet kept *is* the specification — the test states, in its own voice, what it will prove
 someday and does not prove today. There is no `pending`, no `todo`, no `skip("not implemented")`.
 
-The point is that `git grep TODO` lies and `prova promises` cannot. A contract you can state but
+The point is that `git grep TODO` lies and `prova tests --promises` cannot. A contract you can state but
 are not implementing right now is still worth writing down executably.
 
 ```lua
@@ -56,7 +56,7 @@ reviewed, instead of in a doc that can drift or a commit message nobody opens.
 - `proves` is runtime-inert — the test is a full proof: pass is pass, fail is fail.
 - Its value must be a non-empty string. A bare flag says nothing, which is the whole objection.
 - `promises` and `proves` never share a test — open work keeps its context in the promise.
-- Invisible to `prova promises` — kept is not open.
+- Invisible to `prova tests --promises` — kept is not open.
 - **Retrofitting is welcome.** Any existing test can gain a `proves` to capture the context behind
   it after the fact.
 
@@ -72,19 +72,19 @@ bare `promises = true` — the reason is the point.
 ## Driving the burndown
 
 ```shell
-prova promises     # enumerate the open surface; nothing runs, empty means burndown complete
-prova burndown     # run ONLY promised tests, open promises failing loud with full detail
+prova tests --promises   # enumerate the open surface; nothing runs, empty means burndown complete
+prova tests burndown     # run ONLY promised tests, open promises failing loud with full detail
 ```
 
-`prova promises` is the executable spec's open surface. `prova burndown` is the implementing loop: promises
+`prova tests --promises` is the executable spec's open surface. `prova tests burndown` is the implementing loop: promises
 fall due — it inverts the CI-friendly behavior so open promises report as real failures with
 their full error, which is what you want while you are driving them green.
 
-Both compose with [selection](../running-prova/command-line.md), so `prova burndown -k websocket`
+Both compose with [selection](../running-prova/command-line.md), so `prova tests burndown -k websocket`
 narrows to one area. Underneath, the composable primitives are `--promises` (select only promised
 tests — it composes with `--list` and the rest of selection) and `--due` (promises fall due: open
-ones count as failures); the verbs are the memorable spellings — `prova promises` is
-`--promises --list`, and `prova burndown` is `--promises --due`.
+ones count as failures). `prova tests burndown` is `--promises --due`; `prova tests --promises`
+lists the same surface without running it.
 
 An empty surface under `burndown` means **complete** — exit `0`, not a selection error.
 

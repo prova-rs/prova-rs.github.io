@@ -114,7 +114,7 @@ concept.
 2. **[The Run Record & Attestation](./record-and-attest.md)** — what did *not* run: the record
    every run writes, why "0 failed" is not evidence, and the `attest` gate that closes the gap.
 3. **[Falsifiers](./falsifiers.md)** — proving a proof can fail: `falsified_by` and the
-   `prova falsify` pass that catches vacuous green.
+   `prova tests falsify` pass that catches vacuous green.
 
 The authoring side of the spine's right half lives in
 [Promises & Burndown](../writing-tests/promises-and-burndown.md).

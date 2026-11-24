@@ -28,7 +28,7 @@ PDD gives every piece of work one road, and Prova makes each stage of it a check
 
 1. **Claimed** — a normative sentence in a design doc carries a [claim anchor](../evidence/claims-and-covers.md); prose becomes an obligation.
 2. **Bound** — a proof declares `covers = "<doc>#<id>"`; the claim has an owner.
-3. **Promised** — the proof is [authored ahead of the implementation](../writing-tests/promises-and-burndown.md), red by design; `prova promises` is the open surface and `prova burndown` the implementing loop.
+3. **Promised** — the proof is [authored ahead of the implementation](../writing-tests/promises-and-burndown.md), red by design; `prova tests --promises` is the open surface and `prova tests burndown` the implementing loop.
 4. **Proven** — the implementation lands and the flag graduates to `proves` in the same commit.
 5. **Attested** — [`prova attest`](../evidence/record-and-attest.md) confirms the covering proof executed and passed in the recorded run — the stage a suite that never ran cannot fake.
 

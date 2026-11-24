@@ -38,8 +38,8 @@ end
 -- ── Standing guards ──────────────────────────────────────────────────────────────────────────
 
 prova.test("no page teaches retired vocabulary", {
-  proves = "the 0.16 package rename and the promises rename left ~30 pages stale; "
-    .. "these strings are how the rot read",
+  proves = "the 0.16 package rename, the promises rename, and the 0.2x lane verbs each left "
+    .. "pages stale; these strings are how the rot read",
 }, function(t)
   -- Each needle is a spelling the binary no longer has. The exact strings matter: the
   -- GitHub Action's real `plugins:` input and `~/.cache/prova/plugins` path are still true
@@ -55,6 +55,13 @@ prova.test("no page teaches retired vocabulary", {
     -- One word, one meaning — the PM/UI layer says "add this to our backlog" and must not
     -- collide with the promise vocabulary.
     { needle = "executable backlog", was = "the promise surface's old nickname" },
+    -- 0.2x: a state is a flag on its lane. The old top-level verbs print their replacement and
+    -- exit; `prova watch` was removed outright (2026-08-25), so it now reads as a path.
+    { needle = "prova promises",    was = "`prova tests --promises`" },
+    { needle = "prova burndown",    was = "`prova tests burndown`" },
+    { needle = "prova falsify",     was = "`prova tests falsify`" },
+    { needle = "prova list ",       was = "`prova tests`" },
+    { needle = "prova watch",       was = "a verb removed in 2026-08" },
   }
   t:expect_all(function()
     for _, r in ipairs(RETIRED) do
@@ -141,21 +148,9 @@ local function expect_taught(t, needles)
   end)
 end
 
-prova.test("no page teaches the retired promise verbs", {
-  promises = "phase 0: `prova promises` and `prova burndown` became `prova tests --promises` "
-    .. "and `prova tests burndown`; ~12 pages still teach the old verbs",
-}, function(t)
-  t:expect_all(function()
-    for _, needle in ipairs({ "prova promises", "prova burndown" }) do
-      local hits = containing(t, needle)
-      t:expect(#hits, needle .. " survives in: " .. table.concat(hits, ", ")):equals(0)
-    end
-  end)
-end)
-
 prova.test("the roadmap lists only unshipped work", {
-  promises = "phase 0: the backlog tier and reverse traceability (`prova specs backfill`) "
-    .. "shipped but are still listed as Designed",
+  proves = "phase 0 (2026-11-24): the backlog tier and reverse traceability (`prova specs "
+    .. "backfill`) shipped while the roadmap still listed them as Designed",
 }, function(t)
   local roadmap = fs.read(root .. "/docs/reference/roadmap.md")
   t:expect_all(function()

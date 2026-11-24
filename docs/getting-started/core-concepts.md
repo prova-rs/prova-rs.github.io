@@ -76,7 +76,7 @@ The core runtime ships the **primitives** — `shell`, `fs`, `net`, `docker`, `h
 
 ## Topologies
 
-A **topology** is a fixture designed to be a whole environment and **addressable by name**: `prova.topology("orders", fn)` declares a named bundle of wired resources (a seeded database, a cache, the app connecting them) that your tests consume like any fixture — and that `prova up orders` stands up *live* for you to develop against, printing each resource's endpoint and holding until Ctrl-C. `prova watch` re-applies it as you edit; `prova start`/`down`/`ps` manage it detached. One definition powers both your tests and your dev environment, so they cannot drift. Deep dive: [Topologies](../writing-tests/topologies.md).
+A **topology** is a fixture designed to be a whole environment and **addressable by name**: `prova.topology("orders", fn)` declares a named bundle of wired resources (a seeded database, a cache, the app connecting them) that your tests consume like any fixture — and that `prova up orders` stands up *live* for you to develop against, printing each resource's endpoint and holding until Ctrl-C. `prova start`/`down`/`ps` manage it detached. One definition powers both your tests and your dev environment, so they cannot drift. Deep dive: [Topologies](../writing-tests/topologies.md).
 
 ## The manifest: `prova.toml`
 

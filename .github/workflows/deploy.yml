@@ -49,7 +49,7 @@ jobs:
       # the proofs that need it and reporting a green "0 failed".
       - uses: prova-rs/run-action@v1
         with:
-          version: v0.17.0   # the current release — the nightly freshness proof holds this string to it
+          version: v0.30.12   # the current release — the nightly freshness proof holds this string to it
           profile: ci
 
       - name: Upload the proven build

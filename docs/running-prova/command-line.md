@@ -19,19 +19,19 @@ usage:
   prova learn [<topic>]     the topic catalog: progressive disclosure of how Prova works
   prova skill               print the agent skill (how to drive Prova); --install writes it
                             to .claude/skills/prova/SKILL.md at the project root
-  prova promises            list the open promises — proofs authored ahead of implementation
-  prova burndown [<sel>]    the implementing loop: run only promised tests, open promises
-                            failing loud with full detail
-  prova falsify [<sel>]     prove the proofs can fail: apply declared falsifiers, invert the verdict
+  prova tests [<sel>]       the tests lane: every node, tagged PROMISE or PROOF; --promises and
+                            --proofs narrow it, `burndown` and `falsify` drive it
+  prova specs               the specs lane: claims and backlog items (`capture`, `promote`, `backfill`)
   prova owed                what this package still owes: open promises, unproven claims,
                             dangling covers, due reminders
   prova evidence            the whole account: CLAIMED / BOUND / PROMISED / ATTESTED, then owed
   prova attest [<address>]  did the proof covering this claim actually RUN? (no address: every claim)
   prova reminders           the attention account: every reminder with its recorded state
-  prova list [<sel>]        discover tests without running them (respects selection)
+  prova switches            every opt-in class, how many tests it gates, and who throws it
+  prova reports [<name>]    the artifacts the last run kept (coverage, junit, ...)
+  prova capabilities        what this host can do, and what this package declares
   prova mcp                 serve Prova to an agent as an MCP server over stdio
   prova up [<topology>]     list topologies, or stand one up and hold it until Ctrl-C
-  prova watch <topology>    stand up a topology and re-apply on definition change (dev loop)
   prova start <topology>    stand up a topology detached (returns; use `down` to stop)
   prova down <topology>     tear down a detached topology
   prova ps                  list running topologies
@@ -129,16 +129,16 @@ The same content an agent gets over MCP; a team's own docs join the catalog via 
 The evidence account, queryable. None of these execute proof bodies except `burndown` and `falsify`:
 
 ```shell
-prova promises        # the open surface: proofs authored ahead of implementation
-prova burndown        # run only the promised tests, open ones failing loud — the implementing loop
-prova owed            # every open obligation: promises, unproven claims, dangling covers, due reminders
-prova evidence        # where does this package stand? CLAIMED / BOUND / PROMISED / ATTESTED + owed
-prova attest          # is every claim evidenced by an executed, passing proof? — the CI gate
-prova reminders       # the attention account: DUE / WATCHING / UNEVALUATED
-prova falsify         # apply declared falsifiers; a proof that survives its mutation is vacuous
+prova tests --promises   # the open surface: proofs authored ahead of implementation
+prova tests burndown     # run only the promised tests, open ones failing loud — the implementing loop
+prova owed               # every open obligation: promises, unproven claims, dangling covers, due reminders
+prova evidence           # where does this package stand? CLAIMED / BOUND / PROMISED / ATTESTED + owed
+prova attest             # is every claim evidenced by an executed, passing proof? — the CI gate
+prova reminders          # the attention account: DUE / WATCHING / UNEVALUATED
+prova tests falsify      # apply declared falsifiers; a proof that survives its mutation is vacuous
 ```
 
-`promises` and `burndown` are the authoring loop for [Promises & Burndown](../writing-tests/promises-and-burndown.md); the rest are covered verb-by-verb in the [CLI reference](../reference/cli.md#prova-owed).
+`prova tests --promises` and `prova tests burndown` are the authoring loop for [Promises & Burndown](../writing-tests/promises-and-burndown.md); the rest are covered verb-by-verb in the [CLI reference](../reference/cli.md#prova-owed).
 
 ## Holding environments: the topology verbs
 
@@ -148,13 +148,12 @@ A [topology](../writing-tests/topologies.md) registered in the manifest's `[topo
 prova up                     # list the topologies this package registers
 prova up orders              # stand it up, print endpoints, hold until Ctrl-C
 prova up orders --fixed      # same, but on canonical ports (postgres 5432, …)
-prova watch orders           # re-provision on every edit to the definition (dev loop)
 prova start orders           # stand it up detached and return
 prova ps                     # list running topologies (name, pid, uptime, endpoints)
 prova down orders            # tear down a detached topology
 ```
 
-`up` and `watch` hold your terminal and tear down on Ctrl-C; `start` spawns a detached holder (its output goes to `<home>/running/<name>.log`) that `down` stops with the identical in-process teardown. By default ports are random so several topologies coexist; `--fixed` pins canonical container ports for external tools. All the verbs accept `--profile` and `--manifest`. The full walkthrough is in [Topologies](../writing-tests/topologies.md); the flag-by-flag reference in the [CLI reference](../reference/cli.md#topology-verbs-up-watch-start-down-ps).
+`up` holds your terminal and tear down on Ctrl-C; `start` spawns a detached holder (its output goes to `<home>/running/<name>.log`) that `down` stops with the identical in-process teardown. By default ports are random so several topologies coexist; `--fixed` pins canonical container ports for external tools. All the verbs accept `--profile` and `--manifest`. The full walkthrough is in [Topologies](../writing-tests/topologies.md); the flag-by-flag reference in the [CLI reference](../reference/cli.md#topology-verbs-up-start-down-ps).
 
 ## Serving an agent: `prova mcp`
 

@@ -32,7 +32,7 @@ workflow after it.
 |---|---|---|
 | [Just Write Some Tests](./just-write-some-tests.md) | You want assertions on a script or a service *today* — no project, no concepts | write one file → `prova <file>` → read the tally |
 | [The Proof-Driven Change](./the-proof-driven-change.md) | You are implementing a change right now | proof first (red) → implement → `--last-failed` → commit both together |
-| [Spec-First: Promises & Burndown](./spec-first.md) | You can state the contract before the implementation exists | promise each behavior → `prova burndown` → graduate to `proves` |
+| [Spec-First: Promises & Burndown](./spec-first.md) | You can state the contract before the implementation exists | promise each behavior → `prova tests burndown` → graduate to `proves` |
 | [Docs That Cannot Drift](./docs-that-cannot-drift.md) | Your design docs make promises someone has to keep | anchor a claim → cover it → `prova owed` → `prova attest` in CI |
 
 **Just Write Some Tests** is the shallow end: one `*.prova.lua` file, `shell.run` and
@@ -45,7 +45,7 @@ re-runs byte-identically. Done stops being a claim and becomes a proof that runs
 
 **Spec-First** points the same loop at work that hasn't started. A proof flagged
 `promises = "reason"` is red by design and reports without breaking CI — the open work becomes
-executable, and `prova burndown` becomes the implementing loop that empties it.
+executable, and `prova tests burndown` becomes the implementing loop that empties it.
 
 **Docs That Cannot Drift** closes the last gap: prose. A normative sentence in a design doc
 gains a claim anchor, a proof covers it, and CI attests that the covering proof actually ran

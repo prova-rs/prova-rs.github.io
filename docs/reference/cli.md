@@ -18,23 +18,31 @@ prova ide setup [--manage ...]  (re)wire LuaLS support: core stubs + .luarc.json
 prova eval '<code>'             run a one-shot Lua snippet in the full prova environment
 prova skill [--install]         print (or install) the embedded agent skill
 prova learn [<topic>]           the topic catalog: progressive disclosure of how Prova works
-prova promises [<sel>]          list the open promises — proofs authored ahead of implementation
-prova burndown [<sel>]          run only promised tests, open promises failing loud (--promises --due)
-prova falsify [<sel>]           run only tests declaring `falsified_by`, applying the mutation
+prova introspect [<filter>]     the API surface: every function and value, signature + summary
+prova tests [<sel>]             the tests lane: every node, tagged PROMISE or PROOF
+                                (--promises/--proofs narrow; `burndown` and `falsify` drive)
+prova specs                     the specs lane: claims and backlog items
+                                (--claims/--backlog narrow; `capture`, `promote <id>`, `backfill`)
 prova owed                      what this package still owes: open promises, unproven claims,
                                 dangling covers, due reminders
 prova evidence                  the whole account: CLAIMED / BOUND / PROMISED / ATTESTED, then owed
 prova attest [<address>]        did the proof covering this claim actually RUN? (no address: every claim)
 prova reminders                 the attention account: every reminder with its recorded state
-prova list [<sel>]              discover tests without running them (same as --list)
+prova switches                  every opt-in class (`switch = ...`), how many tests it gates, who throws it
+prova reports [<name>]          artifacts the last run kept, each with a summary and its forms
+prova capabilities [<name>]     what this host can do, and what this package declares
 prova mcp                       serve an MCP stdio server whose tools mirror the CLI
 prova up [<topology>] [<url>]   list/stand up a topology — local, or from a git repo that advertises it
-prova watch <topology>          stand up a topology and re-apply on definition change
 prova start <topology>          stand up a topology detached (use `down` to stop)
 prova down <topology>           tear down a detached topology
 prova ps                        list running topologies
+prova lock <token> -- <cmd>     hold a package lock while <cmd> runs (--reads, --machine)
+prova locks [--machine]         who holds which lock right now, with the pid and command
+prova stress --copies N ...     run each selected nextest case as N isolated copies: reproduce a flake
+prova relay --to <addr>         pipe stdio to a socket: makes a listening mock spawnable
 prova package lint <FILE>...    check package files against the namespacing grammar
 prova packages [<query>]        search the configured package registries (info / add subcommands)
+prova var-dir                   this package's state directory, resolved
 prova broker                    the single-machine reference placement broker (spec scaffolding —
                                 not needed to use prova)
 ```
@@ -95,7 +103,7 @@ All value-taking flags accept both `--flag value` and `--flag=value`.
 | `--last-failed` | — | Select only the nodes that failed in the previous run. With no failure state, prints a note and runs everything. |
 | `--promises` | — | Select only [promised](../writing-tests/promises-and-burndown.md) tests — the open surface. Composes with the other selectors and with `--list`. |
 | `--due` | — | Promises fall due: open promises report as real failures. With `--promises` this is burndown's mode; alone, the whole suite tolerates no open promise. |
-| `--falsify` | — | Select only tests declaring `falsified_by`, apply each test's mutation, and **invert the verdict** — a body that survives its falsifier is reported vacuous and fails. `prova falsify` is `--falsify --allow-empty`. |
+| `--falsify` | — | Select only tests declaring `falsified_by`, apply each test's mutation, and **invert the verdict** — a body that survives its falsifier is reported vacuous and fails. `prova tests falsify` is `--falsify --allow-empty`. |
 | `--allow-empty` | — | A selection matching no tests is OK (by default that is an error). |
 | `--topology <NAME>` | — | Require attaching to the **held** topology `NAME` (error when it is not running) — judge the live environment, never a silently fresh one. |
 | `--fresh` | — | Ignore held topologies: always provision fresh (the CI behavior). |
@@ -243,23 +251,31 @@ content is computed at call time rather than being a snapshot. A project can
 add its own topics with the manifest's top-level `context = [...]` key, served
 as `ctx:<stem>`; see [prova.toml](./prova-toml.md).
 
-## `prova promises`
+## `prova tests` — the tests lane
 
 ```text
-prova promises [<selection>]   # enumerate the open promise surface; runs nothing
+prova tests [<selection>]   # every selected node, tagged PROMISE or PROOF; runs nothing
+```
+
+The run axis as a list: what exists, and in which state. `--promises` narrows to open promises and `--proofs` to settled proofs. Two drivers act on the lane: `burndown` and `falsify`. The older top-level verbs (`list`, `promises`, `burndown`, `falsify`) now print their replacement and exit.
+
+### `prova tests --promises`
+
+```text
+prova tests --promises [<selection>]   # enumerate the open promise surface; runs nothing
 ```
 
 Lists every [promised](../writing-tests/promises-and-burndown.md) test — proofs authored ahead of
 their implementation. This is the executable spec's open surface: unlike a `TODO` grep it cannot go stale,
 because the entries are the tests themselves. An empty list means the burndown is complete.
 
-Composes with [selection](#selection-semantics), so `prova promises -k websocket` narrows to one
+Composes with [selection](#selection-semantics), so `prova tests --promises -k websocket` narrows to one
 area. Equivalent to `prova --promises --list`.
 
-## `prova burndown`
+### `prova tests burndown`
 
 ```text
-prova burndown [<selection>]   # run ONLY promised tests, open ones failing loud
+prova tests burndown [<selection>]   # run ONLY promised tests, open ones failing loud
 ```
 
 The implementing loop. Runs just the promise surface and inverts the CI-friendly behavior: an
@@ -269,10 +285,10 @@ it green rather than while protecting a build.
 Equivalent to `prova --promises --due`. An empty surface means **complete** — exit `0`, not a
 selection error.
 
-## `prova falsify`
+### `prova tests falsify`
 
 ```text
-prova falsify [<selection>]    # apply declared falsifiers; INVERT the verdict
+prova tests falsify [<selection>]    # apply declared falsifiers; INVERT the verdict
 ```
 
 Prove the proofs can fail. Selects only tests declaring a `falsified_by` mutation, applies it,
@@ -367,7 +383,7 @@ the features it describes and can never drift. `--install` writes it to
 the manifest; the current directory if there is none), so the repo carries it
 durably.
 
-## Topology verbs: `up`, `watch`, `start`, `down`, `ps`
+## Topology verbs: `up`, `start`, `down`, `ps`
 
 The inhabited counterparts of a test run — they stand up a **registered topology**
 (declared in the manifest's [`[topologies]` table](./prova-toml.md#topologies--environments-addressable-by-name), typically backed
@@ -396,18 +412,6 @@ A running `up` records itself under `<home>/running/<name>.json` (pid +
 endpoints) so `prova ps`/`down` can supervise it, and removes the record on
 clean teardown. Standing up a topology whose record is still live is refused;
 a stale record (the holder is gone) is cleaned and the command proceeds.
-
-### `prova watch <topology>` — the dev loop
-
-```text
-prova watch <topology> [--fixed] [--profile NAME] [--manifest PATH]
-```
-
-Like `up`, but **re-provisions whenever the topology's definition files
-change** — a live dev loop over the same definition your tests use. Each pass
-builds a fresh Lua state so edits take effect; a failed edit is reported and
-the loop waits for the fix instead of exiting. Attached-only; pair with
-`--fixed` so endpoints stay stable across re-applies.
 
 ### `prova start <topology>` — detached
 
@@ -529,7 +533,7 @@ resources: `prova://learn/<topic>` and `prova://skill`.
 
 ### Warm topology tools (MCP-only)
 
-The CLI is cold by design: every `prova` run re-provisions its fixtures. Over MCP the server can also be a **topology holder** — provision a [topology](../writing-tests/topologies.md) once and re-run against the held live instance in milliseconds. This is the one capability MCP has that the CLI does not; the CLI equivalent of holding an environment is [`prova up`/`start`](#topology-verbs-up-watch-start-down-ps).
+The CLI is cold by design: every `prova` run re-provisions its fixtures. Over MCP the server can also be a **topology holder** — provision a [topology](../writing-tests/topologies.md) once and re-run against the held live instance in milliseconds. This is the one capability MCP has that the CLI does not; the CLI equivalent of holding an environment is [`prova up`/`start`](#topology-verbs-up-start-down-ps).
 
 | Tool | Purpose | Result JSON |
 |---|---|---|

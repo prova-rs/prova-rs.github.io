@@ -14,13 +14,11 @@ yet implemented by the engine — calling them either has no effect or errors.
 
 | Feature | Status | What to use today |
 |---|---|---|
-| The **backlog tier** — the cold, unbound state below a claim: the same doc-tier anchor, toggled in place, promotable to a claim (demotable only while unbound), queryable and age-able but outside the owed graph | Designed | Author the claim (or the promise) directly — every precursor on the [spine](../evidence/index.md#the-lifecycle--a-state-machine-with-optional-parts) is optional. For a reproducible bug, a `promises = "bug: …"` proof self-graduates; reserve prose notes for what you can't scope into a repro yet. |
-| The **reverse traceability query** — proof → claim: verification that exists with no stated spec behind it (the mirror of `prova owed`), shipping as a predicate that starts as a nudge and elevates to a gate | Designed | `prova owed` audits the forward direction (claim → proof) today. |
 | Standalone interposing proxies (sit between the SUT and a *real* dependency without terminating the stream) | Designed | [Partial mocking](../writing-tests/mocking-and-proxies.md) — `http.mock(ctx, { target = ... })` passthrough/record/replay — covers observe-and-override for HTTP today; run toxiproxy as a resource for raw-TCP fault injection. |
 | Formal verifiers (TLA+/TLC over a pinned image) as a deputed-verifier package | Designed | The `junit` seam covers test-framework deputies today. |
 | TAP ingestion (a deputy that reports TAP instead of JUnit XML) | Planned | Most tools can emit JUnit XML; use that seam. |
 | Per-case re-run translation for deputed cases (`--last-failed` → the deputy's own selector) | Planned | Re-run the deputy yourself with its native selection. |
-| A burndown lane in CI (a scheduled job that *works* the open promise surface, not just reports it) | Designed | `prova burndown` locally; CI reports open promises without failing. |
+| A burndown lane in CI (a scheduled job that *works* the open promise surface, not just reports it) | Designed | `prova tests burndown` locally; CI reports open promises without failing. |
 | Placement: distributing units across machines (the broker `prova broker` scaffolds the spec for) | Design | `-j` concurrency on one machine; lanes to split the suite across CI jobs. |
 | Failure bundles | Planned | Attach managed process/container output tails to failed-node results. Today: read `proc:output()` yourself and `ctx:log` what matters. |
 | `net.mock` / `graphql.mock` | Planned | The [`mock` facet](../writing-tests/mocking-and-proxies.md) covers `http`, `grpc`, `socket`, `websocket`, `terminal`, and `shell` today; stub GraphQL over `http.mock`. |

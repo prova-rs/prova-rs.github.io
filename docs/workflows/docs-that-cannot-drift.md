@@ -47,7 +47,7 @@ skipped, deselected, red, still promised, or absent from the recorded run — be
 is not evidence, and neither is a proof that never executed.
 
 Where a claim guards an *absence* — no anonymous controls, no unencrypted field, nothing
-logged at rest — add a [falsifier](../evidence/falsifiers.md): `prova falsify` applies the
+logged at rest — add a [falsifier](../evidence/falsifiers.md): `prova tests falsify` applies the
 declared mutation and a body that survives it is reported vacuous. An assertion that a bad
 thing is absent is exactly the kind that can silently check nothing.
 
@@ -72,7 +72,7 @@ Say the design doc for a placement broker gains a new sentence. The whole lifecy
    ```
 
    The claim is now bound and the work is on the open surface: `prova owed` shows it PROMISED.
-3. **Burn it down.** `prova burndown` fails loud on the open promise; you implement; the
+3. **Burn it down.** `prova tests burndown` fails loud on the open promise; you implement; the
    promise is kept and the run demands graduation.
 4. **Graduate in the same commit.** `promises` becomes
    `proves = "broker v2: drains were indistinguishable from preemptions"` — the reason

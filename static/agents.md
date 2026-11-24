@@ -59,7 +59,7 @@ cargo install --git https://github.com/prova-rs/prova prova-cli
 prova --version
 ```
 
-Expected: a version string such as `prova 0.17.0`. If the command is not found, `prova` is not on
+Expected: a version string such as `prova 0.30.12`. If the command is not found, `prova` is not on
 `PATH` — fix that before continuing.
 
 ---

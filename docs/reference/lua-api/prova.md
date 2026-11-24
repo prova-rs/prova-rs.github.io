@@ -34,7 +34,7 @@ by every unit inside it.
 | `promises` | `string` | A proof authored ahead of its implementation, with the reason as the value (mandatory). Red reports as the distinct `PROMISED` outcome; green **fails**, demanding graduation to `proves`. See [Promises & Burndown](../../writing-tests/promises-and-burndown.md). |
 | `proves` | `string` | The kept promise's context — runtime-inert (pass is pass, fail is fail); must be a non-empty string. Never shares a test with `promises`. |
 | `covers` | `string` | Binds this proof to a prose claim: `"docs/design.md#claim-id"`, optionally text-pinned with `@<hash>` (written by `prova owed --pin`). Reconciled by `prova owed` / `prova evidence` / `prova attest`. |
-| `falsified_by` | `fun(t)` | A mutation the body must catch. Applied only under `prova falsify`, which **inverts the verdict** — a body that survives its falsifier is reported vacuous and fails. Test-level only. |
+| `falsified_by` | `fun(t)` | A mutation the body must catch. Applied only under `prova tests falsify`, which **inverts the verdict** — a body that survives its falsifier is reported vacuous and fails. Test-level only. |
 
 ## `prova.fixture`
 
@@ -95,7 +95,7 @@ end)
 ```
 
 See [Topologies](../../writing-tests/topologies.md) for the guide and the
-[CLI reference](../cli.md#topology-verbs-up-watch-start-down-ps) for the verbs.
+[CLI reference](../cli.md#topology-verbs-up-start-down-ps) for the verbs.
 
 ## Scope constants
 
