@@ -162,8 +162,8 @@ prova.test("the roadmap lists only unshipped work", {
 end)
 
 prova.test("the bigger picture: one page introduces every capability as a unit", {
-  promises = "phase 1: an overview a team can read before a meeting, each capability in a few "
-    .. "lines with a link to its section",
+  proves = "phase 1 (2026-11-24): an overview a team can read before a meeting, each "
+    .. "capability in a few lines with a link to its section",
 }, function(t)
   local page = root .. "/docs/getting-started/the-bigger-picture.md"
   t:expect(page, "no overview page"):is_file()

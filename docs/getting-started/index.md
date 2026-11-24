@@ -10,10 +10,11 @@ New to Prova? This section takes you from zero to a working acceptance-test suit
 ## Learning path
 
 1. **[What is Prova?](./what-is-prova.md)** — the black-box acceptance layer, how Prova compares to the tools you already know, and when to reach for it.
-2. **[Installation](./installation.md)** — install the `prova` binary (Homebrew, release archives, or Cargo), then verify it can discover tests.
-3. **[Core Concepts](./core-concepts.md)** — test files, tests, fixtures and scopes, groups vs. flows, suites, packages, and the manifest, each in one short section.
-4. **[Quick Start](./quick-start.md)** — write a two-test file, run it, and read the output.
-5. **[Your First Test Suite](./your-first-test-suite.md)** — grow the quick start with a shared file-scoped fixture, soft assertions, and parallel execution.
+2. **[The Bigger Picture](./the-bigger-picture.md)** — every capability as a unit: what it is for, in a few lines, with a link to its section. The page to share before a team meeting.
+3. **[Installation](./installation.md)** — install the `prova` binary (Homebrew, release archives, or Cargo), then verify it can discover tests.
+4. **[Core Concepts](./core-concepts.md)** — test files, tests, fixtures and scopes, groups vs. flows, suites, packages, and the manifest, each in one short section.
+5. **[Quick Start](./quick-start.md)** — write a two-test file, run it, and read the output.
+6. **[Your First Test Suite](./your-first-test-suite.md)** — grow the quick start with a shared file-scoped fixture, soft assertions, and parallel execution.
 
 From there, the [Workflows](../workflows/index.md) section is the ramp: complete ways of working with Prova, from the shallow end to the deep end.
 
