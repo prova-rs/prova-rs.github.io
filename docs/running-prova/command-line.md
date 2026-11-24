@@ -95,7 +95,7 @@ prova --profile ci                          # overlay [profiles.ci] on [run]
 prova --manifest infra/prova.toml -p smoke  # a manifest somewhere else
 ```
 
-If there's no readable manifest and no paths, Prova prints usage and exits with code `2`. See [Manifest & Profiles](./manifest-and-profiles.md) for how the manifest is structured and merged.
+If there's no readable manifest and no paths, Prova prints usage and exits with code `78`. See [Manifest & Profiles](./manifest-and-profiles.md) for how the manifest is structured and merged.
 
 ## Probing with `prova eval`
 
@@ -170,7 +170,7 @@ Because the server is one long-lived process, it can also **hold a topology warm
 
 ### `--profile`, `-p`
 
-Select a `[profiles.<name>]` overlay from the manifest (`prova run <name>` is the memorable spelling). Naming a profile that doesn't exist is an error (exit `2`). Only meaningful for manifest-driven runs — explicit paths ignore the manifest, profile included.
+Select a `[profiles.<name>]` overlay from the manifest (`prova run <name>` is the memorable spelling). Naming a profile that doesn't exist is an error (exit `78`). Only meaningful for manifest-driven runs — explicit paths ignore the manifest, profile included.
 
 ```shell
 prova --profile ci
@@ -261,7 +261,7 @@ How files group into **suites** matters for parallelism and shared state:
 `suite.lua` is the zero-config way to group; the manifest's `[suites.<name>]` tables cover grouping that doesn't match your directory tree. Both are described in [Manifest & Profiles](./manifest-and-profiles.md).
 :::
 
-If discovery finds no test files at all, Prova reports it and exits with code `2` (pass `--allow-empty` when an empty selection is expected).
+If discovery finds no test files at all, Prova reports it and exits with code `78` (pass `--allow-empty` when an empty selection is expected).
 
 ## Exit codes
 

@@ -385,3 +385,21 @@ prova.test("the smaller features are taught where they belong", {
     { needle = "--uncached", what = "the audit run" },
   })
 end)
+
+prova.test("v0.30.13 is taught where it belongs", {
+  proves = "phase 8 (2026-11-24): v0.30.13 shipped t:advise, prova.infra, run show, tree --rev, "
+    .. "var-dir, run --list --json, [isolation], machine-report stdout hygiene, and exit codes "
+    .. "70 and 78; the docs had withheld them while they were unreleased",
+}, function(t)
+  expect_taught(t, {
+    { needle = "t:advise", what = "advisory measures" },
+    { needle = "prova.infra", what = "an environment-caused red" },
+    { needle = "prova run show", what = "reading a kept run record" },
+    { needle = "prova tree --rev", what = "a revision's tree fingerprint" },
+    { needle = "prova var-dir", what = "the state directory" },
+    { needle = "run --list --json", what = "the lane listing for tools" },
+    { needle = "[isolation]", what = "isolation of spawned processes" },
+    { needle = "EX_CONFIG", what = "the configuration exit code" },
+    { needle = "EX_SOFTWARE", what = "the internal-bug exit code" },
+  })
+end)

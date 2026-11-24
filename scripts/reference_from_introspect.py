@@ -35,26 +35,6 @@ def in_release(sig, stubs):
     return f"{owner}{sep}{name}" in stubs or re.search(rf"\b{re.escape(owner)}\b", stubs) and \
         re.search(rf"[.:]{re.escape(name)}\b", stubs) is not None
 
-# Stub text known to lag the runtime, as of prova v0.30.12. Each row is a defect in prova's LuaCATS
-# stubs (library/prova.lua) to fix upstream; when a row stops matching, the stub was fixed: delete
-# the row. The generator prints every correction it applies.
-CORRECTIONS = [
-    ("spec?: string", "promises?: string"),
-    ("prova.TestOpts.spec", "prova.TestOpts.promises"),
-    ("`prova learn specs`", "`prova learn promises`"),
-    ("`prova falsify`", "`prova tests falsify`"),
-    ("Open spec (red body)", "Open promise (red body)"),
-    ("never together with `spec`", "never together with `promises`"),
-    ("a spec's reason", "a promise's reason"),
-]
-
-def correct(text):
-    for old, new in CORRECTIONS:
-        if old in text:
-            print(f"corrected stale stub text: {old!r} -> {new!r}", file=sys.stderr)
-            text = text.replace(old, new)
-    return text
-
 def esc(s):
     return s.replace("|", "\\|").replace("<", "&lt;").replace("{", "&#123;").replace("}", "&#125;")
 
@@ -64,7 +44,7 @@ def main():
     ap.add_argument("--release", help="the release the stubs belong to, e.g. v0.30.12")
     args = ap.parse_args()
     raw = subprocess.run(["prova", "introspect"], capture_output=True, text=True, check=True).stdout
-    items = entries(correct(raw))
+    items = entries(raw)
     if args.release_stubs:
         stubs = "\n".join(p.read_text() for p in pathlib.Path(args.release_stubs).rglob("*.lua"))
         dropped = [i["sig"] for i in items if not in_release(i["sig"], stubs)]
@@ -90,9 +70,9 @@ def main():
         "Every function, method and type the `prova` binary reports, with its signature and summary.",
         "This page is generated from `prova introspect` by `scripts/reference_from_introspect.py`;",
         "do not edit it by hand. The module pages ([Modules](./modules/index.md)) and the",
-        "[Lua API](./lua-api/index.md) explain the important ones in depth; namespaces the stubs do",
-        "not describe yet are on [Verifiers & Measurements](./modules/verifiers.md). Where a stub lags",
-        "the runtime, the [Lua API](./lua-api/prova.md) page is authoritative.", "",
+        "[Lua API](./lua-api/index.md) explain the important ones in depth, and",
+        "[Verifiers & Measurements](./modules/verifiers.md) covers the deputed-evidence namespaces.",
+        "The stubs this page is generated from are held to the runtime by prova's own tests.", "",
         f"Generated for prova {version.split('+')[0].removeprefix('prova ')} (`prova introspect` in your own shell always",
         "matches the binary you run).", "",
     ]

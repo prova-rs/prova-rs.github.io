@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # CI & Output
 
-Prova's executor never prints — it emits a structured event stream, and output formats are just consumers of it. Four consumers ship in the CLI: `console` for humans, `json` for machines, `tap` for TAP harnesses, and a JUnit XML file writer (`--junit`) for CI dashboards. That, plus exit codes (`0` pass, `1` failures, `2` usage error), is everything CI needs.
+Prova's executor never prints — it emits a structured event stream, and output formats are just consumers of it. Four consumers ship in the CLI: `console` for humans, `json` for machines, `tap` for TAP harnesses, and a JUnit XML file writer (`--junit`) for CI dashboards. That, plus exit codes (`0` green, `1` red, `2` the host, `78` a usage or configuration error; see [Exit codes](../reference/cli.md#exit-codes)), is everything CI needs.
 
 ## Console output
 
@@ -43,7 +43,17 @@ Four event types:
 | `run_started` | — | The run began |
 | `node_started` | `path` | A test (or flow step) began executing |
 | `node_finished` | `path`, `outcome`, `durationMs`, `assertions`, `message` | A test finished: `outcome` is `"passed"` / `"failed"` / `"skipped"`; `assertions` counts the assertions the body executed; `message` is the failure (or skip) reason, `null` otherwise |
+| `advice` | `path`, `family`, `was`, `now` | An advisory measure a test reported with `t:advise` (sent just before that test's `node_finished`); it never changes a verdict |
 | `run_finished` | `passed`, `failed`, `skipped`, `durationMs` | Totals for the whole run |
+
+A `node_finished` for a failure caused by the environment rather than the code (a proof that
+called `prova.infra(msg)`) also carries `"cause": "infra"` and `cause_line`, the first line of the
+message. A gate can retry an infra red instead of blaming the change.
+
+Under a machine format (`--format json` or `tap`), stdout carries only the report. A suite's own
+`print`, `io.write` and `io.stdout` go to stderr, and `os.execute` or `io.popen` in a write mode
+is refused by name, since the child would inherit stdout and write into the report. `io.popen`
+in read mode still works.
 
 Consuming it in a pipeline is a `jq` one-liner away:
 
@@ -56,6 +66,8 @@ prova --json | jq -r 'select(.type == "run_finished") | "::notice::\(.passed) pa
 ```
 
 The exit code still carries the verdict (`1` on any failure), so parsing is for *detail*, never for pass/fail.
+
+A red or flaky run also keeps its record under `.prova/var/runs/<run-id>.json`; read one back with [`prova run show`](../reference/cli.md#prova-run-show).
 
 ## `--format tap` — the Test Anything Protocol
 
@@ -91,7 +103,7 @@ The composite action `prova-rs/run-action` installs a released `prova` binary (n
 - uses: actions/checkout@v4
 - uses: prova-rs/run-action@v1
   with:
-    version: v0.30.12      # pin explicitly; see the note below
+    version: v0.30.13      # pin explicitly; see the note below
     profile: ci
 ```
 

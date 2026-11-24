@@ -18,7 +18,7 @@ One file, whichever hats it declares — there is no separate package manifest. 
 exports a namespace adds `[package]`; see [Authoring Packages](../packages/authoring-packages.md).
 
 All tables and keys are optional, but a resolved run must yield at least one path or one suite,
-or `prova` exits `2`.
+or `prova` exits `78`.
 
 ## `[run]` — the default profile
 
@@ -28,7 +28,7 @@ or `prova` exits `2`.
 | `config` | string | — | **Deprecated.** The runtime companion (`prova.lua` / `.prova/config.lua`) for `runtime.capability` registrations; declare [capabilities](../running-prova/capabilities.md) in `[capabilities]` instead. Retires at 1.0. |
 | `packages` | string | — | **The** directory of this package's own local packages; each child directory is reachable as `require("<dir>")` with no declaration. No default — undeclared means none scanned. |
 | `jobs` | integer | `1` | Maximum units run concurrently. Throughput only — never changes test semantics. |
-| `format` | string | `"console"` | Output format: `"console"`, `"json"`, or `"tap"`. Any other value is an error (exit `2`). |
+| `format` | string | `"console"` | Output format: `"console"`, `"json"`, or `"tap"`. Any other value is an error (exit `78`). |
 | `color` | string | `"auto"` | Console color: `"auto"` (TTY only, honors `NO_COLOR`), `"always"`, or `"never"`. CLI `--color` wins. |
 | `progress` | string | `"auto"` | Narrate blocking pauses on stderr so a long run never looks hung: `"auto"`, `"always"`, `"never"`. |
 | `quiet` | boolean | `false` | Print only failures, the recap, and the summary. CLI `--quiet` wins (it can only enable). |
@@ -85,7 +85,7 @@ Selecting a profile with `prova --profile <name>` (or `prova run <name>`) overla
 - `dependencies` — `[profiles.<name>.dependencies]` entries are **overlaid** on the project-wide
   `[dependencies]` set: the base packages all remain available, the profile adds its own, and a
   same-named entry from the profile wins. See [below](#profile-scoped-dependencies).
-- Naming a profile that does not exist is an error (exit `2`).
+- Naming a profile that does not exist is an error (exit `78`).
 
 ## `[requires]` — the version this package needs
 
@@ -300,6 +300,23 @@ declared, the build is skipped while nothing under them is newer than the last p
 `locks` names the lock tokens the build holds, so it never races a proof holding
 `prova.writes("cargo")` in another instance. `--reprovision` rebuilds even when the subject is fresh.
 
+## `[isolation]` — what spawned processes see
+
+```toml
+[isolation]
+env = { XDG_STATE_HOME = "{run}/state", ORDERS_SWARM = "{run}/swarm.sock" }
+unless = "live"
+```
+
+`env` sets variables on every process a proof spawns, through `shell.run` and `shell.spawn`
+alike: a deputed `cargo nextest run`, a service, and a one-off command. In a value, `{run}` names
+this run's own scratch directory. Use it to point a product binary at the run's own roots, so
+nothing a proof starts can reach the host's live services by default.
+
+`unless` names a [switch](../quality/lanes.md#switches-keep-expensive-work-out-of-the-inner-loop);
+throwing it turns isolation off for that run, for a lane that means the live host. A proof's own
+`env = { … }` on a single command still wins over `[isolation]`.
+
 ## `[placement]` — the placement broker
 
 ```toml
@@ -464,7 +481,7 @@ How the manifest, `--profile`, `--manifest`, and CLI arguments interact:
    `.prova.toml`, `prova/prova.toml`, `.prova/prova.toml`), or reads the file
    named by `--manifest`. An unreadable manifest is an error when `--manifest`
    or `--profile` was given; with neither, `prova` prints usage instead. Both
-   exit `2`.
+   exit `78`.
 3. `--profile <name>` (or `prova run <name>`) overlays `[profiles.<name>]` on
    `[run]` as described above.
 4. The resolved `env` is applied to the process environment.

@@ -137,7 +137,8 @@ All value-taking flags accept both `--flag value` and `--flag=value`.
 
 ```text
 prova run <lane> [<selection>]   # run the suite through [profiles.<lane>]
-prova run --list                 # list this package's lanes, with their descriptions
+prova run --list [--json]        # list this package's lanes, with their descriptions
+prova run show <run-id> --format json   # print one kept run's record
 ```
 
 Sugar for `--profile`, named for how teams use profiles: as **lanes** — one
@@ -152,6 +153,40 @@ tags = ["unit", "!slow"]
 ```
 
 `prova` is the whole bar; `prova run ut` is the inner loop.
+
+`prova run --list --json` prints the same listing for tools, as one JSON object with
+`schema: 1`: the `default` run (the `[run]` table) apart from the named `profiles`.
+
+### `prova run show`
+
+Every run writes its record to `.prova/var/last-run.json`. A red or flaky run also keeps its
+record under `.prova/var/runs/<run-id>.json`, so a rerun never overwrites the failure it is
+rerunning. `prova run show <run-id> --format json` prints one kept record: the verdict, the
+summary counts, the tree fingerprint, and one row per leaf with its outcome and message. A failed
+deputed case (a nextest case under `prova run ut`, for example) keeps the tail of its output in
+the record, up to 4 KiB per case and 32 KiB per run, so a red can be read from the record alone
+on another host.
+
+## `prova tree --rev`
+
+```text
+prova tree --rev <rev> [--manifest PATH]
+```
+
+Prints the tree fingerprint a run at revision `<rev>` would record, read from that revision
+through jj or git, never from the working copy. `run show` names a run's tree by this
+fingerprint, so a tool can match a kept record to a revision. Outside a jj or git repository,
+it says there is no tree to fingerprint.
+
+## `prova var-dir`
+
+```text
+prova var-dir [--manifest PATH]
+```
+
+Prints this package's state directory (`.prova/var`, or its keyed subdirectory under
+`PROVA_VAR_DIR` when that is set), resolved and alone on its line, so a tool can remove it by
+value.
 
 ## `prova init`
 
@@ -336,7 +371,7 @@ the attestation, because "0 failed" is not evidence and neither is a proof that 
 Where several proofs cover one claim they are all obligations, not a menu: one skipped sibling is
 enough to withhold.
 
-Exit `0` attested, `1` not attested (a real finding), `2` usage error (in CI a missing argument
+Exit `0` attested, `1` not attested (a real finding), `78` usage error (in CI a missing argument
 is a broken pipeline, an unattested claim is a real finding). A package with no claims exits `0`
 and says so.
 
@@ -350,7 +385,7 @@ Lists every `prova.remind` with its recorded state — **DUE** (with its why and
 **WATCHING** (armed; the world holds still), **UNEVALUATED** (a `requires` unmet, or the
 condition raised) — and **exits non-zero when any is due**: one exit-code answer for a pipeline.
 Conditions evaluate during runs and land in the run record; this verb executes nothing (no
-recorded run is exit `2`, with a note to run `prova` first). DUE never fails a *run* by default —
+recorded run is exit `78`, with a note to run `prova` first). DUE never fails a *run* by default —
 a lane opts in with the manifest's `heed_reminders = true`, or `--heed` for one invocation.
 
 ## `prova packages`
@@ -469,7 +504,7 @@ Exits `0` when every file passes, `1` otherwise. See
   `[dependencies]` (fetching git sources into the cache), and runs the
   manifest's `proofs` directories and declared `[suites.*]` — all manifest
   paths relative to the manifest's root. If no manifest is found, `prova`
-  prints usage and exits `2`. `--manifest PATH` points directly at a manifest
+  prints usage and exits `78`. `--manifest PATH` points directly at a manifest
   instead of discovering one.
 - **CLI flags override manifest values**: `--jobs` and `--format` on the
   command line win over `jobs`/`format` resolved from the manifest, and
@@ -495,7 +530,7 @@ See [prova.toml](./prova-toml.md) for the full manifest schema and merge semanti
   into the same Lua state (sharing `Scope.Suite` fixtures).
 - Every other discovered test file is a singleton suite of its own.
 - If discovery finds no test files at all, `prova` reports the error and exits
-  `2` (pass `--allow-empty` when an empty selection is expected).
+  `78` (pass `--allow-empty` when an empty selection is expected).
 
 ## `prova mcp`
 
@@ -546,8 +581,19 @@ The semantics in one breath: `up` provisions once and holds it; `run { topology 
 
 ## Exit codes
 
-| Code | Meaning |
-|---|---|
-| `0` | The run completed and no test failed (skipped tests do not fail a run). Also used for `--list`, `--version`, `--help`, a successful `prova init`/`eval`/`skill`, a clean `prova package lint`, `prova evidence`, a quiet `prova reminders`, and a cleanly torn-down topology verb. |
-| `1` | The run completed and at least one test failed, `--unreferenced warn` found orphaned snapshots, a `prova eval` snippet raised, `prova package lint` found issues, `prova reminders` found a DUE reminder, or `prova attest` found an obligation not attested. |
-| `2` | Usage, configuration, or collection error: unknown flag, invalid flag value, unreadable or invalid manifest, ambiguous manifest layout, unknown profile, a package that fails to resolve, a manifest defining nothing to run, no test files found (without `--allow-empty`), a `must_run` guarantee unmet (a broken environment is not a skipped test), a file that fails to load/collect, `prova init` in an already-initialized package, or a topology that fails to provision / is already up. |
+The exit code says whose problem a non-green run is, so a pipeline can tell "this change is
+broken" from "this host lacks something" without reading output.
+
+| Code | Meaning | Whose |
+|---|---|---|
+| `0` | Green: the run completed and nothing failed (skipped tests do not fail a run). Also a successful `--list`, `--version`, `--help`, `init`, `eval`, `skill`, `evidence`, a clean `package lint`, a quiet `reminders`, and a cleanly torn-down topology verb. | — |
+| `1` | Red: a proof failed, or a proof file failed to load. Also `--unreferenced warn` finding orphaned snapshots, a `prova eval` snippet that raised, `package lint` findings, a DUE reminder, and an obligation `prova attest` cannot attest. | The change |
+| `2` | The host or the runtime: a `must_run` capability this host lacks, a topology that fails to provision, a report that cannot be written, a child process that will not start, a fetch that failed. | The host |
+| `70` | prova's own bug (sysexits `EX_SOFTWARE`): an uncaught panic. Report it. | prova |
+| `78` | A usage or configuration error (sysexits `EX_CONFIG`): an unknown flag or invalid value, no manifest where one is needed, a manifest that does not read or has an unknown key, an unknown profile, suite or module, no test files found (without `--allow-empty`), `prova init` in an initialized package. | The change, or its caller |
+
+A run whose `horai`-wrapped build was refused admission exits `75` (`EX_TEMPFAIL`, "not now"):
+it records no verdict, and a gate retries it later. A proof's own command that ends `75` is
+still red.
+
+Before v0.30.13, usage and configuration errors exited `2`.

@@ -124,6 +124,19 @@ Skip the current test (or flow step) at runtime with a reason. Aborts the rest
 of the body; the result is **skipped**, not failed. A step skipping itself does
 not cascade-skip the rest of its flow.
 
+### `t:advise`
+
+```lua
+t:advise({ family = "rust.unwraps", was = 3, now = 4 })
+```
+
+Report an advisory measure that moved: `family` went from `was` to `now` (integers). It returns,
+and changes no verdict and no tally, so a test may advise several families and then pass or skip
+as before. Each one is sent as an `advice` event in the [JSON stream](../../running-prova/ci-and-output.md#--format-json--the-jsonl-event-stream),
+just before the test's `node_finished`, so a gate or bot acts on it by kind instead of parsing a
+skip's words. For a census ruled advisory: say what grew with `t:advise`, then skip with the
+human sentence.
+
 ### `t.case`
 
 The current `test_each` case table (also delivered as the body's second

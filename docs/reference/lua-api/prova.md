@@ -234,11 +234,28 @@ end)
 -- Reports as "rust cli archetype › has a Cargo.toml", etc.
 ```
 
-:::note Planned
-Lifecycle hooks (`prova.before_each` / `after_each` / `before_all` /
-`after_all`) appear in the editor stubs but are not yet implemented; use
-fixtures instead. See the [Roadmap](../roadmap.md).
+:::note No lifecycle hooks
+There are deliberately no `before_each` / `after_each` / `before_all` /
+`after_all` hooks, on groups or anywhere else. Setup and teardown are one
+thing in Prova: use a [fixture](#provafixture).
 :::
+
+## `prova.infra`
+
+```lua
+local ok, err = pcall(cargo.metadata)
+if not ok then prova.infra("cargo cannot read the workspace: " .. tostring(err)) end
+```
+
+Fail this node for a cause in the environment, not in the code under proof: a build tool that
+cannot read the workspace, a toolchain that cannot run. The node is **failed** as ever, and its
+JSON `node_finished` event also says `"cause": "infra"`, with the message's first line as
+`cause_line`, so a gate can tell an infra red from a real one and retry instead of blaming the
+change.
+
+The cause is the error's type, never its text: a proof's own `error()` that quotes the same words
+is a plain red. Catching the error with `pcall` and re-raising the same value (`error(e, 0)`)
+keeps the infra cause; re-raising its text (`error(tostring(e))`) does not.
 
 ## Lock constructors
 

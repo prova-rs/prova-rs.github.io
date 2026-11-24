@@ -24,7 +24,7 @@ yet implemented by the engine — calling them either has no effect or errors.
 | `net.mock` / `graphql.mock` | Planned | The [`mock` facet](../writing-tests/mocking-and-proxies.md) covers `http`, `grpc`, `socket`, `websocket`, `terminal`, and `shell` today; stub GraphQL over `http.mock`. |
 | `--shuffle[=seed]` (prove group independence) | Planned | Groups already make no order guarantee; don't rely on definition order. |
 | Autouse fixtures (`{ autouse = true }`) | Planned | `use` the fixture explicitly from a test or another fixture. |
-| Lifecycle hooks (`before_each` / `after_each` / `before_all` / `after_all`) | Planned | Fixtures: a `Scope.Test` fixture is per-test setup; broader scopes plus `ctx:defer` cover the rest. |
+| Lifecycle hooks (`before_each` / `after_each` / `before_all` / `after_all`) | Not planned: by design | Fixtures: a `Scope.Test` fixture is per-test setup; broader scopes plus `ctx:defer` cover the rest. |
 | Test `retries` option | Planned | `prova.retry(fn, opts)` inside the test body for readiness-style retries. |
 | Load-test executor over flows | Planned | — |
 | Cross-worker `Scope.Suite` fixtures (parallel suites sharing one instance) | Planned | Suites sharing state run within one worker today. |

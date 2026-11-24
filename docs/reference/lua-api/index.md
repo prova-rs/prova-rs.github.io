@@ -12,9 +12,11 @@ prefers an explicit import.)
 
 The LuaCATS stubs shipped in Prova's `library/` directory are the API contract:
 they drive editor completion, hover, and type-checking via `lua-language-server`.
-The stubs annotate a small aspirational subset ahead of the engine; the
-[Roadmap](../roadmap.md) tracks exactly which members those are. Everything
-documented in this section is implemented.
+Since v0.30.13, prova's own test suite holds the stubs to the runtime in both
+directions: every function the runtime serves has a stub, every stub names a
+function the runtime serves, and every closed option table accepts exactly the
+fields its stub class declares. Everything documented in this section is
+implemented; the [Roadmap](../roadmap.md) tracks what is planned.
 
 ## Injected globals (built-in)
 
