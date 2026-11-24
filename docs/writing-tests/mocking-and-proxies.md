@@ -172,7 +172,7 @@ grpc.client(m.url):call("pricing.Pricing/GetPrice", { sku = "A1" })
 
 gRPC mocking is **stub-and-journal only** — there is no passthrough/record/replay on the gRPC facet yet.
 
-## Beyond HTTP: sockets, WebSockets, and terminals
+## Beyond HTTP: sockets, WebSockets, terminals, and stdio
 
 The same three verbs reach every transport a system under test speaks, not just HTTP and gRPC.
 Each transport answers the same three questions:
@@ -182,6 +182,7 @@ Each transport answers the same three questions:
 | TCP / Unix | `socket.connect` · `socket.listen` | `socket.mock` | `socket.proxy` |
 | WebSocket | `websocket.connect` | `websocket.mock` | `websocket.proxy` |
 | Interactive CLI | `terminal.spawn` | `terminal.mock` | `terminal.proxy` |
+| stdio conversation (MCP, LSP) | `stdio.spawn` | `stdio.mock` | `stdio.proxy` |
 
 ### Sockets
 
@@ -233,9 +234,28 @@ t:expect(term:screen():text()):contains("Installed")
 for when the SUT shells out to something interactive (`ssh`, an installer) that you do not want to
 really run. `terminal.proxy` shadows a name while forwarding to the real one, recording as it goes.
 
+### Spawned dependencies: stdio
+
+Some systems do not dial their dependency; they **spawn** it, and speak a framed protocol over its
+stdin and stdout. An editor spawns a language server, an agent host spawns an MCP server. A URL-based
+mock cannot stand in for that, so `stdio.mock` shadows a command name on `PATH` instead:
+
+```lua
+local m = stdio.mock(t, { as = "my-mcp-server", framing = "line", codec = "json" })
+m:on({ method = "tools/list" }):reply({ jsonrpc = "2.0", id = 1, result = { tools = {} } })
+
+-- hand m.env (a PATH-prefixed environment) to whatever spawns the system under test
+local app = shell.spawn({ "./agent-host" }, { env = m.env })
+```
+
+Under `codec = "json"`, `on` takes a **shape**, subset-matched against each decoded turn, so a stub
+keys on a field (`{ method = "tools/list" }`) rather than on one exact serialization. `m:received()`
+is the journal. `stdio.proxy` shadows the name while forwarding to the real command, recording as it
+goes. Underneath both is `prova relay`, the two-line adapter that makes a listening mock spawnable.
+
 ### Recording and replay
 
-`socket.proxy` and `terminal.proxy` take `cassette` and `mode`, following the same record/replay
+`socket.proxy`, `terminal.proxy` and `stdio.proxy` take `cassette` and `mode`, following the same record/replay
 story as [HTTP proxying](#proxying-observe-record-replay), plus `redact` for values that must not
 land in a committed transcript.
 

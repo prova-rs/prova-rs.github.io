@@ -32,6 +32,46 @@ end)
 
 Nothing in the body knows which verb runs it. `ctx:manage` (inside the packages' `.container`) declares *"I own this resource's lifecycle"*; **when** teardown happens belongs to the scope, and the scope's lifetime is set by the verb — test-end for a run, Ctrl-C or `prova down` for a held environment. Same code, one teardown path.
 
+## Registering it: two doors
+
+A topology has two kinds of consumer, and they enter differently:
+
+- **A test** builds one in-process with `prova.topology(...)`. That is a fixture, local to the file
+  that declares it.
+- **The inhabited verbs** (`up`, `start`, `down`, `ps`, and the MCP `up` tool) stand up a
+  **registered** factory, resolved from the manifest's `[topologies]` table and nowhere else. They
+  do not load or scan proof files.
+
+So to get both, export the factory from a package and register it; a test then builds that same
+factory as its fixture, and the two cannot drift:
+
+```toml
+[topologies]
+orders = { package = "kitchen", topology = "orders", startup = "5m" }
+vm     = { package = "parallels", topology = "vm", options = { image = "ubuntu-24.04" } }
+```
+
+```lua
+local orders = prova.topology("orders", require("kitchen").orders)   -- the registered factory
+```
+
+`options` is passed to the factory as its second argument, and a registered topology inherits the
+`requires` its package advertises, so it gates on the environment it needs.
+
+**`startup = "15m"`** says how long the topology needs to come up. `prova start` relays the holder's
+progress and waits that long (default 300 seconds; `--timeout` overrides it once). A kind cluster with
+eight rollouts honestly takes minutes, and the definition should say so. When the budget expires, the
+holder stops gracefully, as on Ctrl-C, and releases what it created.
+
+**`scope = "run"`** shares one instance across the whole run. Without it, five files that each declare
+an eleven-container stack build 55 containers to answer one question. With it, the run provisions the
+topology once, holds it, and reaps it after the last file; a `prova start`ed holder still takes
+precedence. It is opt-in per registration because of two trades: state accumulates across files, and
+each file sees the topology as **data** (urls, hosts, ports), because a `client` object cannot cross
+between Lua states.
+
+`prova up <git-url>` stands up a topology a remote repository advertises, without cloning it by hand.
+
 ## Auto-networking and the two vantages
 
 A topology **auto-creates a user-defined Docker network** and joins every resource to it, aliased by the resource's name. So containers reach each other **by name, container-to-container**, with no host round-trip — the app connects to `db:5432`, not to a mapped host port. You get container DNS for free, without calling [`docker.network`](../reference/modules/docker.md#dockernetworkopts) yourself.
@@ -80,7 +120,7 @@ end)
 
 ## Consuming it from the command line
 
-From the project directory (the topology is discovered in the manifest's test files):
+From the project directory, once the topology is [registered](#registering-it-two-doors) in the manifest:
 
 ```shell
 prova                  # run the assertions against it (provision → assert → tear down)

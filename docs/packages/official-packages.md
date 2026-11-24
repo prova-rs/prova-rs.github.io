@@ -23,7 +23,13 @@ Every resource package's `X.container(ctx, opts?)` returns the standard resource
 | `parallels` | A Parallels VM as a **topology** — black-box test a full-OS target Docker can't contain | [prova-rs/prova-parallels](https://github.com/prova-rs/prova-parallels) |
 | `xcodebuild` | Run and decode Xcode test bundles — enumerate, build-for-testing, and per-case results from `xcresult` | [prova-rs/prova-xcodebuild](https://github.com/prova-rs/prova-xcodebuild) |
 
-All of them are indexed in the [package registry](https://github.com/prova-rs/package-registry), so `prova packages` finds them by name, description, or capability, and `prova packages add <name>` pins one into your manifest.
+Two more are worth knowing about. `kubernetes`
+([prova-rs/prova-kubernetes](https://github.com/prova-rs/prova-kubernetes)) is a scaffolded repository
+whose API is not built out yet, so use `kind` for clusters today. `aegis` is a community package,
+maintained outside `prova-rs` and served by the registry, that provisions a hermetic Aegis Gate
+Authority and drives it through the `aegis` CLI.
+
+The packages in the table are indexed in the [package registry](https://github.com/prova-rs/package-registry), so `prova packages` finds them by name, description, or capability, and `prova packages add <name>` pins one into your manifest.
 
 ## Declaring them
 

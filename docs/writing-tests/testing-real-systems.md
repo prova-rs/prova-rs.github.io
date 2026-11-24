@@ -159,6 +159,41 @@ Swap the pieces and the shape holds for any system:
 
 When several files need the same expensive stack, promote the fixtures into a [suite](./suites-and-shared-state.md) and provision once for all of them.
 
+## Choosing a driver
+
+The rule: **drive the contract under proof with the protocol of that contract**. A gRPC API through
+a gRPC client, a CLI through its argv, a file effect through the filesystem. Green must mean that a
+real caller would succeed. `prova learn drivers` carries the same table in the binary.
+
+| Contract under proof | Driver |
+|---|---|
+| HTTP/REST | `http.get` / `http.post`, `http.client{ base_url }`, `http.wait_for` |
+| gRPC | `grpc.client(addr)` → `:call`, `:call_status` (needs server reflection), `grpc.wait_for` |
+| GraphQL | `graphql.client{ url }` → `:query`, `:execute` |
+| WebSocket | `websocket.connect(ctx, { url })` → `:send`, `:recv` |
+| A CLI or process | `shell.run(argv, { cwd, env, timeout, check })`, `shell.spawn` for long-running ones |
+| A stdio conversation (MCP, LSP, a REPL) | `stdio.spawn(ctx, { cmd, framing, codec })` → `:send`, `:recv{ where }`, `:expect` |
+| A byte stream (tcp, unix) | `socket.connect(ctx, { addr, framing, codec })` |
+| An interactive TUI | `terminal.spawn(ctx, { cmd, cols, rows })` → `:send`, `:expect`, `:screen()` |
+| State where it lands | a resource package's `client`, `sqlite.client`, `fs` |
+
+Reach for `stdio.spawn` whenever the next thing you send depends on what came back.
+`shell.run{ stdin = … }` writes one string before the program starts, so it cannot express an
+exchange:
+
+```lua
+local s = stdio.spawn(t, { cmd = { "./my-mcp-server" }, framing = "line", codec = "json" })
+s:send({ jsonrpc = "2.0", id = 1, method = "initialize", params = {} })
+local reply = s:recv({ where = { id = 1 } })   -- reads past notifications to the matching turn
+t:expect(reply.result.serverInfo.name):equals("my-mcp-server")
+```
+
+Every stream driver shares one turn model: `framing` cuts bytes into turns (`"line"`,
+`"content_length"`, a delimiter, a length prefix), `codec = "json"` decodes them, and `recv{ where }`
+reads on until a turn matches, using the same structural subset match as `:matches`. Use
+`terminal.spawn` only when the program needs a real pty; a pty mangles a byte protocol through line
+discipline and column wrapping.
+
 ## The pattern, in the wild
 
 Production suites read even quieter than the walkthrough. This fixture is from a real archetype acceptance suite (a .NET REST service, rendered per database variant and proven against Postgres *and* MySQL from one loop) — note `check = true` on the build instead of an assert dance, and the package resource's `host`/`port` wired straight into env as plain scalars, numbers included:

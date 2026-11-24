@@ -230,8 +230,8 @@ prova.test("running at scale is taught", {
 end)
 
 prova.test("environments and packages are current", {
-  promises = "phase 5: topology startup/scope, the stdio driver and doubles, and the official "
-    .. "package list as of v0.30",
+  proves = "phase 5 (2026-11-24): topology registration, startup and scope, the stdio driver "
+    .. "and doubles, and the package list as of v0.30",
 }, function(t)
   expect_taught(t, {
     { needle = 'startup = "', what = "topology startup budgets" },
