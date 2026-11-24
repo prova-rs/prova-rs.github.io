@@ -42,31 +42,35 @@ Parallel tests are isolated through the framework's surface, but they can still 
 
 ```lua
 -- Two services that both bind :8080 — the scheduler will never overlap them.
-prova.test("service A boots on :8080", { resources = { prova.port(8080) } }, function(t) --[[ ... ]] end)
-prova.test("service B boots on :8080", { resources = { prova.port(8080) } }, function(t) --[[ ... ]] end)
+prova.test("service A boots on :8080", { locks = { prova.port(8080) } }, function(t) --[[ ... ]] end)
+prova.test("service B boots on :8080", { locks = { prova.port(8080) } }, function(t) --[[ ... ]] end)
 
 -- Read-only tests against a shared database may overlap each other...
-prova.test("report reads the db",    { resources = { prova.shared("db") } }, function(t) --[[ ... ]] end)
-prova.test("dashboard reads the db", { resources = { prova.shared("db") } }, function(t) --[[ ... ]] end)
+prova.test("report reads the db",    { locks = { prova.reads("db") } }, function(t) --[[ ... ]] end)
+prova.test("dashboard reads the db", { locks = { prova.reads("db") } }, function(t) --[[ ... ]] end)
 
 -- ...but a writer against the same token excludes all of them.
-prova.test("migration writes the db", { resources = { prova.resource("db") } }, function(t) --[[ ... ]] end)
+prova.test("migration writes the db", { locks = { prova.writes("db") } }, function(t) --[[ ... ]] end)
 ```
 
 The semantics are readers-writer:
 
 | Declaration | Meaning |
 |---|---|
-| `prova.port(8080)` | Exclusive hold on the typed token for that port |
-| `prova.resource("db")` | Exclusive hold on an arbitrary named token |
-| `prova.shared(x)` | Concurrent reader — readers overlap; a writer waits for all readers |
-| `"db"` (bare string) | Accepted for ad-hoc tokens; **exclusive** by default |
-| `serial = true` | Process-wide exclusive — never concurrent with anything |
+| `prova.writes("db")` | Exclusive hold on a named token |
+| `prova.reads("db")` | Concurrent reader: readers overlap; a writer waits for all readers |
+| `prova.port(8080)` | Exclusive hold on a host port, machine-scoped |
+| `prova.writes("gpu", { scope = "machine" })` | A hold that spans every repository on the machine |
+| `serial = true` | Exclusive within this run: never concurrent with anything else in it |
 
-Prefer the typed constructors over magic-format strings: `"port:8080"` hides a `prefix:value` convention you can typo silently, while `prova.port(8080)` validates its number and cannot be. Acquisition is all-or-nothing per unit — no unit ever holds one resource while waiting for another, so the scheduler cannot deadlock.
+Acquisition is all-or-nothing per unit: no unit ever holds one lock while waiting for another, so
+the scheduler cannot deadlock. Locks are also file locks, so they bind every prova instance at the
+same home, not just this run; see [Locks, Flakes & Reruns](../running-prova/locks-and-scale.md).
+The older spellings (`resources = { … }`, `prova.resource`, `prova.shared`) still work, with a
+warning, and retire at 1.0.
 
 :::tip
-Resource declarations are inert at `--jobs 1` and enforced above it. Declare them once, when you write the test, and the suite scales out later without touching test code.
+Lock declarations are inert at `--jobs 1` and enforced above it. Declare them once, when you write the test, and the suite scales out later without touching test code.
 :::
 
 ## Capability gating: `requires`

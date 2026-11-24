@@ -34,7 +34,7 @@ Some resources carry extras (the s3 package's resource adds credentials). Learn 
 
 The network-driving namespaces add a third door. **`X.mock(ctx, opts?)` provisions a *fake*** — a real in-process server you stub and then assert on, wired into the system under test by URL exactly like a real one. `http.mock` also proxies (forward unmatched requests to a real upstream; record and replay). See [Mocking & Proxying](../../writing-tests/mocking-and-proxies.md) for the model and [`http.mock`](http.md#the-mock-facet-httpmock) / [`grpc.mock`](grpc.md#the-mock-facet-grpcmock) for the reference.
 
-The network-facing clients are **plaintext-only in v1** — no TLS, no SASL, no token auth. They are aimed at localhost services and ephemeral CI containers, which is exactly what black-box acceptance tests stand up.
+The network-facing clients speak TLS through two shared options, `insecure = true` and `ca_cert = "<path>"`; see [TLS](../../writing-tests/testing-real-systems.md#tls-the-same-way-everywhere).
 
 | Module | Purpose | Needs | Reference |
 |---|---|---|---|
@@ -57,10 +57,16 @@ The network-facing clients are **plaintext-only in v1** — no TLS, no SASL, no 
 | `socket` | TCP/Unix: connect, listen, mock framed turns, or interpose a wiretap with fault injection | — | [doubles](../../writing-tests/mocking-and-proxies.md#sockets) |
 | `websocket` | WebSocket: connect, a real in-process server (including unprompted push), or a direction-tagged proxy | — | [doubles](../../writing-tests/mocking-and-proxies.md#websockets) |
 | `terminal` | Drive a program on a real pty, or shadow an interactive CLI on `PATH` | — | [doubles](../../writing-tests/mocking-and-proxies.md#terminals) |
+| `stdio` | Drive a stdio conversation (MCP, LSP), or shadow a spawned command on `PATH` with a mock or proxy | — | [drivers](../../writing-tests/testing-real-systems.md#choosing-a-driver), [doubles](../../writing-tests/mocking-and-proxies.md#spawned-dependencies-stdio) |
+| `str` | Case conversion (`snake_case`, `camel_case`, `train_case`, …) and the matching `is_*` predicates | — | [API Index](../api.md#str) |
+| `path` | Join, normalize and split paths (`join`, `dirname`, `basename`, `stem`, …) | — | [API Index](../api.md#path) |
+| `junit`, `sarif` | Adopt a test framework's or linter's verdicts | — | [verifiers](verifiers.md) |
+| `measure`, `report` | Ratchet a measurement; keep a deputy's artifact | — | [verifiers](verifiers.md#measure) |
+| `date` | Date arithmetic for reminders and backlog policies | — | [verifiers](verifiers.md#date) |
 | `archetect` | Render and verify [Archetect](https://archetect.github.io) archetypes in-process | — | [archetect](archetect.md) |
 
 Alongside the module globals, the `prova` global carries **`prova.parse.*`** (`lines`/`rows`/`table`/`json` — the CLI-output parsing toolkit) and **`prova.containerized`** (the scaffolding containerized resources are authored through); both are documented under [Authoring Packages](../../packages/authoring-packages.md#the-docker-exec-toolkit).
 
 Tests that need the Docker daemon — including any test that calls a package's `X.container` — should declare `requires = { "docker" }` so they **skip gracefully** (never fail) on machines where it is absent — see [Dependencies & Scheduling](../../writing-tests/dependencies-and-scheduling.md).
 
-Module functions that perform I/O (`shell.run`, everything in `http`, `docker.run`, all the `client` and `container` functions) are **async under the hood** and must be called inside a fixture factory or test body, where prova's runtime is driving the coroutine. The `prova` and `ctx`/`t` surfaces they compose with are documented under the [Lua API](../lua-api/index.md).
+Module functions that perform I/O (`shell.run`, everything in `http`, `docker.run`, all the `client` and `container` functions) are **async under the hood** and must be called inside a fixture factory or test body, where prova's runtime is driving the coroutine. The `prova` and `ctx`/`t` surfaces they compose with are documented under the [Lua API](../lua-api/index.md). Every function and method, with its signature, is listed in the generated [API Index](../api.md).

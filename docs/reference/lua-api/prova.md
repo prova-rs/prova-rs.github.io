@@ -23,8 +23,9 @@ by every unit inside it.
 | `tags` | `string[]` | Free-form selection tags — what `prova --tags` selects (or, with `!tag`, excludes) from the command line. Tags on a **group** are inherited by every unit inside it. See [Selection semantics](../cli.md#selection-semantics). |
 | `requires` | `string[]` | Capabilities this unit needs. An unavailable capability **skips** the unit (with a reason), never fails it. `"docker"` probes the daemon (`docker info`), `"github"` checks `GITHUB_TOKEN`, `"network"` is assumed present; a native-capability name (`"http"`, `"sqlite"`, `"grpc"`, `"graphql"`, `"yaml"`) is available iff that feature was compiled into the build; any other name checks for a tool of that name on `PATH` (so `requires = { "cargo" }` just works), optionally with a version constraint (`"dotnet >= 9"`, `"node ^20"`). See [capability gating](../../writing-tests/dependencies-and-scheduling.md#capability-gating-requires) for the full expression grammar. |
 | `depends_on` | unit handles | Handles returned by `prova.test`/`flow`/`group`. This unit runs only after every dependency **passed**; if any failed or was skipped, this unit is skipped (transitively), not failed. A cycle is a collection-time error. |
-| `resources` | resource refs | Resources this unit holds while running — [`prova.port`](#provaport)/[`prova.resource`](#provaresource)/[`prova.shared`](#provashared) refs, or bare string tokens (exclusive by default). The scheduler never co-schedules two units whose holds conflict. Inert at `--jobs 1`. |
-| `serial` | `boolean` | Process-wide exclusive: never runs concurrently with anything. Default `false`. |
+| `locks` | lock refs | Locks this unit holds while running: [`prova.writes`](#lock-constructors), `prova.reads`, `prova.port`. The scheduler never co-schedules two units whose holds conflict, and the holds bind every prova instance at the same home. Inert at `--jobs 1` within one run. `resources` is the older spelling. |
+| `switch` | `string` | An opt-in class: the unit is off unless a lane's `switches`, `[run] switches` or `-s` throws it. See [Lanes](../../quality/lanes.md#switches-keep-expensive-work-out-of-the-inner-loop). |
+| `serial` | `boolean` | Run-wide exclusive: never runs concurrently with anything else in this run. A rule that must bind other prova instances is a lock. Default `false`. |
 | `timeout` | `string` | Time budget as a duration string (e.g. `"30s"`, `"500ms"`). Enforced per **test** and per flow **step**; teardown still runs after a timeout. A timeout set on a flow or group itself is not currently enforced — set it on the steps. |
 
 **Test- and flow-level only** (a validation error on a group or in `suite.config`):
@@ -34,6 +35,8 @@ by every unit inside it.
 | `promises` | `string` | A proof authored ahead of its implementation, with the reason as the value (mandatory). Red reports as the distinct `PROMISED` outcome; green **fails**, demanding graduation to `proves`. See [Promises & Burndown](../../writing-tests/promises-and-burndown.md). |
 | `proves` | `string` | The kept promise's context — runtime-inert (pass is pass, fail is fail); must be a non-empty string. Never shares a test with `promises`. |
 | `covers` | `string` | Binds this proof to a prose claim: `"docs/design.md#claim-id"`, optionally text-pinned with `@<hash>` (written by `prova owed --pin`). Reconciled by `prova owed` / `prova evidence` / `prova attest`. |
+| `idle_timeout` | `string` | A liveness bound: fails only when no assertion lands for that long. Defaults on under `prova tests falsify`. |
+| `inputs` | `string[]` | Package-relative paths or globs this test depends on; `--reuse` carries a prior pass forward when they are byte-identical. |
 | `falsified_by` | `fun(t)` | A mutation the body must catch. Applied only under `prova tests falsify`, which **inverts the verdict** — a body that survives its falsifier is reported vacuous and fails. Test-level only. |
 
 ## `prova.fixture`
@@ -110,9 +113,10 @@ within a scope run LIFO.
 | `Scope.Flow` | once per `prova.flow`, on first use in any step | after the flow's last step. Only valid inside a flow. |
 | `Scope.File` | once per file, on first use | after all of the file's tests |
 | `Scope.Suite` | once per suite, on first use | after the whole suite |
+| `Scope.Run` | once per run, shared across every suite and worker | after the run. The value must be plain data (each reader gets a copy), and `ctx:defer` is unavailable. With `{ identity = { command, inputs } }` as the fixture's options, two fixtures with the same identity share one conduct. |
 
 Each `Scope` value exposes a `scope` field with its name
-(`"test"`, `"flow"`, `"file"`, `"suite"`).
+(`"test"`, `"flow"`, `"file"`, `"suite"`, `"run"`).
 
 ## `prova.test`
 
@@ -236,46 +240,29 @@ Lifecycle hooks (`prova.before_each` / `after_each` / `before_all` /
 fixtures instead. See the [Roadmap](../roadmap.md).
 :::
 
-## Resource constructors
+## Lock constructors
 
-Typed references for the `resources` option. Prefer these over magic-format
-strings — a constructor validates its input and cannot be typo'd into a
-wrong-but-valid token. A bare string in a `resources` list is also accepted as
-an ad-hoc **exclusive** token.
-
-### `prova.port`
+Typed references for the `locks` option. A constructor validates its input and cannot be typo'd
+into a wrong-but-valid token.
 
 ```lua
-prova.port(number)    -- → ResourceRef (exclusive)
+prova.writes(token, opts?)    -- exclusive hold; token is a string or another ref
+prova.reads(token, opts?)     -- shared hold: readers overlap, a writer waits for them
+prova.port(number)            -- exclusive hold on a host port (machine-scoped)
 ```
 
-An exclusive resource for a TCP port: `prova.port(8080)` is the typed form of
-`"port:8080"`.
-
-### `prova.resource`
+`opts.scope = "machine"` makes a hold span every repository on the machine; the default is the
+package. Re-moding composes: `prova.reads(prova.port(5432))` widens a port to a shared hold.
 
 ```lua
-prova.resource(token)    -- → ResourceRef (exclusive)
+prova.test("migrates the db", { locks = { prova.writes("db") } },   function(t) ... end)
+prova.test("reads the db",    { locks = { prova.reads("db") } },    function(t) ... end)
+prova.test("boots on 8080",   { locks = { prova.port(8080) } },     function(t) ... end)
 ```
 
-An exclusive resource for an arbitrary named token (a database, an account, a
-path).
-
-### `prova.shared`
-
-```lua
-prova.shared(resource)    -- ResourceRef or string → ResourceRef (shared)
-```
-
-Mark a resource as a **concurrent reader** (readers–writer semantics): readers
-run together; an exclusive holder waits for all readers to release, and vice
-versa.
-
-```lua
-prova.test("writes the db", { resources = { prova.resource("db") } },        function(t) ... end)
-prova.test("reads the db",  { resources = { prova.shared("db") } },          function(t) ... end)
-prova.test("boots on 8080", { resources = { prova.port(8080) } },            function(t) ... end)
-```
+`prova.resource(token)` and `prova.shared(x)` are the older spellings of `prova.writes` and
+`prova.reads`, still accepted. The full model, including `prova lock` for tools outside prova, is
+in [Locks, Flakes & Reruns](../../running-prova/locks-and-scale.md).
 
 ## Timing primitives
 
@@ -288,6 +275,17 @@ prova.sleep(millis)
 Await `millis` milliseconds without blocking the worker (cooperative async). A
 low-level primitive; prefer `http.wait_for` / `grpc.wait_for` for readiness
 polls.
+
+### `prova.barrier`
+
+```lua
+prova.barrier(token, parties, opts?)    -- → this participant's arrival position
+```
+
+Wait until `parties` participants have arrived at `token`, then release them together: the
+concurrency assertion. `opts.timeout` defaults to `"30s"`; reaching it fails the test, naming how
+many of how many arrived. The participants form one selection unit. See
+[Proving concurrency](../../writing-tests/dependencies-and-scheduling.md#proving-concurrency-provabarrier).
 
 ### `prova.retry`
 
