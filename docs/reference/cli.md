@@ -42,7 +42,6 @@ prova stress --copies N ...     run each selected nextest case as N isolated cop
 prova relay --to <addr>         pipe stdio to a socket: makes a listening mock spawnable
 prova package lint <FILE>...    check package files against the namespacing grammar
 prova packages [<query>]        search the configured package registries (info / add subcommands)
-prova var-dir                   this package's state directory, resolved
 prova broker                    the single-machine reference placement broker (spec scaffolding —
                                 not needed to use prova)
 ```

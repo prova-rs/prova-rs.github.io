@@ -194,6 +194,27 @@ reads on until a turn matches, using the same structural subset match as `:match
 `terminal.spawn` only when the program needs a real pty; a pty mangles a byte protocol through line
 discipline and column wrapping.
 
+### TLS, the same way everywhere
+
+Every network driver reaches a TLS endpoint the same way: an `https://` or `wss://` URL, plus at
+most one of two options.
+
+| Option | Means |
+|---|---|
+| `insecure = true` | accept any certificate: no chain, hostname or expiry check. Right for a service you just booted with a self-signed certificate; the connection is still encrypted, only identity goes unchecked. |
+| `ca_cert = "<path>"` | a PEM whose certificates are **added** to the default trust anchors, for an endpoint behind a private CA |
+
+```lua
+http.get("https://127.0.0.1:" .. port .. "/health", { insecure = true })
+local api = http.client{ base_url = "https://api.internal", ca_cert = "certs/internal-ca.pem" }
+local rpc = grpc.client("api.internal:443", { tls = true, ca_cert = "certs/internal-ca.pem" })
+```
+
+Setting both is an error at every call site, because together the CA would go unchecked while the
+proof still reads as pinned. gRPC addresses usually have no scheme, so `tls = true` promotes a bare
+`host:port`; `insecure` and `ca_cert` imply TLS on their own, and pairing either with an `http://`
+address is refused.
+
 ## The pattern, in the wild
 
 Production suites read even quieter than the walkthrough. This fixture is from a real archetype acceptance suite (a .NET REST service, rendered per database variant and proven against Postgres *and* MySQL from one loop) — note `check = true` on the build instead of an assert dance, and the package resource's `host`/`port` wired straight into env as plain scalars, numbers included:

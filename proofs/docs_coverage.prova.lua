@@ -362,18 +362,17 @@ prova.test("the prova.toml reference covers every manifest key", {
 end)
 
 prova.test("the smaller features are taught where they belong", {
-  promises = "phase 7c: barrier, advise, infra, run-scoped identity, TLS options and the run "
-    .. "record verbs have no guide coverage",
+  proves = "phase 7c (2026-11-24): barrier, run-scoped identity, module proofs, and TLS "
+    .. "options had no guide coverage (as of v0.30.12; advise, infra and run show were not yet "
+    .. "released, so they wait for the release that ships them)",
 }, function(t)
   expect_taught(t, {
     { needle = "prova.barrier", what = "the concurrency assertion" },
-    { needle = ":advise", what = "advisory measures" },
-    { needle = "prova.infra", what = "infrastructure failures" },
     { needle = "Scope.Run", what = "run-scoped fixtures" },
     { needle = "fs.digest", what = "conduct identity" },
     { needle = "insecure = true", what = "TLS without verification" },
     { needle = "ca_cert", what = "a private CA" },
-    { needle = "prova run show", what = "reading a past run" },
+    { needle = "prova.cargo", what = "module proofs and the conduct cache" },
     { needle = "--uncached", what = "the audit run" },
   })
 end)

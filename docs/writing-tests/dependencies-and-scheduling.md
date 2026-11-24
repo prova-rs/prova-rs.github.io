@@ -140,6 +140,28 @@ pattern, or a `package` predicate for a fact no name and version can express (a 
 cluster, a licence file). Once declared, the name works in both directions: `requires` to skip,
 `must_run` to fail. The full grammar is on [Capabilities](../running-prova/capabilities.md).
 
+## Proving concurrency: `prova.barrier`
+
+When concurrency is the property under proof ("two writers really do run at once and neither loses
+an update"), a sleep cannot prove it: it fails on a loaded host and passes when a serialized system
+happens to overlap. `prova.barrier(token, parties)` waits until `parties` participants have arrived,
+then releases them together, so reaching the far side is the proof they were in flight at once:
+
+```lua
+for i = 1, 2 do
+  prova.test("writer " .. i .. " commits beside the other", function(t)
+    local tx = begin_transaction(t)
+    prova.barrier("both-in-flight", 2)      -- neither passes until both are here
+    t:expect(tx:commit()):equals("ok")
+  end)
+end
+```
+
+The wait is bounded (`timeout` defaults to 30s), and reaching it fails the test, naming how many of
+how many arrived. The participants become one selection unit: a `-k`, `--node` or `--last-failed`
+that picks some of them would leave the rest waiting. Reach for it when concurrency is what you are
+proving, not as general coordination.
+
 ## `--jobs` changes throughput, never meaning
 
 Because strategy lives in the code — flows are serial by construction, groups are independent by construction, edges and resources gate explicitly — the [`--jobs`](../running-prova/command-line.md) flag sets only *how many workers may run*. A flow is serial at `--jobs 100`; an independent group is parallelizable at `--jobs 1` (it just won't actually overlap); a dependency edge orders its units at any job count. The CLI cannot change semantics, so it cannot surprise you.

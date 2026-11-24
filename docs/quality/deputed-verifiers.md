@@ -82,6 +82,58 @@ The junit-emitting nextest profile ships as *tool* config, so it composes under 
 `.config/nextest.toml` instead of competing with it. A case nextest retried and then passed is
 reported **FLAKY**, never green.
 
+### One conduct for the whole run: `Scope.Run`
+
+A `Scope.File` fixture conducts once per file. When several files, or several suites, read the same
+deputy, declare it `Scope.Run`: it is conducted once per run and shared across every suite and
+worker. Its value must be plain data (a junit path, a table of numbers), because it crosses Lua
+states and each reader gets a copy; `ctx:defer` is not available in its factory.
+
+Two run-scoped fixtures with different names usually conduct twice. Declare what the conduct
+**is** with an `identity`, and two fixtures with the same identity become one execution:
+
+```lua
+local unit = prova.fixture("unit-junit", Scope.Run, conduct_nextest, {
+  identity = {
+    command = "cargo nextest run -p orders -p billing --profile prova",
+    inputs  = { "Cargo.lock", "orders/**", "billing/**" },
+  },
+})
+```
+
+`command` says which question the conduct answers, and `inputs` (package-relative paths or globs)
+say what it depends on. The key is `fs.digest(inputs)` with the command: a stable digest over file
+contents and sorted, `/`-separated paths, identical on every OS. A path matching nothing contributes
+its absence rather than an error, because a missing file changes a build too.
+
+### Module proofs: run only what a change can reach
+
+For a Cargo workspace, the bundled `prova.cargo` adapter goes further. Each workspace member with its
+own `proofs/` directory is a **module**, keyed by the digest of its build closure: its own directory
+and those of the local crates it depends on, the files rustc says it embeds, the lock file and the
+toolchain. A module whose key has not changed since a fully green conduct is served from the
+**conduct cache**; only stale modules are built and tested, in one nextest run.
+
+```toml
+[modules]
+from  = ["cargo"]                              # the adapter: bundled prova.cargo
+reads = { "billing" = ["fixtures/rates/**"] }  # files a module's tests read at run time
+```
+
+```lua
+-- billing/proofs/unit.prova.lua
+local cargo = require("prova.cargo")
+prova.test("billing's unit cases pass", { locks = { prova.writes("cargo") } }, function(t)
+  cargo.verify(t)   -- this module's account: conducted if stale, served from the cache if not
+end)
+```
+
+Only the conduct is cached, never the proof: the proof always executes and adopts the account, and
+each served case is marked with the run that executed it. `cargo.account(t)` returns the junit path
+for readers that bind claims to named cases, and `cargo.configure{ profile, args }` sets the nextest
+profile and extra arguments once. `--uncached` serves nothing from the cache, so every module
+conducts in full: the audit run.
+
 ## SARIF: the seam for linters
 
 SARIF is to static-analysis findings what JUnit is to test results: clippy, ESLint and many other
