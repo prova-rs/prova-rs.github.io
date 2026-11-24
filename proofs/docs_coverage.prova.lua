@@ -7,7 +7,8 @@
 --- have not reached yet: whole feature layers of the binary (the evidence ledger, the
 --- attention account, the quality account) with no pages. Each stays red — reported PROMISED,
 --- never failing the build — until its section lands, then graduates to `proves` in the same
---- change. `prova promises` in this repo is the docs backlog.
+--- change. `prova tests --promises` in this repo is the docs backlog, and `prova tests burndown`
+--- is the loop that empties it.
 ---
 --- Everything here is offline: fs + string matching, no network, no build. The nightly
 --- freshness suite owns version strings; this file owns coverage and vocabulary.
@@ -123,4 +124,182 @@ prova.test("a reader can ramp from first test to the full practice", {
 }, function(t)
   t:expect(root .. "/docs/workflows", "no Workflows section"):is_dir()
   t:expect(root .. "/docs/patterns", "no Patterns section"):is_dir()
+end)
+
+-- ── The v0.30 currency plan (2026-11-24) ─────────────────────────────────────────────────────
+--
+-- The docs were last brought current against v0.16 (2026-08-07); v0.30 shipped since. Each
+-- promise below is one phase of bringing them current, stated as what a reader must be able to
+-- find. They graduate to `proves` in the change that lands their pages.
+
+--- Every page that `containing` should find a needle in, as one failing list.
+local function expect_taught(t, needles)
+  t:expect_all(function()
+    for _, n in ipairs(needles) do
+      t:expect(#containing(t, n.needle), "no page teaches " .. n.what .. " (" .. n.needle .. ")"):gt(0)
+    end
+  end)
+end
+
+prova.test("no page teaches the retired promise verbs", {
+  promises = "phase 0: `prova promises` and `prova burndown` became `prova tests --promises` "
+    .. "and `prova tests burndown`; ~12 pages still teach the old verbs",
+}, function(t)
+  t:expect_all(function()
+    for _, needle in ipairs({ "prova promises", "prova burndown" }) do
+      local hits = containing(t, needle)
+      t:expect(#hits, needle .. " survives in: " .. table.concat(hits, ", ")):equals(0)
+    end
+  end)
+end)
+
+prova.test("the roadmap lists only unshipped work", {
+  promises = "phase 0: the backlog tier and reverse traceability (`prova specs backfill`) "
+    .. "shipped but are still listed as Designed",
+}, function(t)
+  local roadmap = fs.read(root .. "/docs/reference/roadmap.md")
+  t:expect_all(function()
+    t:expect(roadmap:find("The **backlog tier**", 1, true), "backlog tier still planned"):is_nil()
+    t:expect(roadmap:find("reverse traceability query", 1, true), "backfill still planned"):is_nil()
+  end)
+end)
+
+prova.test("the bigger picture: one page introduces every capability as a unit", {
+  promises = "phase 1: an overview a team can read before a meeting, each capability in a few "
+    .. "lines with a link to its section",
+}, function(t)
+  local page = root .. "/docs/getting-started/the-bigger-picture.md"
+  t:expect(page, "no overview page"):is_file()
+  local body = fs.read(page)
+  t:expect_all(function()
+    for _, link in ipairs({
+      "../evidence/index.md", "../quality/index.md", "../writing-tests/topologies.md",
+      "../writing-tests/mocking-and-proxies.md", "../packages/index.md",
+      "../patterns/shared-standards-package.md", "../running-prova/manifest-and-profiles.md",
+      "../running-prova/ci-and-output.md",
+    }) do
+      t:expect(body:find("(" .. link, 1, true), "the overview does not link " .. link):never():is_nil()
+    end
+  end)
+end)
+
+prova.test("the quality account is taught end to end", {
+  promises = "phase 2: ratchets, deputies, kept reports, lanes and the rust-project retrofit "
+    .. "are all shipped and have no page",
+}, function(t)
+  t:expect(root .. "/docs/quality/index.md", "no Quality section"):is_file()
+  expect_taught(t, {
+    { needle = "measure.ratchet", what = "ratchets" },
+    { needle = "--update-baseline", what = "raising a floor" },
+    { needle = '"goal"', what = "ratchet goals" },
+    { needle = "junit.verify", what = "deputed verification" },
+    { needle = "cargo nextest", what = "the nextest deputy" },
+    { needle = "report.publish", what = "kept reports" },
+    { needle = "prova run --list", what = "lanes" },
+    { needle = "prova init rust-project", what = "the Rust retrofit" },
+  })
+end)
+
+prova.test("the backlog tier and reminders are taught", {
+  promises = "phase 3: the cold tier below a claim, its verbs, and reminders that draw it down",
+}, function(t)
+  expect_taught(t, {
+    { needle = "<!-- backlog:", what = "backlog anchors" },
+    { needle = "prova specs capture", what = "verified capture" },
+    { needle = "prova specs promote", what = "promotion" },
+    { needle = "prova specs backfill", what = "proof-to-claim traceability" },
+    { needle = "prova.remind", what = "reminders" },
+    { needle = "--heed", what = "heeding reminders" },
+    { needle = "VACUOUS-HANG", what = "hangs under falsify" },
+  })
+end)
+
+prova.test("running at scale is taught", {
+  promises = "phase 4: locks, flakes, resume/reuse, dependency overrides and the capabilities "
+    .. "table shipped after v0.16",
+}, function(t)
+  expect_taught(t, {
+    { needle = "prova.writes(", what = "locks" },
+    { needle = "prova lock ", what = "joining a lock from outside prova" },
+    { needle = "FLAKY", what = "the flaky verdict" },
+    { needle = "prova stress", what = "reproducing a flake" },
+    { needle = "--resume", what = "resuming a run" },
+    { needle = "--reuse", what = "reusing passes" },
+    { needle = "--dep ", what = "dependency overrides" },
+    { needle = "[capabilities]", what = "declared capabilities" },
+    { needle = "idle_timeout", what = "liveness bounds" },
+  })
+end)
+
+prova.test("environments and packages are current", {
+  promises = "phase 5: topology startup/scope, the stdio driver and doubles, and the official "
+    .. "package list as of v0.30",
+}, function(t)
+  expect_taught(t, {
+    { needle = 'startup = "', what = "topology startup budgets" },
+    { needle = 'scope = "run"', what = "run-scoped topologies" },
+    { needle = "stdio.spawn", what = "the stdio driver" },
+    { needle = "stdio.mock", what = "spawnable doubles" },
+    { needle = "prova packages add", what = "adding a package from the registry" },
+  })
+  local official = fs.read(root .. "/docs/packages/official-packages.md")
+  t:expect_all(function()
+    for _, name in ipairs({ "kind", "vault", "parallels", "xcodebuild", "aegis" }) do
+      t:expect(official:find(name, 1, true), "official-packages.md omits " .. name):never():is_nil()
+    end
+  end)
+end)
+
+--- Where each `prova learn` topic lives on the site. A topic the binary teaches with no row here
+--- is a feature the docs do not know exists.
+local TOPIC_HOMES = {
+  pdd = "workflows/the-proof-driven-change.md",
+  promises = "writing-tests/promises-and-burndown.md",
+  reminders = "quality/reminders.md",
+  verifiers = "quality/deputed-verifiers.md",
+  reports = "quality/deputed-verifiers.md",
+  falsify = "evidence/falsifiers.md",
+  spec = "evidence/claims-and-covers.md",
+  claims = "evidence/claims-and-covers.md",
+  backlog = "evidence/backlog.md",
+  record = "evidence/record-and-attest.md",
+  evidence = "evidence/index.md",
+  project = "running-prova/manifest-and-profiles.md",
+  init = "running-prova/scaffolding.md",
+  authoring = "writing-tests/tests-and-grouping.md",
+  fixtures = "writing-tests/fixtures.md",
+  doubles = "writing-tests/mocking-and-proxies.md",
+  proxies = "writing-tests/mocking-and-proxies.md",
+  drivers = "writing-tests/testing-real-systems.md",
+  topologies = "writing-tests/topologies.md",
+  packages = "packages/using-packages.md",
+  ["package-authoring"] = "packages/authoring-packages.md",
+  running = "running-prova/command-line.md",
+  locks = "running-prova/locks-and-scale.md",
+  capabilities = "running-prova/capabilities.md",
+  mcp = "running-prova/agents-and-mcp.md",
+}
+
+prova.test("every prova learn topic has a home page that names it", {
+  promises = "phase 6: the guard that keeps the docs from falling a release behind again — a "
+    .. "new topic in the binary is a page the docs owe",
+}, function(t)
+  local r = shell.run({ "prova", "learn" }, { check = true })
+  local topics = {}
+  for name in r.stdout:gmatch("\n  ([%w%-]+)%s") do topics[#topics + 1] = name end
+  t:expect(#topics, "parsed no topics from `prova learn`"):gt(10)
+  t:expect_all(function()
+    for _, topic in ipairs(topics) do
+      local home = TOPIC_HOMES[topic]
+      t:expect(home, "topic `" .. topic .. "` has no home page"):never():is_nil()
+      if home then
+        local path = root .. "/docs/" .. home
+        t:expect(path, topic .. ": " .. home .. " is missing"):is_file()
+        if fs.exists(path) then
+          t:expect(fs.read(path):find("prova learn " .. topic, 1, true),
+            home .. " does not point readers at `prova learn " .. topic .. "`"):never():is_nil()
+        end
+      end
+    end
+  end)
 end)
