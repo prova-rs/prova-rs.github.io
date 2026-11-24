@@ -21,11 +21,16 @@ Contention and absence are different answers and must never be conflated.
 ```
 
 The manifest opts the docs in
-([the `[claims]` table](../evidence/claims-and-covers.md#opting-in--the-claims-table)):
+([spec sources](../evidence/claims-and-covers.md#opting-in--spec-sources)):
 
 ```toml
-[claims]
-docs = ["docs/design", "README.md"]
+[[specs.source]]
+type = "directory"
+path = "docs/design"
+
+[[specs.source]]
+type = "directory"
+path = "README.md"
 ```
 
 A proof **covers** the claim — and where the exact wording *is* the contract, a

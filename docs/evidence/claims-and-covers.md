@@ -23,14 +23,20 @@ Contention and absence are different answers and must never be conflated.
 claims from unmarked text is how this pattern would turn into ritual and get routed around. Only
 the sentences you anchor become obligations.
 
-## Opting in — the `[claims]` table
+## Opting in — spec sources
 
 ```toml
-[claims]
-docs = ["docs/design", "README.md"]
+[[specs.source]]
+type = "directory"
+path = "docs/design"
+
+[[specs.source]]
+type = "directory"
+path = "README.md"
 ```
 
-Files and directories scanned for anchors, package-relative. **Absent by default**: no section
+Each `[[specs.source]]` names a directory or a single markdown file scanned for anchors,
+package-relative. The same sources hold [backlog items](./backlog.md), the cold state of a claim. **Absent by default**: no section
 means no scan, no cost, and no lecture about a subsystem the package never asked for. Scanning
 belongs to the query verbs — a bare `prova` does not parse markdown to run a test, and an
 unproven claim never turns a green suite red.

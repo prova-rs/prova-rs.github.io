@@ -8,7 +8,7 @@ sidebar_label: "prova.toml"
 The package manifest. Place a `prova.toml` at your repository root (or in a `prova/` / `.prova/`
 nook) and `prova` with no arguments runs the configured suite — CI is just `prova`. Its tables:
 `[run]` (the default profile), `[profiles.<name>]` (overlays selected with `--profile` /
-`prova run <name>`), `[requires]` (the prova version this package needs), `[claims]` (the prose
+`prova run <name>`), `[requires]` (the prova version this package needs), `[specs]` (the prose
 side of the obligation ledger), `[suites.<name>]` (explicitly-declared suites), `[dependencies]`
 (+ `[sources]`) for external packages, `[package]` (when this package exports a namespace),
 `[topologies]`, `[globals]`, `[updates]`, `[luals]` for IDE integration, and `[agent]`.
@@ -112,16 +112,25 @@ whichever hats it declares, and `prova init package` scaffolds a package that ca
 proof suite — so one `requires.prova` is read once by the package gate and once by the dependency
 resolver. They must agree, and a proof holds them to it.
 
-## `[claims]` — the prose side of the obligation ledger
+## `[specs]` — the prose side of the obligation ledger
 
 ```toml
-[claims]
-docs = ["docs/design", "README.md"]
+[[specs.source]]
+type = "directory"
+path = "docs/design"
+
+[[specs.source]]
+type = "directory"
+path = "README.md"
 ```
 
-Files and directories scanned for `<!-- claim: id -->` anchors — normative prose a proof binds to
+Each source is a directory or a single markdown file scanned for `<!-- claim: id -->` and
+`<!-- backlog: id -->` anchors — normative prose a proof binds to
 with `covers = "<doc>#<id>"`, reconciled by `prova owed` / `prova evidence` / `prova attest`.
 Package-relative, and scoped deliberately: prova must never crawl a whole repo looking for prose.
+`directory` is the one source type today, and it is read/write: `prova specs capture` and `prova
+specs promote` edit anchors in place. The older spellings, a `[claims]` table and `docs = [...]`,
+still load with a deprecation warning and retire at 1.0.
 
 **Absent by default, and absence is the whole opt-out**: no section means no scan, no cost. An
 unproven claim never turns a green suite red — the scan belongs to the query verbs, not to `prova`.
@@ -326,9 +335,10 @@ LOG_LEVEL = "info"
 [requires]
 prova = ">= 0.17"
 
-# The prose side of the ledger: scan these for <!-- claim: id --> anchors.
-[claims]
-docs = ["docs/design"]
+# The prose side of the ledger: scan these for claim and backlog anchors.
+[[specs.source]]
+type = "directory"
+path = "docs/design"
 
 # `prova run ci`: inherits proofs/format, overrides jobs, merges env, adds guarantees.
 [profiles.ci]

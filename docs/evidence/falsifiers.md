@@ -1,5 +1,5 @@
 ---
-sidebar_position: 3
+sidebar_position: 4
 ---
 
 # Falsifiers
@@ -47,6 +47,35 @@ FAIL  two plus two
   broken falsifier would masquerade as a body that correctly went red.
 - `falsified_by` is **test-level only**, like `promises` and `proves`: a group or flow has no
   assertion of its own for a mutation to invalidate.
+
+## A mutant that hangs: VACUOUS-HANG
+
+The mutation this verb most exists to catch is *delete a terminating condition*, and that mutation
+often produces no verdict at all: the body never returns. So under `falsify` every test is bounded,
+and exceeding the bound is its own verdict:
+
+```text
+FAIL  the watcher stops when the slot settles
+  ↳ VACUOUS-HANG — the body did not FAIL under its falsifier, it never returned (no progress
+    for 30s).
+```
+
+It is kin to *vacuous*, since both mean the falsifier told you nothing, and it is **never
+inverted**: a hang is not a red body, so turning it green would be the strongest possible lie.
+
+The bound is resolved in this order:
+
+| | |
+|---|---|
+| `--timeout <dur>` | a run-scoped cap that overrides every test's declared bound |
+| `timeout = "30s"` | the test's own wall clock |
+| `idle_timeout = "60s"` | a liveness bound: fails only when nothing happens for that long |
+| *(falsify's default)* | with none of the above, falsify applies its own liveness bound |
+
+`idle_timeout` is the one for a proof that is legitimately slow: it measures silence, not
+duration. Progress means an assertion landing, so a body doing real work without asserting looks
+the same as a wedged one. A Lua loop that never yields (`while true do end`) cannot be interrupted
+yet, because every bound rides the async runtime.
 
 ## When to reach for one
 

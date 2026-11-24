@@ -62,6 +62,8 @@ prova.test("no page teaches retired vocabulary", {
     { needle = "prova falsify",     was = "`prova tests falsify`" },
     { needle = "prova list ",       was = "`prova tests`" },
     { needle = "prova watch",       was = "a verb removed in 2026-08" },
+    -- `[claims]` became `[specs]`, and `docs = [...]` became `[[specs.source]]` (prova learn spec).
+    { needle = "[claims]\ndocs",    was = "the `[[specs.source]]` table" },
   }
   t:expect_all(function()
     for _, r in ipairs(RETIRED) do
@@ -113,8 +115,8 @@ prova.test("the evidence ledger has its own section", {
 end)
 
 prova.test("the attention and quality accounts have their own section", {
-  promises = "wave 3 (reminders, junit/sarif deputed verifiers, measurements/ratchets, "
-    .. "lanes) ships with the next prova release — its section lands with it",
+  proves = "landed 2026-11-24: docs/quality — deputed verifiers, ratchets, lanes and "
+    .. "reminders, against v0.30",
 }, function(t)
   t:expect(root .. "/docs/quality", "no Quality section directory"):is_dir()
   t:expect_all(function()
@@ -179,8 +181,8 @@ prova.test("the bigger picture: one page introduces every capability as a unit",
 end)
 
 prova.test("the quality account is taught end to end", {
-  promises = "phase 2: ratchets, deputies, kept reports, lanes and the rust-project retrofit "
-    .. "are all shipped and have no page",
+  proves = "phase 2 (2026-11-24): ratchets, deputies, kept reports, lanes and the "
+    .. "rust-project retrofit had shipped with no page",
 }, function(t)
   t:expect(root .. "/docs/quality/index.md", "no Quality section"):is_file()
   expect_taught(t, {
@@ -196,7 +198,8 @@ prova.test("the quality account is taught end to end", {
 end)
 
 prova.test("the backlog tier and reminders are taught", {
-  promises = "phase 3: the cold tier below a claim, its verbs, and reminders that draw it down",
+  proves = "phase 3 (2026-11-24): the cold tier below a claim, its verbs, and reminders "
+    .. "that draw it down",
 }, function(t)
   expect_taught(t, {
     { needle = "<!-- backlog:", what = "backlog anchors" },
