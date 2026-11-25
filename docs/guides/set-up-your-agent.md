@@ -16,7 +16,7 @@ brew install prova-rs/tap/prova
 prova --version
 ```
 
-Use 0.30.13 or later. Other channels (release archives, building from source) are on
+Use 0.30.14 or later. Other channels (release archives, building from source) are on
 [Installation](../getting-started/installation.md).
 
 ## 2. Connect your agent over MCP

@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: prova-rs/run-action@v1
         with:
-          version: v0.30.13   # the current release — the nightly freshness proof holds this string to it
+          version: v0.30.14   # the current release — the nightly freshness proof holds this string to it
           profile: nightly
         env:
           # The proofs ask GitHub what the latest release is and what the action's default says.

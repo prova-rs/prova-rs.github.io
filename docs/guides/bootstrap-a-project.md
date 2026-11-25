@@ -113,7 +113,7 @@ prova run all
 
 One command and one exit code for the black-box suite, the unit tests and the quality gates. CI
 runs the same lanes from the rendered workflows, so a green `prova run all` locally predicts a
-green pipeline. Pin the prova version in the workflows (`with: { version: v0.30.13 }`) so the bar
+green pipeline. Pin the prova version in the workflows (`with: { version: v0.30.14 }`) so the bar
 moves when you decide, not when the action's default does.
 
 ## What you have now

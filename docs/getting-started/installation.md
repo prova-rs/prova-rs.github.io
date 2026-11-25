@@ -16,7 +16,7 @@ To pin a major line or an exact version:
 
 ```shell
 brew install prova-rs/tap/prova@0         # latest stable 0.x
-brew install prova-rs/tap/prova@0.30.13   # exactly 0.30.13
+brew install prova-rs/tap/prova@0.30.14   # exactly 0.30.14
 ```
 
 Homebrew serves the macOS arm64 and Linux builds. On an Intel Mac there is no prebuilt binary, and
@@ -41,7 +41,7 @@ Download, extract, and put the binary on your `PATH`:
 
 ```shell
 # The one place to change — see https://github.com/prova-rs/prova/releases/latest
-VERSION=v0.30.13
+VERSION=v0.30.14
 
 curl -LO https://github.com/prova-rs/prova/releases/download/$VERSION/prova-$VERSION-linux-x86_64.tar.gz
 tar -xzf prova-$VERSION-linux-x86_64.tar.gz
