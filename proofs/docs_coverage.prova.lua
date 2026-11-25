@@ -256,6 +256,7 @@ local TOPIC_HOMES = {
   promises = "writing-tests/promises-and-burndown.md",
   reminders = "quality/reminders.md",
   verifiers = "quality/deputed-verifiers.md",
+  quality = "quality/index.md",
   reports = "quality/deputed-verifiers.md",
   falsify = "evidence/falsifiers.md",
   spec = "evidence/claims-and-covers.md",
@@ -401,5 +402,47 @@ prova.test("v0.30.13 is taught where it belongs", {
     { needle = "[isolation]", what = "isolation of spawned processes" },
     { needle = "EX_CONFIG", what = "the configuration exit code" },
     { needle = "EX_SOFTWARE", what = "the internal-bug exit code" },
+  })
+end)
+
+-- ── Guides (2026-11-25) ──────────────────────────────────────────────────────────────────────
+
+prova.test("the onboarding path is one section a reader can follow end to end", {
+  proves = "a new engineer (or their agent) needs one ordered path from install to a project held to "
+    .. "the org's bar: set up the agent, bootstrap, adopt a standards package, align a legacy "
+    .. "project. Each page exists, the index links every one, and each step links the next",
+}, function(t)
+  local pages = {
+    "set-up-your-agent.md", "bootstrap-a-project.md",
+    "adopt-a-standards-package.md", "bring-a-project-into-alignment.md",
+  }
+  local index = root .. "/docs/guides/index.md"
+  t:expect(index, "docs/guides/index.md"):is_file()
+  local index_text = fs.exists(index) and fs.read(index) or ""
+  t:expect_all(function()
+    for i, page in ipairs(pages) do
+      local p = root .. "/docs/guides/" .. page
+      t:expect(p, page):is_file()
+      t:expect(index_text:find("./" .. page, 1, true), "the index links " .. page):never():is_nil()
+      local nxt = pages[i + 1]
+      if nxt and fs.exists(p) then
+        t:expect(fs.read(p):find("./" .. nxt, 1, true), page .. " links the next step, " .. nxt):never():is_nil()
+      end
+    end
+  end)
+end)
+
+prova.test("the guides teach the moves the binary teaches", {
+  proves = "the guides are where a reader learns the agent setup and the quality loop, so each move "
+    .. "the binary teaches for it is named there",
+}, function(t)
+  expect_taught(t, {
+    { needle = "prova mcp", what = "serving prova to an agent" },
+    { needle = "prova skill --install", what = "committing the skill" },
+    { needle = "prova init rust-project", what = "the Rust retrofit" },
+    { needle = "--update-baseline", what = "the baseline ritual" },
+    { needle = "prova run all", what = "the pre-push sweep" },
+    { needle = "except = {", what = "waivers" },
+    { needle = "prova learn quality", what = "the quality topic" },
   })
 end)

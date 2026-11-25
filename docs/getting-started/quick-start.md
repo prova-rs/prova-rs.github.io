@@ -81,5 +81,6 @@ Whatever the snippet returns is printed (tables come back as JSON), so you can c
 ## Next steps
 
 - Grow this into a real project — `prova init`, shared fixtures, parallel execution — in [Your First Test Suite](./your-first-test-suite.md).
+- Set up your agent, bootstrap a project and hold it to your organization's bar, step by step, in the [Guides](../guides/index.md).
 - See every flag and exit code in the [CLI reference](../reference/cli.md).
 - Explore the full assertion vocabulary in [Assertions](../writing-tests/assertions.md).

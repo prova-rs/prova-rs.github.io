@@ -4,6 +4,11 @@ sidebar_position: 1
 
 # The Shared Standards Package
 
+:::tip
+To adopt an existing standards package rather than write one, follow [Adopt a Standards
+Package](../guides/adopt-a-standards-package.md).
+:::
+
 Every organization has standards — the licence every repo must carry, the registry the build may
 publish to, the metric prefix a service's telemetry must use. And in most organizations they live
 in a wiki, which means they are enforced by whoever happens to look. **A standard nobody can run

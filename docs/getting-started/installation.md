@@ -16,12 +16,11 @@ To pin a major line or an exact version:
 
 ```shell
 brew install prova-rs/tap/prova@0         # latest stable 0.x
-brew install prova-rs/tap/prova@0.26.1    # exactly 0.26.1
+brew install prova-rs/tap/prova@0.30.13   # exactly 0.30.13
 ```
 
-The tap can lag the newest release. If `prova --version` reports something older than the
-[latest release](https://github.com/prova-rs/prova/releases/latest), install from the release
-archives below.
+Homebrew serves the macOS arm64 and Linux builds. On an Intel Mac there is no prebuilt binary, and
+`brew install` refuses rather than install one that cannot run: build from source instead (below).
 
 The tap's formulas are generated automatically from each release — see [prova-rs/homebrew-tap](https://github.com/prova-rs/homebrew-tap).
 
@@ -34,7 +33,9 @@ Every release publishes prebuilt archives on the [GitHub releases page](https://
 - `prova-<version>-macos-arm64.tar.gz`
 - `prova-<version>-windows-x86_64.zip` (plus a `-installer.exe`)
 
-There is no prebuilt **macOS x86_64** archive — on an Intel Mac, use Homebrew or build from source.
+There is no prebuilt **macOS x86_64** archive — on an Intel Mac, build from source.
+
+The Linux archives need glibc 2.39 or later (Ubuntu 24.04, Debian 13, Fedora 40 and later). On an older distribution, build from source.
 
 Download, extract, and put the binary on your `PATH`:
 

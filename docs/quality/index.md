@@ -39,3 +39,7 @@ past its date, are [Reminders](./reminders.md).
 3. **[Lanes](./lanes.md)**: named run modes that give every project the same interface, and the
    Rust retrofit that sets them up in one command.
 4. **[Reminders](./reminders.md)**: conditions the world must meet, watched on every run.
+
+From prova 0.30.14, `prova learn quality` is the one-screen version of lanes, ratchets and standards packages. To put a
+project on this bar step by step, follow [Bootstrap a Project](../guides/bootstrap-a-project.md) and
+[Bring a Project into Alignment](../guides/bring-a-project-into-alignment.md).
